@@ -1,9 +1,9 @@
 {
   "name": "asslang-jte-prototype",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "A provenance-typed, allocation-free stream kernel prototype for WebAssembly",
+  "description": "Causal observation-typed Wasm kernels, composable scalar machines, ASABI 1 and capability effects",
   "engines": {
     "node": ">=22"
   },
@@ -11,9 +11,14 @@
     "test": "node --test test/*.test.mjs",
     "test:browser": "node scripts/browser-test.mjs",
     "bench": "node scripts/bench.mjs",
-    "bench:fusion": "node scripts/bench-fusion.mjs",
     "demo": "node scripts/serve.mjs",
     "build:example": "node src/cli.mjs examples/energy.ass -o /tmp/asslang-energy.wasm --explain",
-    "test:browser:http": "node scripts/browser-test.mjs --http"
+    "test:browser:http": "node scripts/browser-test.mjs --http",
+    "bench:browser": "node scripts/browser-test.mjs --bench",
+    "test:corpus": "node --test test/corpus.test.mjs",
+    "example:host": "node examples/interop/host.mjs",
+    "test:causal": "node --test test/causal.test.mjs test/leases.test.mjs",
+    "bench:fusion": "node scripts/bench-fusion.mjs",
+    "test:fusion": "node --test test/fusion*.test.mjs"
   }
 }

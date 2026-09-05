@@ -3,7 +3,7 @@ import { cpus, platform, arch } from 'node:os';
 import { compile, instantiate } from '../src/compiler.mjs';
 
 // Paired, alternating-order microbenchmarks; no performance threshold in tests.
-// Override the input length for a quick run: FUSION_BENCH_N=4096 node scripts/bench-fusion.mjs
+// Override the input length: FUSION_BENCH_N=4096 node scripts/bench-fusion.mjs
 const n = Number(process.env.FUSION_BENCH_N ?? 262144);
 if (!Number.isInteger(n) || n < 1 || n > 1048576) {
   throw new RangeError('FUSION_BENCH_N must be an integer from 1 to 1048576');
@@ -25,15 +25,21 @@ const programs = {
     sum(ys)+sum(map(ys,x=>x*x)) };`,
   independent_filters_control: `export fn main(xs) =
     sum(filter(xs,x=>x>0)) + count(filter(xs,x=>x>0));`,
+  causal_history: `export fn main(xs:[Num])={let ys=scan(xs,0,(s,x)=>s+x);
+    sum(ys)+count(ys)+fold(ys,0,(s,x)=>max(s,x))};`,
+  causal_selection: `export fn main(xs:[Num])={
+    let ys=transduce(xs,0,(s,x)=>{state:s+x,value:s+x,emit:x>0});
+    sum(ys)+count(ys)};`,
 };
 const median = xs => [...xs].sort((a,b)=>a-b)[Math.floor(xs.length/2)];
 const report = {
-  experiment: 'same-domain reduction cohorts v0',
+  experiment: 'same-domain reduction cohorts integrated with JTE 1 causal',
   environment: { node: process.version, v8: process.versions.v8,
     platform: platform(), arch: arch(), cpu: cpus()[0]?.model },
   method: { n, inputSeed: '0x51a7c0de', warmupCallsPerVariant: warmup,
     rounds, callsPerSample, order: 'alternating baseline/fused pairs',
-    units: 'milliseconds per call', timing: 'execution only, excludes compilation and instantiation' },
+    units: 'milliseconds per call', timing: 'execution only, excludes compilation and instantiation',
+    note: 'Dense stateless count already has no loop in the integrated baseline.' },
   cases: [],
 };
 for (const [name, source] of Object.entries(programs)) {

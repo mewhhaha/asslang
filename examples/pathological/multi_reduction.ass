@@ -1,0 +1,5 @@
+// Two traversals by default; dense count needs none. Opt-in reduction fusion
+// shares one traversal for total and energy, without changing the source.
+export fn moments(xs) = {
+  count: count(xs), total: sum(xs), energy: xs |> map(x => x * x) |> sum
+};

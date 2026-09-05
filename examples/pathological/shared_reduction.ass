@@ -1,0 +1,6 @@
+// Without demand-preserving reduction memoization this repeats sum(xs) once
+// per element. Memoization must not speculate traps into unselected branches.
+export fn shared(xs) = {
+  let total = sum(xs);
+  map(xs, x => total + x)
+};

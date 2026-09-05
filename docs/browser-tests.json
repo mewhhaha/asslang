@@ -1,0 +1,27 @@
+{
+  "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+  "checks": 139,
+  "cases": [
+    {
+      "name": "fused-range",
+      "wasmBytes": 535
+    },
+    {
+      "name": "borrowed-dot",
+      "wasmBytes": 706
+    },
+    {
+      "name": "seeded-differential",
+      "cases": 100
+    },
+    {
+      "name": "asabi-algorithm-corpus",
+      "cases": 24
+    }
+  ],
+  "notTested": [
+    "HTTP module loading",
+    "playground worker loading"
+  ],
+  "status": "PASS"
+}

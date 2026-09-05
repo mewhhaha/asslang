@@ -1,0 +1,2 @@
+// Dense does not imply seekable: the third prefix needs the first two steps.
+export fn wrong(xs: [Num]) = at(scan(xs, 0, (total, x) => total + x), 2);

@@ -1,0 +1,14 @@
+// The caller contract is a sorted numeric array. This implementation finds the
+// first index whose value is >= needle. Empty input returns index 0 / found false.
+// A bounded state-machine fold replaces recursion; no heap state is allocated.
+export fn lower_bound(xs: [Num], needle: Num) = {
+  let n = count(xs);
+  let s = range(32) |> fold({ lo: 0, hi: n }, (s, _) =>
+    if s.lo < s.hi then {
+      let mid = floor((s.lo + s.hi) / 2);
+      if at(xs, mid) < needle
+        then { lo: mid + 1, hi: s.hi }
+        else { lo: s.lo, hi: mid }
+    } else s);
+  { index: s.lo, found: s.lo < n && at(xs, s.lo) == needle }
+};

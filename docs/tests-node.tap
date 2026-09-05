@@ -1,0 +1,590 @@
+
+> asslang-jte-prototype@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: ASABI 1 has explicit version, fixed little-endian scalar layout and canonical field ordering
+ok 1 - ASABI 1 has explicit version, fixed little-endian scalar layout and canonical field ordering
+  ---
+  duration_ms: 9.812585
+  type: 'test'
+  ...
+# Subtest: indirect result wire bytes are independent of JS object layout
+ok 2 - indirect result wire bytes are independent of JS object layout
+  ---
+  duration_ms: 7.890942
+  type: 'test'
+  ...
+# Subtest: stable text bytes numeric arrays bool arrays and nested record roundtrips
+ok 3 - stable text bytes numeric arrays bool arrays and nested record roundtrips
+  ---
+  duration_ms: 5.117006
+  type: 'test'
+  ...
+# Subtest: outputs own storage and survive arena reuse; inputs are not mutated
+ok 4 - outputs own storage and survive arena reuse; inputs are not mutated
+  ---
+  duration_ms: 3.118215
+  type: 'test'
+  ...
+# Subtest: caller capacity overflow traps and runtime frame remains reusable
+ok 5 - caller capacity overflow traps and runtime frame remains reusable
+  ---
+  duration_ms: 3.015351
+  type: 'test'
+  ...
+# Subtest: indirect output descriptors and arenas cannot overlap input spans or each other
+ok 6 - indirect output descriptors and arenas cannot overlap input spans or each other
+  ---
+  duration_ms: 2.901288
+  type: 'test'
+  ...
+# Subtest: Bool streams validate canonical wire elements when demanded
+ok 7 - Bool streams validate canonical wire elements when demanded
+  ---
+  duration_ms: 1.661112
+  type: 'test'
+  ...
+# Subtest: aligned materialized output after a Bool array
+ok 8 - aligned materialized output after a Bool array
+  ---
+  duration_ms: 2.246363
+  type: 'test'
+  ...
+# Subtest: ABI rejects wrong values, sparse arrays, getters and invalid Unicode
+ok 9 - ABI rejects wrong values, sparse arrays, getters and invalid Unicode
+  ---
+  duration_ms: 3.364456
+  type: 'test'
+  ...
+# Subtest: malformed UTF-8 and invalid descriptor pointers fail at lifting
+ok 10 - malformed UTF-8 and invalid descriptor pointers fail at lifting
+  ---
+  duration_ms: 0.744521
+  type: 'test'
+  ...
+# Subtest: prototype-looking record fields are data, not object prototype mutation
+ok 11 - prototype-looking record fields are data, not object prototype mutation
+  ---
+  duration_ms: 4.310371
+  type: 'test'
+  ...
+# Subtest: zero-page runtime supports pure scalar exports and empty records
+ok 12 - zero-page runtime supports pure scalar exports and empty records
+  ---
+  duration_ms: 1.957738
+  type: 'test'
+  ...
+# Subtest: ABI version is enforced from binary, not mutable compile sidecar
+ok 13 - ABI version is enforced from binary, not mutable compile sidecar
+  ---
+  duration_ms: 1.42085
+  type: 'test'
+  ...
+# Subtest: low-level arena refreshes DataViews after host growth and enforces capacity
+ok 14 - low-level arena refreshes DataViews after host growth and enforces capacity
+  ---
+  duration_ms: 0.273792
+  type: 'test'
+  ...
+# Subtest: record row inference supports polymorphic dictionary shapes and rejects missing fields
+ok 15 - record row inference supports polymorphic dictionary shapes and rejects missing fields
+  ---
+  duration_ms: 3.344627
+  type: 'test'
+  ...
+# Subtest: record-fold state snapshots preserve simultaneous update and branch scope
+ok 16 - record-fold state snapshots preserve simultaneous update and branch scope
+  ---
+  duration_ms: 3.084294
+  type: 'test'
+  ...
+# Subtest: checked random access handles maps and guards, and rejects invalid indices
+ok 17 - checked random access handles maps and guards, and rejects invalid indices
+  ---
+  duration_ms: 4.68903
+  type: 'test'
+  ...
+# Subtest: frozen ASABI 1 binary fixture runs without recompiling its source
+ok 18 - frozen ASABI 1 binary fixture runs without recompiling its source
+  ---
+  duration_ms: 6.194958
+  type: 'test'
+  ...
+# Subtest: conditionals select text, bytes and streams without demanding the inactive branch
+ok 19 - conditionals select text, bytes and streams without demanding the inactive branch
+  ---
+  duration_ms: 9.387706
+  type: 'test'
+  ...
+# Subtest: arithmetic and precedence
+ok 20 - arithmetic and precedence
+  ---
+  duration_ms: 11.812828
+  type: 'test'
+  ...
+# Subtest: empty, singleton, and ordinary ranges
+ok 21 - empty, singleton, and ordinary ranges
+  ---
+  duration_ms: 7.869936
+  type: 'test'
+  ...
+# Subtest: pure range module imports no memory and has no runtime imports
+ok 22 - pure range module imports no memory and has no runtime imports
+  ---
+  duration_ms: 1.413579
+  type: 'test'
+  ...
+# Subtest: borrowed memory energy
+ok 23 - borrowed memory energy
+  ---
+  duration_ms: 2.855629
+  type: 'test'
+  ...
+# Subtest: shared filtered cohort fuses to one loop and zero length guards
+ok 24 - shared filtered cohort fuses to one loop and zero length guards
+  ---
+  duration_ms: 2.026551
+  type: 'test'
+  ...
+# Subtest: independent equal-length sources are not silently aligned
+ok 25 - independent equal-length sources are not silently aligned
+  ---
+  duration_ms: 0.92633
+  type: 'test'
+  ...
+# Subtest: independent filters do not become equal merely because predicates look alike
+ok 26 - independent filters do not become equal merely because predicates look alike
+  ---
+  duration_ms: 0.71762
+  type: 'test'
+  ...
+# Subtest: explicit positional check works and traps on mismatch
+ok 27 - explicit positional check works and traps on mismatch
+  ---
+  duration_ms: 2.37059
+  type: 'test'
+  ...
+# Subtest: positional check creates new domain; it does not equate old origins
+ok 28 - positional check creates new domain; it does not equate old origins
+  ---
+  duration_ms: 0.743459
+  type: 'test'
+  ...
+# Subtest: checked zip of separately filtered streams is explicitly unsupported
+ok 29 - checked zip of separately filtered streams is explicitly unsupported
+  ---
+  duration_ms: 0.793645
+  type: 'test'
+  ...
+# Subtest: nested checked zip preserves all upstream obligations
+ok 30 - nested checked zip preserves all upstream obligations
+  ---
+  duration_ms: 2.974228
+  type: 'test'
+  ...
+# Subtest: range extents reject negatives, fractions, NaN, infinity and overflow
+ok 31 - range extents reject negatives, fractions, NaN, infinity and overflow
+  ---
+  duration_ms: 1.124152
+  type: 'test'
+  ...
+# Subtest: span ABI checks alignment, object bounds, unsigned overflow and negative length
+ok 32 - span ABI checks alignment, object bounds, unsigned overflow and negative length
+  ---
+  duration_ms: 1.034428
+  type: 'test'
+  ...
+# Subtest: zero-page memory permits an empty span
+ok 33 - zero-page memory permits an empty span
+  ---
+  duration_ms: 1.317514
+  type: 'test'
+  ...
+# Subtest: memory is borrowed, never written or grown
+ok 34 - memory is borrowed, never written or grown
+  ---
+  duration_ms: 1.813551
+  type: 'test'
+  ...
+# Subtest: missing and shared memories are not accepted
+ok 35 - missing and shared memories are not accepted
+  ---
+  duration_ms: 3.433731
+  type: 'test'
+  ...
+# Subtest: higher-order helpers are staged with lexical capture
+ok 36 - higher-order helpers are staged with lexical capture
+  ---
+  duration_ms: 1.534801
+  type: 'test'
+  ...
+# Subtest: let and top-level polymorphism
+ok 37 - let and top-level polymorphism
+  ---
+  duration_ms: 1.44162
+  type: 'test'
+  ...
+# Subtest: forward references are checked in dependency order
+ok 38 - forward references are checked in dependency order
+  ---
+  duration_ms: 0.746344
+  type: 'test'
+  ...
+# Subtest: fold supports numeric and boolean accumulators
+ok 39 - fold supports numeric and boolean accumulators
+  ---
+  duration_ms: 3.762656
+  type: 'test'
+  ...
+# Subtest: nested reductions correctly capture outer indices and accumulators
+ok 40 - nested reductions correctly capture outer indices and accumulators
+  ---
+  duration_ms: 1.53422
+  type: 'test'
+  ...
+# Subtest: scalar branch caches do not leak across control-flow paths
+ok 41 - scalar branch caches do not leak across control-flow paths
+  ---
+  duration_ms: 3.239678
+  type: 'test'
+  ...
+# Subtest: demand semantics: dead bindings and inactive branches do not execute
+ok 42 - demand semantics: dead bindings and inactive branches do not execute
+  ---
+  duration_ms: 1.557916
+  type: 'test'
+  ...
+# Subtest: count does not demand map values
+ok 43 - count does not demand map values
+  ---
+  duration_ms: 0.940416
+  type: 'test'
+  ...
+# Subtest: floating point NaNs, infinities, signed zero and arithmetic order
+ok 44 - floating point NaNs, infinities, signed zero and arithmetic order
+  ---
+  duration_ms: 12.365164
+  type: 'test'
+  ...
+# Subtest: boolean ABI is canonical
+ok 45 - boolean ABI is canonical
+  ---
+  duration_ms: 1.517004
+  type: 'test'
+  ...
+# Subtest: invalid types, occurs check, recursion, names and unsupported ABIs
+ok 46 - invalid types, occurs check, recursion, names and unsupported ABIs
+  ---
+  duration_ms: 0.732733
+  type: 'test'
+  ...
+# Subtest: syntax errors carry location and stable diagnostic code
+ok 47 - syntax errors carry location and stable diagnostic code
+  ---
+  duration_ms: 0.436747
+  type: 'test'
+  ...
+# Subtest: expansion resource limit is explicit, not an inference timeout
+ok 48 - expansion resource limit is explicit, not an inference timeout
+  ---
+  duration_ms: 0.968609
+  type: 'test'
+  ...
+# Subtest: JTE checker rejects tampered derivations
+ok 49 - JTE checker rejects tampered derivations
+  ---
+  duration_ms: 2.150158
+  type: 'test'
+  ...
+# Subtest: binaries are deterministic and certificates are erased from Wasm
+ok 50 - binaries are deterministic and certificates are erased from Wasm
+  ---
+  duration_ms: 1.284865
+  type: 'test'
+  ...
+# Subtest: 250 seeded differential cases against independent reference semantics
+ok 51 - 250 seeded differential cases against independent reference semantics
+  ---
+  duration_ms: 336.735585
+  type: 'test'
+  ...
+# Subtest: optional ABI annotations resolve otherwise unobservable element types
+ok 52 - optional ABI annotations resolve otherwise unobservable element types
+  ---
+  duration_ms: 3.338642
+  type: 'test'
+  ...
+# Subtest: fold can ignore non-demanded mapped values
+ok 53 - fold can ignore non-demanded mapped values
+  ---
+  duration_ms: 1.019655
+  type: 'test'
+  ...
+# Subtest: corpus: energy
+ok 54 - corpus: energy
+  ---
+  duration_ms: 22.431988
+  type: 'test'
+  ...
+# Subtest: corpus: sum-squares
+ok 55 - corpus: sum-squares
+  ---
+  duration_ms: 5.083364
+  type: 'test'
+  ...
+# Subtest: corpus: cohort
+ok 56 - corpus: cohort
+  ---
+  duration_ms: 4.220296
+  type: 'test'
+  ...
+# Subtest: corpus: dot
+ok 57 - corpus: dot
+  ---
+  duration_ms: 5.583738
+  type: 'test'
+  ...
+# Subtest: corpus: welford
+ok 58 - corpus: welford
+  ---
+  duration_ms: 8.294781
+  type: 'test'
+  ...
+# Subtest: corpus: fibonacci
+ok 59 - corpus: fibonacci
+  ---
+  duration_ms: 3.20759
+  type: 'test'
+  ...
+# Subtest: corpus: normalize
+ok 60 - corpus: normalize
+  ---
+  duration_ms: 10.802325
+  type: 'test'
+  ...
+# Subtest: corpus: convolution
+ok 61 - corpus: convolution
+  ---
+  duration_ms: 5.017495
+  type: 'test'
+  ...
+# Subtest: corpus: regression
+ok 62 - corpus: regression
+  ---
+  duration_ms: 5.72415
+  type: 'test'
+  ...
+# Subtest: corpus: lower-bound
+ok 63 - corpus: lower-bound
+  ---
+  duration_ms: 5.011046
+  type: 'test'
+  ...
+# Subtest: corpus: polynomial
+ok 64 - corpus: polynomial
+  ---
+  duration_ms: 5.230727
+  type: 'test'
+  ...
+# Subtest: corpus: partition
+ok 65 - corpus: partition
+  ---
+  duration_ms: 3.607693
+  type: 'test'
+  ...
+# Subtest: corpus: pairwise
+ok 66 - corpus: pairwise
+  ---
+  duration_ms: 3.799041
+  type: 'test'
+  ...
+# Subtest: corpus: checksum
+ok 67 - corpus: checksum
+  ---
+  duration_ms: 1.49457
+  type: 'test'
+  ...
+# Subtest: corpus: traits
+ok 68 - corpus: traits
+  ---
+  duration_ms: 2.580165
+  type: 'test'
+  ...
+# Subtest: corpus: type-shapes
+ok 69 - corpus: type-shapes
+  ---
+  duration_ms: 3.127329
+  type: 'test'
+  ...
+# Subtest: corpus: contracts
+ok 70 - corpus: contracts
+  ---
+  duration_ms: 1.61377
+  type: 'test'
+  ...
+# Subtest: corpus: relations
+ok 71 - corpus: relations
+  ---
+  duration_ms: 3.410015
+  type: 'test'
+  ...
+# Subtest: corpus: shared-reduction
+ok 72 - corpus: shared-reduction
+  ---
+  duration_ms: 1.911338
+  type: 'test'
+  ...
+# Subtest: corpus: prefixes-quadratic
+ok 73 - corpus: prefixes-quadratic
+  ---
+  duration_ms: 7.189166
+  type: 'test'
+  ...
+# Subtest: corpus: multi-reduction
+ok 74 - corpus: multi-reduction
+  ---
+  duration_ms: 3.744318
+  type: 'test'
+  ...
+# Subtest: corpus: staging-expansion
+ok 75 - corpus: staging-expansion
+  ---
+  duration_ms: 4.792256
+  type: 'test'
+  ...
+# Subtest: corpus: roundtrip
+ok 76 - corpus: roundtrip
+  ---
+  duration_ms: 2.424451
+  type: 'test'
+  ...
+# Subtest: corpus: host-effects
+ok 77 - corpus: host-effects
+  ---
+  duration_ms: 8.173017
+  type: 'test'
+  ...
+# Subtest: every .ass example and every accepted export is registered in the corpus
+ok 78 - every .ass example and every accepted export is registered in the corpus
+  ---
+  duration_ms: 24.457399
+  type: 'test'
+  ...
+# Subtest: 400 seeded record/array/nested-traversal differential cases, with optimization on and off
+ok 79 - 400 seeded record/array/nested-traversal differential cases, with optimization on and off
+  ---
+  duration_ms: 39.941354
+  type: 'test'
+  ...
+# Subtest: memoization does not speculate a trapping reduction into an empty stream or false predicate
+ok 80 - memoization does not speculate a trapping reduction into an empty stream or false predicate
+  ---
+  duration_ms: 19.350428
+  type: 'test'
+  ...
+# Subtest: binary search and numerical algorithms cover empty and degenerate inputs
+ok 81 - binary search and numerical algorithms cover empty and degenerate inputs
+  ---
+  duration_ms: 11.682842
+  type: 'test'
+  ...
+# Subtest: bounded staging expansion is reported rather than silently falling back
+ok 82 - bounded staging expansion is reported rather than silently falling back
+  ---
+  duration_ms: 5.62496
+  type: 'test'
+  ...
+# Subtest: dense counts lower to extent observations without traversing values or dropping zip obligations
+ok 83 - dense counts lower to extent observations without traversing values or dropping zip obligations
+  ---
+  duration_ms: 11.175067
+  type: 'test'
+  ...
+# Subtest: all host functions are impure and cannot escape into ordinary value code
+ok 84 - all host functions are impure and cannot escape into ordinary value code
+  ---
+  duration_ms: 4.146254
+  type: 'test'
+  ...
+# Subtest: unused performed results still execute once, in lexical order
+ok 85 - unused performed results still execute once, in lexical order
+  ---
+  duration_ms: 9.863222
+  type: 'test'
+  ...
+# Subtest: perform results may be reused as data without repeating the effect
+ok 86 - perform results may be reused as data without repeating the effect
+  ---
+  duration_ms: 2.215937
+  type: 'test'
+  ...
+# Subtest: ungranted, forged, wrong-signature and insufficient-budget invocations fail before a host call
+ok 87 - ungranted, forged, wrong-signature and insufficient-budget invocations fail before a host call
+  ---
+  duration_ms: 1.807922
+  type: 'test'
+  ...
+# Subtest: quota is consumed before a host exception, and later invocations use fresh sequence state
+ok 88 - quota is consumed before a host exception, and later invocations use fresh sequence state
+  ---
+  duration_ms: 2.012781
+  type: 'test'
+  ...
+# Subtest: argument policy cannot be bypassed with a type-correct value
+ok 89 - argument policy cannot be bypassed with a type-correct value
+  ---
+  duration_ms: 1.392697
+  type: 'test'
+  ...
+# Subtest: revocation takes effect immediately, including between operations
+ok 90 - revocation takes effect immediately, including between operations
+  ---
+  duration_ms: 3.565279
+  type: 'test'
+  ...
+# Subtest: same-instance and same-capability cross-instance reentry are blocked
+ok 91 - same-instance and same-capability cross-instance reentry are blocked
+  ---
+  duration_ms: 1.71322
+  type: 'test'
+  ...
+# Subtest: async callbacks and non-scalar results are rejected without pretending to undo side effects
+ok 92 - async callbacks and non-scalar results are rejected without pretending to undo side effects
+  ---
+  duration_ms: 2.243508
+  type: 'test'
+  ...
+# Subtest: private broker is unavailable through raw instantiate
+ok 93 - private broker is unavailable through raw instantiate
+  ---
+  duration_ms: 0.949129
+  type: 'test'
+  ...
+# Subtest: host receives copied bytes, not a guest-memory view
+ok 94 - host receives copied bytes, not a guest-memory view
+  ---
+  duration_ms: 1.963607
+  type: 'test'
+  ...
+# Subtest: a tampered Wasm body cannot replay an already-consumed sequence token
+ok 95 - a tampered Wasm body cannot replay an already-consumed sequence token
+  ---
+  duration_ms: 1.087677
+  type: 'test'
+  ...
+# Subtest: effectful exports cannot be called or captured as ordinary pure functions
+ok 96 - effectful exports cannot be called or captured as ordinary pure functions
+  ---
+  duration_ms: 0.213952
+  type: 'test'
+  ...
+1..96
+# tests 96
+# suites 0
+# pass 96
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 490.621593

@@ -1,0 +1,1698 @@
+{
+  "status": "PASS",
+  "recordedAt": "2026-09-05T15:25:46.603Z",
+  "compilation": [
+    {
+      "path": "energy.ass",
+      "sourceCharacters": 297,
+      "wasmBytes": 901,
+      "abiMetadataBytes": 554,
+      "warmMilliseconds": {
+        "p50": 0.23481196874999988,
+        "p95": 0.28047193749999977
+      },
+      "iterations": 672,
+      "batch": 32,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "energy",
+          "loops": 1,
+          "wasmLocals": 6,
+          "wasmLocalValueBytes": 44,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 0,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        },
+        {
+          "name": "sum_squares",
+          "loops": 1,
+          "wasmLocals": 7,
+          "wasmLocalValueBytes": 48,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 0,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "cohort.ass",
+      "sourceCharacters": 372,
+      "wasmBytes": 598,
+      "abiMetadataBytes": 348,
+      "warmMilliseconds": {
+        "p50": 0.1404386250000007,
+        "p95": 0.16035737500000025
+      },
+      "iterations": 672,
+      "batch": 32,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "score",
+          "loops": 1,
+          "wasmLocals": 11,
+          "wasmLocalValueBytes": 80,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 0,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "dot.ass",
+      "sourceCharacters": 204,
+      "wasmBytes": 708,
+      "abiMetadataBytes": 436,
+      "warmMilliseconds": {
+        "p50": 0.09198567187500029,
+        "p95": 0.13221357812499956
+      },
+      "iterations": 1344,
+      "batch": 64,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "dot",
+          "loops": 1,
+          "wasmLocals": 8,
+          "wasmLocalValueBytes": 56,
+          "runtimeZipChecks": 1,
+          "outputStoreSites": 0,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "algorithms/welford.ass",
+      "sourceCharacters": 430,
+      "wasmBytes": 1479,
+      "abiMetadataBytes": 837,
+      "warmMilliseconds": {
+        "p50": 0.3276413749999989,
+        "p95": 0.4201681875000034
+      },
+      "iterations": 336,
+      "batch": 16,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "statistics",
+          "loops": 1,
+          "wasmLocals": 23,
+          "wasmLocalValueBytes": 164,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 4,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "algorithms/fibonacci.ass",
+      "sourceCharacters": 324,
+      "wasmBytes": 506,
+      "abiMetadataBytes": 314,
+      "warmMilliseconds": {
+        "p50": 0.11173743750000042,
+        "p95": 0.12342237500000053
+      },
+      "iterations": 1344,
+      "batch": 64,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "fibonacci",
+          "loops": 1,
+          "wasmLocals": 9,
+          "wasmLocalValueBytes": 64,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 0,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "algorithms/normalize.ass",
+      "sourceCharacters": 289,
+      "wasmBytes": 1064,
+      "abiMetadataBytes": 382,
+      "warmMilliseconds": {
+        "p50": 0.1666847187500018,
+        "p95": 0.2276020625000008
+      },
+      "iterations": 672,
+      "batch": 32,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "normalize",
+          "loops": 2,
+          "wasmLocals": 20,
+          "wasmLocalValueBytes": 124,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 3,
+          "hostCallSites": 0,
+          "memoizedReductions": 1
+        }
+      ]
+    },
+    {
+      "path": "algorithms/convolution.ass",
+      "sourceCharacters": 418,
+      "wasmBytes": 1556,
+      "abiMetadataBytes": 481,
+      "warmMilliseconds": {
+        "p50": 0.2360137812500014,
+        "p95": 0.2649964687499988
+      },
+      "iterations": 672,
+      "batch": 32,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "convolve",
+          "loops": 2,
+          "wasmLocals": 31,
+          "wasmLocalValueBytes": 192,
+          "runtimeZipChecks": 1,
+          "outputStoreSites": 3,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "algorithms/linear_regression.ass",
+      "sourceCharacters": 675,
+      "wasmBytes": 1764,
+      "abiMetadataBytes": 823,
+      "warmMilliseconds": {
+        "p50": 0.32792306249999115,
+        "p95": 0.41325718749999396
+      },
+      "iterations": 336,
+      "batch": 16,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "regression",
+          "loops": 1,
+          "wasmLocals": 40,
+          "wasmLocalValueBytes": 288,
+          "runtimeZipChecks": 1,
+          "outputStoreSites": 3,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "algorithms/binary_search.ass",
+      "sourceCharacters": 622,
+      "wasmBytes": 1700,
+      "abiMetadataBytes": 675,
+      "warmMilliseconds": {
+        "p50": 0.29757737500000303,
+        "p95": 0.36664075000000196
+      },
+      "iterations": 336,
+      "batch": 16,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "lower_bound",
+          "loops": 1,
+          "wasmLocals": 44,
+          "wasmLocalValueBytes": 284,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 2,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "algorithms/polynomial.ass",
+      "sourceCharacters": 174,
+      "wasmBytes": 614,
+      "abiMetadataBytes": 418,
+      "warmMilliseconds": {
+        "p50": 0.07373240624999866,
+        "p95": 0.09471806250000014
+      },
+      "iterations": 1344,
+      "batch": 64,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "evaluate",
+          "loops": 1,
+          "wasmLocals": 6,
+          "wasmLocalValueBytes": 44,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 0,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "algorithms/partition.ass",
+      "sourceCharacters": 252,
+      "wasmBytes": 1429,
+      "abiMetadataBytes": 728,
+      "warmMilliseconds": {
+        "p50": 0.14677864062500134,
+        "p95": 0.18666054687500022
+      },
+      "iterations": 1344,
+      "batch": 64,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "partition",
+          "loops": 2,
+          "wasmLocals": 15,
+          "wasmLocalValueBytes": 76,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 6,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "algorithms/pairwise_distance.ass",
+      "sourceCharacters": 236,
+      "wasmBytes": 612,
+      "abiMetadataBytes": 346,
+      "warmMilliseconds": {
+        "p50": 0.1004756250000014,
+        "p95": 0.11501862500000115
+      },
+      "iterations": 1344,
+      "batch": 64,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "pairwise",
+          "loops": 2,
+          "wasmLocals": 11,
+          "wasmLocalValueBytes": 80,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 0,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "algorithms/byte_checksum.ass",
+      "sourceCharacters": 262,
+      "wasmBytes": 556,
+      "abiMetadataBytes": 325,
+      "warmMilliseconds": {
+        "p50": 0.07672990624999798,
+        "p95": 0.13908893750000217
+      },
+      "iterations": 1344,
+      "batch": 64,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "checksum",
+          "loops": 1,
+          "wasmLocals": 10,
+          "wasmLocalValueBytes": 76,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 0,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "concepts/traits.ass",
+      "sourceCharacters": 464,
+      "wasmBytes": 1171,
+      "abiMetadataBytes": 605,
+      "warmMilliseconds": {
+        "p50": 0.19238309374999574,
+        "p95": 0.21307421874999477
+      },
+      "iterations": 672,
+      "batch": 32,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "aggregates",
+          "loops": 2,
+          "wasmLocals": 13,
+          "wasmLocalValueBytes": 84,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 2,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "concepts/type_shapes.ass",
+      "sourceCharacters": 494,
+      "wasmBytes": 1464,
+      "abiMetadataBytes": 1117,
+      "warmMilliseconds": {
+        "p50": 0.18507428125001013,
+        "p95": 0.30673743750000426
+      },
+      "iterations": 672,
+      "batch": 32,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "shapes",
+          "loops": 0,
+          "wasmLocals": 7,
+          "wasmLocalValueBytes": 44,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 4,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "concepts/refinements.ass",
+      "sourceCharacters": 551,
+      "wasmBytes": 957,
+      "abiMetadataBytes": 629,
+      "warmMilliseconds": {
+        "p50": 0.19836428125000793,
+        "p95": 0.2515627812499872
+      },
+      "iterations": 672,
+      "batch": 32,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "safe_ratio",
+          "loops": 0,
+          "wasmLocals": 6,
+          "wasmLocalValueBytes": 40,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 0,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        },
+        {
+          "name": "aligned",
+          "loops": 1,
+          "wasmLocals": 10,
+          "wasmLocalValueBytes": 72,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 0,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "pathological/shared_reduction.ass",
+      "sourceCharacters": 233,
+      "wasmBytes": 1006,
+      "abiMetadataBytes": 379,
+      "warmMilliseconds": {
+        "p50": 0.1444224374999976,
+        "p95": 0.24914384374999088
+      },
+      "iterations": 672,
+      "batch": 32,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "shared",
+          "loops": 2,
+          "wasmLocals": 15,
+          "wasmLocalValueBytes": 88,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 3,
+          "hostCallSites": 0,
+          "memoizedReductions": 1
+        }
+      ]
+    },
+    {
+      "path": "pathological/repeated_prefix.ass",
+      "sourceCharacters": 268,
+      "wasmBytes": 1179,
+      "abiMetadataBytes": 381,
+      "warmMilliseconds": {
+        "p50": 0.15994546875000992,
+        "p95": 0.1798029062499893
+      },
+      "iterations": 672,
+      "batch": 32,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "prefixes",
+          "loops": 2,
+          "wasmLocals": 21,
+          "wasmLocalValueBytes": 124,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 3,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "pathological/multi_reduction.ass",
+      "sourceCharacters": 186,
+      "wasmBytes": 1290,
+      "abiMetadataBytes": 717,
+      "warmMilliseconds": {
+        "p50": 0.1375040468750015,
+        "p95": 0.22991959374999738
+      },
+      "iterations": 1344,
+      "batch": 64,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "moments",
+          "loops": 2,
+          "wasmLocals": 14,
+          "wasmLocalValueBytes": 92,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 3,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "pathological/expansion.ass",
+      "sourceCharacters": 343,
+      "wasmBytes": 1654,
+      "abiMetadataBytes": 313,
+      "warmMilliseconds": {
+        "p50": 0.3195410625000079,
+        "p95": 0.35715643750000936
+      },
+      "iterations": 336,
+      "batch": 16,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "expanded",
+          "loops": 0,
+          "wasmLocals": 129,
+          "wasmLocalValueBytes": 1032,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 0,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "interop/roundtrip.ass",
+      "sourceCharacters": 367,
+      "wasmBytes": 2625,
+      "abiMetadataBytes": 1667,
+      "warmMilliseconds": {
+        "p50": 0.26241037500000175,
+        "p95": 0.3261745000000076
+      },
+      "iterations": 672,
+      "batch": 32,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "summarize",
+          "loops": 2,
+          "wasmLocals": 15,
+          "wasmLocalValueBytes": 92,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 10,
+          "hostCallSites": 0,
+          "memoizedReductions": 0
+        }
+      ]
+    },
+    {
+      "path": "interop/host_effects.ass",
+      "sourceCharacters": 485,
+      "wasmBytes": 1654,
+      "abiMetadataBytes": 912,
+      "warmMilliseconds": {
+        "p50": 0.22867303124999694,
+        "p95": 0.27097828124999523
+      },
+      "iterations": 672,
+      "batch": 32,
+      "samples": 21,
+      "stats": [
+        {
+          "name": "measured",
+          "loops": 1,
+          "wasmLocals": 14,
+          "wasmLocalValueBytes": 84,
+          "runtimeZipChecks": 0,
+          "outputStoreSites": 2,
+          "hostCallSites": 2,
+          "memoizedReductions": 0
+        }
+      ]
+    }
+  ],
+  "runtime": [
+    {
+      "id": "energy",
+      "size": 8192,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 2.900256999999783,
+      "wasmKernel": {
+        "p50": 0.006846674804687591,
+        "p95": 0.00724092089843742,
+        "batch": 1024,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.00681292285156232,
+        "p95": 0.00697967871093752,
+        "batch": 1024,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.03582373437500053,
+        "p95": 0.03910774218750035,
+        "batch": 256,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 0.9950703145558829,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "energy",
+        "loops": 1,
+        "wasmLocals": 6,
+        "wasmLocalValueBytes": 44,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 0,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "sum-squares",
+      "size": 8192,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.23616599999968457,
+      "wasmKernel": {
+        "p50": 0.006813793945312341,
+        "p95": 0.007042624999999969,
+        "batch": 1024,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.006851848632812185,
+        "p95": 0.007192086914062479,
+        "batch": 1024,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.00963653906249995,
+        "p95": 0.012058464843750727,
+        "batch": 512,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 1.0055849483863575,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "sum_squares",
+        "loops": 1,
+        "wasmLocals": 7,
+        "wasmLocalValueBytes": 48,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 0,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "cohort",
+      "size": 8192,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.7129230000000462,
+      "wasmKernel": {
+        "p50": 0.005766679687499554,
+        "p95": 0.0067399218749999434,
+        "batch": 1024,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.007445425781249071,
+        "p95": 0.013319585937502154,
+        "batch": 256,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.0458310312499961,
+        "p95": 0.05105671093750175,
+        "batch": 128,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 1.2911113820641953,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "score",
+        "loops": 1,
+        "wasmLocals": 11,
+        "wasmLocalValueBytes": 80,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 0,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "dot",
+      "size": 8192,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 13.763060000000223,
+      "wasmKernel": {
+        "p50": 0.006837793945313031,
+        "p95": 0.007214455078124793,
+        "batch": 1024,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.0068619814453123595,
+        "p95": 0.008390287109374839,
+        "batch": 1024,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.05367282812500207,
+        "p95": 0.06341296875000069,
+        "batch": 64,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 1.0035373250777626,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "dot",
+        "loops": 1,
+        "wasmLocals": 8,
+        "wasmLocalValueBytes": 56,
+        "runtimeZipChecks": 1,
+        "outputStoreSites": 0,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "welford",
+      "size": 8192,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.48749300000054063,
+      "wasmKernel": {
+        "p50": 0.04558957031249378,
+        "p95": 0.04842321875000266,
+        "batch": 128,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.04552228124999402,
+        "p95": 0.049964203125000495,
+        "batch": 128,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.07298667968750294,
+        "p95": 0.10186687499999891,
+        "batch": 128,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 0.9985240250776982,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "statistics",
+        "loops": 1,
+        "wasmLocals": 23,
+        "wasmLocalValueBytes": 164,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 4,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "fibonacci",
+      "size": 40,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.6818769999999859,
+      "wasmKernel": {
+        "p50": 0.00006066085815430167,
+        "p95": 0.00006335053253173767,
+        "batch": 131072,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.00004416545867919758,
+        "p95": 0.00004466036224365366,
+        "batch": 131072,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.002672187011719007,
+        "p95": 0.00293439355468772,
+        "batch": 2048,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 0.7280717751610913,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "fibonacci",
+        "loops": 1,
+        "wasmLocals": 9,
+        "wasmLocalValueBytes": 64,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 0,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "normalize",
+      "size": 8192,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.249576000000161,
+      "wasmKernel": {
+        "p50": 0.03781020703124938,
+        "p95": 0.03958169921875054,
+        "batch": 256,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.02109335937499779,
+        "p95": 0.022659265624998426,
+        "batch": 256,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.07548982031250517,
+        "p95": 0.08705160156250003,
+        "batch": 128,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 0.5578747388916583,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "normalize",
+        "loops": 2,
+        "wasmLocals": 20,
+        "wasmLocalValueBytes": 124,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 3,
+        "hostCallSites": 0,
+        "memoizedReductions": 1
+      }
+    },
+    {
+      "id": "convolution",
+      "size": 1024,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.2644979999995485,
+      "wasmKernel": {
+        "p50": 0.022416796874999534,
+        "p95": 0.024074210937499174,
+        "batch": 256,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.00906270605468773,
+        "p95": 0.013180267578125182,
+        "batch": 1024,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.03130122656250123,
+        "p95": 0.034505621093749994,
+        "batch": 256,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 0.4042819366755724,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "convolve",
+        "loops": 2,
+        "wasmLocals": 31,
+        "wasmLocalValueBytes": 192,
+        "runtimeZipChecks": 1,
+        "outputStoreSites": 3,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "regression",
+      "size": 8192,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.3126700000002529,
+      "wasmKernel": {
+        "p50": 0.04757169531249872,
+        "p95": 0.0500908750000022,
+        "batch": 128,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.0460052812499967,
+        "p95": 0.05866778125000138,
+        "batch": 128,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.09880829687499215,
+        "p95": 0.10834984375000545,
+        "batch": 64,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 0.9670725616942546,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "regression",
+        "loops": 1,
+        "wasmLocals": 40,
+        "wasmLocalValueBytes": 288,
+        "runtimeZipChecks": 1,
+        "outputStoreSites": 3,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "lower-bound",
+      "size": 8192,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.2467720000004192,
+      "wasmKernel": {
+        "p50": 0.0001270548400878896,
+        "p95": 0.00016682159423828113,
+        "batch": 65536,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.00010198382568359088,
+        "p95": 0.0001311413421630908,
+        "batch": 65536,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.026557050781249814,
+        "p95": 0.02899337500000243,
+        "batch": 256,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 0.8026756447298194,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "lower_bound",
+        "loops": 1,
+        "wasmLocals": 44,
+        "wasmLocalValueBytes": 284,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 2,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "polynomial",
+      "size": 256,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.22629000000051747,
+      "wasmKernel": {
+        "p50": 0.00047056323242189446,
+        "p95": 0.0005660659179687055,
+        "batch": 8192,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.00043894390869142486,
+        "p95": 0.0004610114135742416,
+        "batch": 16384,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.004270129882812057,
+        "p95": 0.005439878906249973,
+        "batch": 1024,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 0.9328053669477505,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "evaluate",
+        "loops": 1,
+        "wasmLocals": 6,
+        "wasmLocalValueBytes": 44,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 0,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "partition",
+      "size": 8192,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 1.230203000000074,
+      "wasmKernel": {
+        "p50": 0.011620443359374732,
+        "p95": 0.015474958984375675,
+        "batch": 512,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.02402104687500284,
+        "p95": 0.03355360156249887,
+        "batch": 256,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.04999941406249775,
+        "p95": 0.05523017968749855,
+        "batch": 128,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 2.0671368666518206,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "partition",
+        "loops": 2,
+        "wasmLocals": 15,
+        "wasmLocalValueBytes": 76,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 6,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "pairwise",
+      "size": 96,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.24127300000054674,
+      "wasmKernel": {
+        "p50": 0.0060814208984369955,
+        "p95": 0.008074246093750403,
+        "batch": 1024,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.007500275390624367,
+        "p95": 0.00808618847656195,
+        "batch": 1024,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.009297748046874332,
+        "p95": 0.009855169921875628,
+        "batch": 512,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 1.2333097011180456,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "pairwise",
+        "loops": 2,
+        "wasmLocals": 11,
+        "wasmLocalValueBytes": 80,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 0,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "checksum",
+      "size": 8192,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.2595710000005056,
+      "wasmKernel": {
+        "p50": 0.007106714843749806,
+        "p95": 0.007700547851562156,
+        "batch": 1024,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.005835435546874379,
+        "p95": 0.00786739062499997,
+        "batch": 1024,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.010028457031250326,
+        "p95": 0.012911880859377334,
+        "batch": 512,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 0.8211157581490007,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "checksum",
+        "loops": 1,
+        "wasmLocals": 10,
+        "wasmLocalValueBytes": 76,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 0,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "traits",
+      "size": null,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.2326599999996688,
+      "wasmKernel": {
+        "p50": 0.0000399645690918049,
+        "p95": 0.000042079338073736094,
+        "batch": 131072,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": null,
+      "jsAdapter": {
+        "p50": 0.004734549804688015,
+        "p95": 0.006636359374999401,
+        "batch": 1024,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": null,
+      "note": "Small semantic corpus case; no JS performance baseline",
+      "generated": {
+        "name": "aggregates",
+        "loops": 2,
+        "wasmLocals": 13,
+        "wasmLocalValueBytes": 84,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 2,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "type-shapes",
+      "size": null,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.2355250000000524,
+      "wasmKernel": {
+        "p50": 0.000054605987548819734,
+        "p95": 0.00005825375366211305,
+        "batch": 131072,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": null,
+      "jsAdapter": {
+        "p50": 0.0074525664062505825,
+        "p95": 0.014945869140625234,
+        "batch": 512,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": null,
+      "note": "Small semantic corpus case; no JS performance baseline",
+      "generated": {
+        "name": "shapes",
+        "loops": 0,
+        "wasmLocals": 7,
+        "wasmLocalValueBytes": 44,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 4,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "contracts",
+      "size": null,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.31310100000155217,
+      "wasmKernel": {
+        "p50": 0.00004169944000244341,
+        "p95": 0.00004510803985595391,
+        "batch": 131072,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": null,
+      "jsAdapter": {
+        "p50": 0.003020455566406177,
+        "p95": 0.0032738842773438748,
+        "batch": 2048,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": null,
+      "note": "Small semantic corpus case; no JS performance baseline",
+      "generated": {
+        "name": "safe_ratio",
+        "loops": 0,
+        "wasmLocals": 6,
+        "wasmLocalValueBytes": 40,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 0,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "relations",
+      "size": null,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 18.57143900000119,
+      "wasmKernel": {
+        "p50": 0.00004562648010253412,
+        "p95": 0.0000569851303100638,
+        "batch": 131072,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": null,
+      "jsAdapter": {
+        "p50": 0.003334565917968213,
+        "p95": 0.0036600952148431176,
+        "batch": 2048,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": null,
+      "note": "Small semantic corpus case; no JS performance baseline",
+      "generated": {
+        "name": "aligned",
+        "loops": 1,
+        "wasmLocals": 10,
+        "wasmLocalValueBytes": 72,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 0,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "shared-reduction",
+      "size": 8192,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.6262829999996029,
+      "wasmKernel": {
+        "p50": 0.013633730468750827,
+        "p95": 0.014091998046872334,
+        "batch": 512,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.017455615234375443,
+        "p95": 0.02042177929687483,
+        "batch": 512,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.11806618750000553,
+        "p95": 0.12358920312499322,
+        "batch": 64,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 1.2803256800759384,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "shared",
+        "loops": 2,
+        "wasmLocals": 15,
+        "wasmLocalValueBytes": 88,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 3,
+        "hostCallSites": 0,
+        "memoizedReductions": 1
+      }
+    },
+    {
+      "id": "prefixes-quadratic",
+      "size": 256,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.2470919999996113,
+      "wasmKernel": {
+        "p50": 0.06884426562500323,
+        "p95": 0.0800659296874926,
+        "batch": 128,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.00226809118652338,
+        "p95": 0.0036910280761717207,
+        "batch": 8192,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.07527660937499547,
+        "p95": 0.10707260937500962,
+        "batch": 128,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 0.03294524483531774,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "prefixes",
+        "loops": 2,
+        "wasmLocals": 21,
+        "wasmLocalValueBytes": 124,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 3,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "multi-reduction",
+      "size": 8192,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.28271500000118976,
+      "wasmKernel": {
+        "p50": 0.013715455078123995,
+        "p95": 0.014769462890622975,
+        "batch": 512,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": {
+        "p50": 0.006900045898436957,
+        "p95": 0.007224402343750214,
+        "batch": 1024,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "jsAdapter": {
+        "p50": 0.10769354687499799,
+        "p95": 0.11244537499999296,
+        "batch": 64,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": 0.5030854506200423,
+      "note": "Independent JS algorithm baseline",
+      "generated": {
+        "name": "moments",
+        "loops": 2,
+        "wasmLocals": 14,
+        "wasmLocalValueBytes": 92,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 3,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "staging-expansion",
+      "size": null,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 6.9184559999994235,
+      "wasmKernel": {
+        "p50": 0.00013785783386230377,
+        "p95": 0.0001600905761718896,
+        "batch": 65536,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": null,
+      "jsAdapter": {
+        "p50": 0.00291104785156282,
+        "p95": 0.0033498969726561967,
+        "batch": 2048,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": null,
+      "note": "Small semantic corpus case; no JS performance baseline",
+      "generated": {
+        "name": "expanded",
+        "loops": 0,
+        "wasmLocals": 129,
+        "wasmLocalValueBytes": 1032,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 0,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "roundtrip",
+      "size": null,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": 0.39169500000025437,
+      "wasmKernel": {
+        "p50": 0.00008502317810057947,
+        "p95": 0.00009184710693360687,
+        "batch": 65536,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "javascript": null,
+      "jsAdapter": {
+        "p50": 0.010265337890626114,
+        "p95": 0.012029339843749653,
+        "batch": 512,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": null,
+      "note": "Small semantic corpus case; no JS performance baseline",
+      "generated": {
+        "name": "summarize",
+        "loops": 2,
+        "wasmLocals": 15,
+        "wasmLocalValueBytes": 92,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 10,
+        "hostCallSites": 0,
+        "memoizedReductions": 0
+      }
+    },
+    {
+      "id": "host-effects",
+      "size": null,
+      "memoryBytes": 262144,
+      "instantiateMilliseconds": null,
+      "wasmKernel": null,
+      "javascript": null,
+      "jsAdapter": {
+        "p50": 0.008150943359375162,
+        "p95": 0.010881882812498134,
+        "batch": 512,
+        "samples": 15,
+        "unit": "ms/call"
+      },
+      "kernelRelativeToJS": null,
+      "note": "Host effects are measured through the broker only",
+      "generated": {
+        "name": "measured",
+        "loops": 1,
+        "wasmLocals": 14,
+        "wasmLocalValueBytes": 84,
+        "runtimeZipChecks": 0,
+        "outputStoreSites": 2,
+        "hostCallSites": 2,
+        "memoizedReductions": 0
+      }
+    }
+  ],
+  "scaling": [
+    {
+      "id": "shared-reduction",
+      "size": 128,
+      "variants": [
+        {
+          "memoizeReductions": true,
+          "wasmKernel": {
+            "p50": 0.00024941879272460943,
+            "p95": 0.0002649778137207015,
+            "batch": 32768,
+            "samples": 7,
+            "unit": "ms/call"
+          },
+          "loops": 2
+        },
+        {
+          "memoizeReductions": false,
+          "wasmKernel": {
+            "p50": 0.009504640624999894,
+            "p95": 0.010118298828121652,
+            "batch": 512,
+            "samples": 7,
+            "unit": "ms/call"
+          },
+          "loops": 2
+        }
+      ]
+    },
+    {
+      "id": "shared-reduction",
+      "size": 512,
+      "variants": [
+        {
+          "memoizeReductions": true,
+          "wasmKernel": {
+            "p50": 0.000893647705078271,
+            "p95": 0.0010081351318358411,
+            "batch": 8192,
+            "samples": 7,
+            "unit": "ms/call"
+          },
+          "loops": 2
+        },
+        {
+          "memoizeReductions": false,
+          "wasmKernel": {
+            "p50": 0.21204018750000841,
+            "p95": 0.22024031250003873,
+            "batch": 32,
+            "samples": 7,
+            "unit": "ms/call"
+          },
+          "loops": 2
+        }
+      ]
+    },
+    {
+      "id": "shared-reduction",
+      "size": 2048,
+      "variants": [
+        {
+          "memoizeReductions": true,
+          "wasmKernel": {
+            "p50": 0.0036417617187503026,
+            "p95": 0.0038989902343748994,
+            "batch": 2048,
+            "samples": 7,
+            "unit": "ms/call"
+          },
+          "loops": 2
+        },
+        {
+          "memoizeReductions": false,
+          "wasmKernel": {
+            "p50": 3.524791499999992,
+            "p95": 3.681883000000198,
+            "batch": 2,
+            "samples": 7,
+            "unit": "ms/call"
+          },
+          "loops": 2
+        }
+      ]
+    },
+    {
+      "id": "prefixes-quadratic",
+      "size": 128,
+      "variants": [
+        {
+          "memoizeReductions": true,
+          "wasmKernel": {
+            "p50": 0.01753456249999985,
+            "p95": 0.02245231835937389,
+            "batch": 512,
+            "samples": 7,
+            "unit": "ms/call"
+          },
+          "loops": 2
+        }
+      ]
+    },
+    {
+      "id": "prefixes-quadratic",
+      "size": 512,
+      "variants": [
+        {
+          "memoizeReductions": true,
+          "wasmKernel": {
+            "p50": 0.2784085312500224,
+            "p95": 0.2974922500000048,
+            "batch": 32,
+            "samples": 7,
+            "unit": "ms/call"
+          },
+          "loops": 2
+        }
+      ]
+    },
+    {
+      "id": "prefixes-quadratic",
+      "size": 2048,
+      "variants": [
+        {
+          "memoizeReductions": true,
+          "wasmKernel": {
+            "p50": 4.39321899999959,
+            "p95": 5.532795000000078,
+            "batch": 2,
+            "samples": 7,
+            "unit": "ms/call"
+          },
+          "loops": 2
+        }
+      ]
+    },
+    {
+      "id": "pairwise",
+      "size": 128,
+      "variants": [
+        {
+          "memoizeReductions": true,
+          "wasmKernel": {
+            "p50": 0.011893882812501033,
+            "p95": 0.013161103515624717,
+            "batch": 512,
+            "samples": 7,
+            "unit": "ms/call"
+          },
+          "loops": 2
+        }
+      ]
+    },
+    {
+      "id": "pairwise",
+      "size": 512,
+      "variants": [
+        {
+          "memoizeReductions": true,
+          "wasmKernel": {
+            "p50": 0.22429581249997455,
+            "p95": 0.36929787499997246,
+            "batch": 32,
+            "samples": 7,
+            "unit": "ms/call"
+          },
+          "loops": 2
+        }
+      ]
+    }
+  ],
+  "expansion": [
+    {
+      "depth": 2,
+      "status": "compiled",
+      "milliseconds": 0.710320000000138,
+      "stagingWork": 37,
+      "wasmBytes": 396
+    },
+    {
+      "depth": 6,
+      "status": "compiled",
+      "milliseconds": 0.36639199999990524,
+      "stagingWork": 637,
+      "wasmBytes": 938
+    },
+    {
+      "depth": 10,
+      "status": "E_LIMIT",
+      "milliseconds": 1.858248000000458
+    },
+    {
+      "depth": 14,
+      "status": "E_LIMIT",
+      "milliseconds": 2.594495999999708
+    },
+    {
+      "depth": 18,
+      "status": "E_LIMIT",
+      "milliseconds": 2.4863029999996797
+    }
+  ],
+  "hostEffect": {
+    "p50": 0.0018644033203125687,
+    "p95": 0.0026931953125002295,
+    "batch": 2048,
+    "samples": 15,
+    "unit": "ms/call"
+  },
+  "observedType": "number",
+  "methodology": [
+    "Single-process microbenchmarks, not production guarantees. Timings may include scheduler and GC noise.",
+    "Compile includes parsing, inference, staging, binary emission and WebAssembly.validate; excludes engine machine-code compilation, file IO and process startup.",
+    "Runtime kernels reuse encoded inputs and caller output buffers: excludes marshalling, result lifting and memory scrubbing.",
+    "JS adapter includes input copies, guest execution, output copies and zeroing its fixed 256 KiB arena on every call.",
+    "JS baselines use ordinary hand-written loops, allocate outputs where applicable, and are warmed independently.",
+    "Prefix baseline is a linear scan; the language example remains quadratic. Moments baseline is one traversal; the language example uses three.",
+    "Both compile and runtime use 30 warmups, batches calibrated to at least 5 ms where the batch cap permits, and p50/p95 of batch-average call times. These are NOT individual-call tail latencies.",
+    "Instantiation timing is observed in this process; engine caches mean it is not a cold-compilation measurement.",
+    "Compilation is repeated without an Asslang incremental cache. The experiment still stages helper bodies."
+  ],
+  "environment": {
+    "engine": "v22.16.0",
+    "platform": "linux x64",
+    "cpu": "AMD EPYC 9V74 80-Core Processor"
+  },
+  "freshProcessCheckMilliseconds": {
+    "p50": 39.58136000000013,
+    "p95": 41.456162999998924,
+    "samples": 10,
+    "includes": "Node startup, file read, compile, validate; no output writes"
+  }
+}

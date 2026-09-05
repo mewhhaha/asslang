@@ -31,11 +31,14 @@ async function check(source, args = []) {
   return { baseline, fused, instance: b, memory, abi };
 }
 
+// Ported from PR #1. Dense stateless count is already O(1) in 0.2, so its
+// former loop is not a fusion opportunity. Explicit counting folds below keep
+// tests of two independent reductions distinct from this separate optimization.
 test('fusion is opt-in, deterministic and validates its option', () => {
   const s = 'export fn main(xs) = sum(xs) + count(xs);';
   const baseline = compile(s), off = compile(s, { experimentalReductionFusion: false });
   assert.deepEqual(baseline.bytes, off.bytes);
-  assert.equal(stats(baseline).loops, 2);
+  assert.equal(stats(baseline).loops, 1);
   assert.equal(stats(baseline).reductionFusion.enabled, false);
   const a = compile(s, enabled), b = compile(s, enabled);
   assert.deepEqual(a.bytes, b.bytes);
@@ -46,16 +49,15 @@ test('fusion is opt-in, deterministic and validates its option', () => {
   }
 });
 
-test('three shared-domain reductions become one loop without a runtime', async () => {
+test('shared-domain reductions become one loop without a runtime', async () => {
   const s = `export fn main(n) = { let xs = range(n);
     sum(xs) + sum(map(xs, x=>x*x)) + count(xs) };`;
   for (const n of [0, 1, 10, 100]) {
     const { baseline, fused } = await check(s, [n]);
-    assert.equal(stats(baseline).loops, 3);
+    assert.equal(stats(baseline).loops, 2);
     assert.equal(stats(fused).loops, 1);
-    assert.equal(stats(fused).reductionFusion.eliminatedLoops, 2);
-    assert.equal(stats(fused).reductionFusion.groups[0].reductions.length, 3);
-    assert.ok(fused.bytes.length < baseline.bytes.length);
+    assert.equal(stats(fused).reductionFusion.eliminatedLoops, 1);
+    assert.equal(stats(fused).reductionFusion.groups[0].reductions.length, 2);
     assert.deepEqual(WebAssembly.Module.imports(new WebAssembly.Module(fused.bytes)), []);
   }
 });
@@ -110,7 +112,7 @@ test('repeated use of one reduction is not counted as a fusion opportunity', asy
 test('equal extents and identical-looking filters do not prove shared domains', async () => {
   const cases = [
     ['export fn main(xs,ys)=sum(xs)+sum(ys);', [[1,2],[3,4]]],
-    ['export fn main(n)=sum(range(n))+count(range(n));', [5]],
+    ['export fn main(n)=sum(range(n))+fold(range(n),0,(a,x)=>a+1);', [5]],
     ['export fn main(xs)=sum(filter(xs,x=>x>0))+count(filter(xs,x=>x>0));', [[1,-2,3]]],
   ];
   for (const [s,args] of cases) {
@@ -122,7 +124,7 @@ test('equal extents and identical-looking filters do not prove shared domains', 
 
 test('shared checked zip checks once and still traps on mismatches, including empty spans', async () => {
   const s = `export fn main(xs,ys)={let pairs=zip_checked(xs,ys,(x,y)=>x*y);
-    sum(pairs)+count(pairs)};`;
+    sum(pairs)+fold(pairs,0,(a,x)=>a+1)};`;
   const { baseline, fused, instance } = await check(s, [[2,3],[4,5]]);
   assert.equal(stats(baseline).runtimeZipChecks, 2);
   assert.equal(stats(fused).runtimeZipChecks, 1);
@@ -136,7 +138,7 @@ test('shared checked zip checks once and still traps on mismatches, including em
 test('nested checked zip retains every pre-iteration obligation', async () => {
   const s = `export fn main(xs,ys,zs)={
     let pairs=zip_checked(zip_checked(xs,ys,(x,y)=>x+y),zs,(x,y)=>x*y);
-    sum(pairs)+count(pairs)};`;
+    sum(pairs)+fold(pairs,0,(a,x)=>a+1)};`;
   const { fused, instance } = await check(s, [[1,2],[3,4],[5,6]]);
   assert.equal(stats(fused).runtimeZipChecks, 2);
   for (const args of [[0,2,16,1,32,2], [0,2,16,2,32,1]]) {
@@ -176,7 +178,7 @@ test('inactive if, and, or branches and dead bindings stay undemanded', async ()
 });
 
 test('branch-local fusion does not leak cached results across paths or calls', async () => {
-  const s = `export fn main(xs,flag: Bool)={let a=sum(xs);let b=count(xs);
+  const s = `export fn main(xs,flag: Bool)={let a=sum(xs);let b=fold(xs,0,(s,x)=>s+1);
     (if flag then a+b else 0)+a+b};`;
   for (const flag of [false, true]) {
     const { instance } = await check(s, [[1,2,3],flag]);
@@ -215,14 +217,14 @@ test('nested reductions retain outer index and accumulator captures', async () =
 });
 
 test('independent cohorts in one expression are kept separate', async () => {
-  const { fused } = await check(`export fn main(xs,ys)=sum(xs)+count(xs)+sum(ys)+count(ys);`, [[1,2],[3]]);
+  const { fused } = await check(`export fn main(xs,ys)=sum(xs)+fold(xs,0,(s,x)=>s+1)+sum(ys)+fold(ys,0,(s,x)=>s+1);`, [[1,2],[3]]);
   assert.equal(stats(fused).loops, 2);
   assert.equal(stats(fused).reductionFusion.groups.length, 2);
 });
 
 test('planner checks the actual schedule as well as the certified domain', () => {
   function make() {
-    const p=parse('export fn main(xs)=sum(xs)+count(xs);');
+    const p=parse('export fn main(xs)=sum(xs)+fold(xs,0,(s,x)=>s+1);');
     return stage(p,infer(p));
   }
   for (const change of [
@@ -260,7 +262,6 @@ test('500 seeded programs agree with unfused Wasm and independent reference sema
   }
 });
 
-
 test('CLI flag enables the same opt-in path and exposes its diagnostics', () => {
   for (const flag of [false,true]) {
     const result=spawnSync(process.execPath,['src/cli.mjs','examples/rms.ass','--check','--explain',
@@ -268,14 +269,14 @@ test('CLI flag enables the same opt-in path and exposes its diagnostics', () => 
       {cwd:new URL('../',import.meta.url),encoding:'utf8'});
     assert.equal(result.status,0,result.stderr);
     const report=JSON.parse(result.stdout);
-    assert.equal(report.stats.functions[0].loops,flag ? 1 : 2);
+    assert.equal(report.stats.functions[0].loops,1); // Dense count is O(1).
     assert.equal(report.stats.functions[0].reductionFusion.enabled,flag);
   }
 });
 
 test('fusion plans and caches remain isolated between exported kernels', async () => {
-  const c=compile(`export fn first(xs)=sum(xs)+count(xs);
-    export fn second(n)={let xs=range(n);sum(xs)+count(xs)};`,enabled);
+  const c=compile(`export fn first(xs)=sum(xs)+fold(xs,0,(s,x)=>s+1);
+    export fn second(n)={let xs=range(n);sum(xs)+fold(xs,0,(s,x)=>s+1)};`,enabled);
   const memory=new WebAssembly.Memory({initial:1,maximum:1});
   new Float64Array(memory.buffer).set([2,4,8]);
   const instance=await instantiate(c,{memory});

@@ -1,0 +1,7 @@
+// Fold is a state machine. Updates are simultaneous, not sequential assignment.
+// Results are f64: not arbitrary-precision Fibonacci numbers.
+export fn fibonacci(n) = {
+  let state = range(n) |> fold({ previous: 0, current: 1 },
+    (s, _) => { previous: s.current, current: s.previous + s.current });
+  state.previous
+};

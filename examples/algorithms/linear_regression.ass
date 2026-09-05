@@ -1,0 +1,15 @@
+// One traversal of two independently supplied columns, explicitly paired.
+// Centered sufficient statistics avoid the worst cancellation of raw moments.
+export fn regression(xs, ys) = {
+  let points = zip_checked(xs, ys, (x, y) => { x: x, y: y });
+  let s = points |> fold({ n: 0, mx: 0, my: 0, xx: 0, xy: 0 }, (s, p) => {
+    let n = s.n + 1;
+    let dx = p.x - s.mx;
+    let dy = p.y - s.my;
+    let mx = s.mx + dx / n;
+    let my = s.my + dy / n;
+    { n: n, mx: mx, my: my, xx: s.xx + dx * (p.x - mx), xy: s.xy + dx * (p.y - my) }
+  });
+  let slope = if s.xx > 0 then s.xy / s.xx else 0;
+  { slope: slope, intercept: s.my - slope * s.mx, valid: s.n > 1 && s.xx > 0 }
+};

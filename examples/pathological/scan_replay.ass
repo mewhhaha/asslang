@@ -1,0 +1,6 @@
+// A shared stream is a reusable description, not an implicit materialization.
+// Separate reductions replay its state independently: this still has two loops.
+export fn replay(xs: [Num]) = {
+  let prefixes = scan(xs, 0, (total, x) => total + x);
+  { total: sum(prefixes), peak: fold(prefixes, 0, (peak, x) => max(peak, x)) }
+};

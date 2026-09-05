@@ -1,0 +1,10 @@
+// Function-body staging currently expands this composition into 128 additions.
+// Larger generated variants exercise E_LIMIT in the compile benchmark.
+fn step(x) = x + 1;
+fn f1(x) = step(step(x));
+fn f2(x) = f1(f1(x));
+fn f3(x) = f2(f2(x));
+fn f4(x) = f3(f3(x));
+fn f5(x) = f4(f4(x));
+fn f6(x) = f5(f5(x));
+export fn expanded(x) = f6(f6(x));

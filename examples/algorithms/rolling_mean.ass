@@ -1,0 +1,8 @@
+// O(n) rolling mean; outgoing samples are read from the existing input span.
+export fn rolling_mean(xs: [Num], width: Num) = {
+  let positions = range(count(xs));
+  let totals = positions |> scan(0, (total, i) =>
+    total + at(xs, i) - (if i >= width then at(xs, i - width) else 0));
+  require(width >= 1 && width == floor(width),
+    zip(positions, totals, (i, total) => total / min(i + 1, width)))
+};

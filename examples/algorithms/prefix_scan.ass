@@ -1,0 +1,2 @@
+// Inclusive prefixes: one traversal, one scalar recurrence, no prefix buffers.
+export fn prefixes(xs: [Num]) = xs |> scan(0, (total, x) => total + x);

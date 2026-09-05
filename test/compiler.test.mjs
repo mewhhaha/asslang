@@ -177,7 +177,7 @@ test('invalid types, occurs check, recursion, names and unsupported ABIs', () =>
   rejects('fn a(x)=b(x); fn b(x)=a(x); export fn main()=1;', 'E_RECURSION');
   rejects('export fn main() = nope;', 'E_NAME');
   rejects('export fn main(x) = x;', 'E_ABI');
-  rejects('export fn main() = range(3);', 'E_ABI');
+  rejects('export fn main() = map(range(3), x=>range(x));', 'E_ABI');
   rejects('export fn main() = (x => x);', 'E_ABI');
 });
 test('syntax errors carry location and stable diagnostic code', () => {

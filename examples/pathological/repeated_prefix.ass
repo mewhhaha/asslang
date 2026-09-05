@@ -1,0 +1,4 @@
+// Elegant but still quadratic. Each element requests a different prefix sum;
+// invariant memoization cannot fuse this into a scan. Keep it in the benchmarks.
+export fn prefixes(xs: [Num]) =
+  range(count(xs)) |> map(i => range(i + 1) |> map(j => at(xs, j)) |> sum);

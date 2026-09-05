@@ -1,0 +1,11 @@
+// Every imported function is impure. perform is allowed only in a top-level
+// export effect block; the compiler threads an implicit non-escaping token.
+host fn read_scale(key: Text): Num;
+host fn audit(key: Text, value: Num): Bool;
+
+export fn measured(key: Text, samples: [Num]) = effect {
+  let scale = perform read_scale(key);
+  let energy = samples |> map(x => x * x) |> sum;
+  let accepted = perform audit(key, energy * scale);
+  { accepted: accepted, value: energy * scale }
+};

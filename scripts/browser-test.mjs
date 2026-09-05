@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { serve } from './server.mjs';
@@ -13,6 +13,9 @@ if (!executable) throw new Error('Chrome/Chromium not found. Set CHROME_BIN to i
 const version = spawnSync(executable,['--version'],{encoding:'utf8'}).stdout.trim();
 const profile = await mkdtemp(join(tmpdir(),'asslang-browser-'));
 const http = process.argv.includes('--http');
+const benchmark = process.argv.includes('--bench');
+const outputIndex=process.argv.indexOf('--output'), output=outputIndex<0?null:process.argv[outputIndex+1];
+if(outputIndex>=0&&!output)throw new Error('--output requires a filename');
 const server = http ? await serve() : null;
 const args = ['--headless', '--disable-gpu', '--disable-dev-shm-usage', '--no-first-run',
   '--no-default-browser-check', '--password-store=basic', '--use-mock-keychain',
@@ -45,7 +48,7 @@ child.once('exit',code=>abort(new Error(`Chrome exited (${code})\n${stderr}`)));
 function call(method,params={},sessionId) {
   return new Promise((resolve,reject)=>{
     const id=++nextId;
-    const timer=setTimeout(()=>{pending.delete(id);reject(new Error(`Chrome timed out: ${method}\n${stderr}`));},10000);
+    const timer=setTimeout(()=>{pending.delete(id);reject(new Error(`Chrome timed out: ${method}\n${stderr}`));},benchmark?60000:10000);
     pending.set(id,{resolve,reject,timer});
     child.stdio[3].write(JSON.stringify({id,method,params,...(sessionId?{sessionId}:{})})+'\0');
   });
@@ -55,10 +58,11 @@ try {
   const {sessionId}=await call('Target.attachToTarget',{targetId:target.targetId,flatten:true});
   console.log(version);
   if (!http) {
-    const result=await call('Runtime.evaluate',{expression:await browserBundle(),awaitPromise:true,returnByValue:true},sessionId);
+    const result=await call('Runtime.evaluate',{expression:await browserBundle({benchmark}),awaitPromise:true,returnByValue:true},sessionId);
     if (result.exceptionDetails) throw new Error(JSON.stringify(result.exceptionDetails));
     const report=result.result?.value;
     console.log(JSON.stringify(report,null,2));
+    if(output)await writeFile(output,JSON.stringify(report,null,2)+'\n');
     if (report?.status!=='PASS') throw new Error('Browser engine tests failed');
   } else {
     const navigation=await call('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/test/browser.html`},sessionId);

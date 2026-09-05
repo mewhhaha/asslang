@@ -1,0 +1,10 @@
+// Trait-style programming via explicit dictionaries. Selection is lexical;
+// there is no global instance search or hidden runtime method lookup.
+fn combine_all(xs, monoid) = fold(xs, monoid.identity, monoid.combine);
+fn addition() = { identity: 0, combine: (a, b) => a + b };
+fn multiplication() = { identity: 1, combine: (a, b) => a * b };
+
+export fn aggregates(xs: [Num]) = {
+  sum: combine_all(xs, addition()),
+  product: combine_all(xs, multiplication())
+};

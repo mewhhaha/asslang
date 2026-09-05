@@ -6,24 +6,25 @@
 :root{color-scheme:dark;font-family:system-ui,sans-serif;background:#101419;color:#e8edf4}
 body{max-width:1100px;margin:0 auto;padding:40px 24px}header{border-bottom:1px solid #3d4653;margin-bottom:28px;padding-bottom:22px}
 h1{font-size:42px;letter-spacing:-2px;margin:0 0 8px}p{color:#b8c2d0;line-height:1.6}small{color:#aab7c7}
-label{display:block;margin:18px 0 8px;font-weight:600}textarea,pre,input{font-family:ui-monospace,monospace;background:#191f28;color:inherit;border:1px solid #465267;border-radius:6px;padding:14px;box-sizing:border-box}
+label{display:block;margin:18px 0 8px;font-weight:600}textarea,pre,input,select{font-family:ui-monospace,monospace;background:#191f28;color:inherit;border:1px solid #465267;border-radius:6px;padding:14px;box-sizing:border-box}
 textarea{width:100%;height:320px;font-size:15px;line-height:1.6;resize:vertical}pre{white-space:pre-wrap;overflow-wrap:anywhere;min-height:120px}input{width:140px;padding:10px}
 button{background:#b4f1cf;color:#0d2116;border:0;border-radius:5px;padding:12px 18px;margin-left:12px;font-weight:700;cursor:pointer}button.secondary{background:#303c4c;color:#eef3f9}
 .controls{display:flex;align-items:end;flex-wrap:wrap;gap:8px;margin:14px 0}summary{cursor:pointer;padding:12px 0}a{color:#b4f1cf}
 </style></head>
-<body><header><small>EXPERIMENTAL KERNEL LANGUAGE / JTE v0</small><h1>Asslang</h1>
+<body><header><small>EXPERIMENTAL FUNCTIONAL LANGUAGE / JTE 1 CAUSAL + ASABI 1</small><h1>Asslang</h1>
 <p>Types describe values. Provenance describes how values may compose.<br>Compile functional pipelines directly to WebAssembly, without intermediate buffers.</p></header>
-<label for="source">Source</label><textarea id="source" spellcheck="false">fn square(x) = x * x;
-
-export fn main(n) = {
-  let selected = range(n) |> filter(x => x > 10);
-  let a = selected |> map(square);
-  let b = selected |> map(x => x + 1);
-  zip(a, b, (x, y) => x * y) |> sum
-};</textarea>
-<div class="controls"><div><label for="n">Input n</label><input id="n" type="number" min="0" max="10000000" value="1000"></div>
+<label for="examples">Example corpus</label><select id="examples"><option value="">Custom program</option></select>
+<label for="source">Source</label><textarea id="source" spellcheck="false">// Fibonacci history without arrays of state records or runtime closures.
+export fn main(n) =
+  range(n)
+  |> scan({ a: 0, b: 1 }, (s, x) => { a: s.b, b: s.a + s.b })
+  |> map(s => s.a);</textarea>
+<div class="controls"><div><label for="name">Export</label><input id="name" value="main"></div>
+<div><label for="args">Arguments (JSON array)</label><input id="args" value="[12]" style="width:350px"></div>
+<label><input id="fusion" type="checkbox"> Experimental reduction fusion</label>
 <button id="run">Compile and run</button><button id="cancel" class="secondary">Cancel</button></div>
-<p>This playground accepts <code>main : (Num) -&gt; Num/Bool</code>. It runs in a cancellable worker. The compiler and browser still use managed memory; the generated kernels do not allocate a heap.</p>
+<label><input type="checkbox" id="effects" style="width:auto"> Grant demo-only host effects (read_scale and audit, key “demo”, 8 calls maximum)</label>
+<p>Calls run in a cancellable worker with a fixed 256 KiB arena. Records, text, bytes and arrays use ASABI 1. Bytes are entered as JSON arrays of integers 0–255. Other host functions are not granted. The compiler, JS adapter and browser still use managed memory.</p>
 <pre id="output" aria-live="polite">Ready.</pre>
 <details><summary>Inferred contracts and JTE derivation</summary><pre id="details"></pre></details>
 <script type="module" src="./main.mjs"></script></body></html>

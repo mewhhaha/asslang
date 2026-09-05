@@ -1,0 +1,7 @@
+// Nested records, text, bytes and materialized arrays use ASABI 1.
+export fn summarize(request: { name: Text, payload: Bytes, values: [Num], enabled: Bool }) = {
+  name: request.name,
+  payload: request.payload,
+  summary: { enabled: request.enabled, bytes: byte_length(request.payload), total: sum(request.values) },
+  doubled: request.values |> map(x => x * 2)
+};
