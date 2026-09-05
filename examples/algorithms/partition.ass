@@ -1,0 +1,6 @@
+// Two materialized output arrays in one caller-owned arena.
+// This intentionally traverses the input twice; there is no multi-sink fusion yet.
+export fn partition(xs) = {
+  positive: xs |> filter(x => x >= 0),
+  negative: xs |> filter(x => x < 0)
+};

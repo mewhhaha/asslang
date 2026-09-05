@@ -1,0 +1,6 @@
+// Independent selection decisions introduce independent event domains.
+export fn wrong(xs: [Num]) = {
+  let a = transduce(xs, 0, (s, x) => { state: s + 1, value: x, emit: x > 0 });
+  let b = transduce(xs, 0, (s, x) => { state: s + 1, value: x, emit: x < 0 });
+  zip(a, b, (x, y) => x + y)
+};

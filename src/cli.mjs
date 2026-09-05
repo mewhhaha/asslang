@@ -24,10 +24,10 @@ try {
     output ??= input.endsWith('.ass') ? input.slice(0, -4) + '.wasm' : input + '.wasm';
     if (output === input) throw new Error('Output must not overwrite source');
     await writeFile(output, result.bytes);
-    await writeFile(output + '.json', JSON.stringify({ exports: result.exports, signatures: result.signatures, stats: result.stats }, null, 2) + '\n');
+    await writeFile(output + '.json', JSON.stringify({ abi: result.abi, exports: result.exports, signatures: result.signatures, observations: result.observations, stats: result.stats }, null, 2) + '\n');
     console.log(`Wrote ${output}: ${result.bytes.length} bytes`);
   }
-  if (explain) console.log(JSON.stringify({ signatures: result.signatures, stats: result.stats, certificate: result.certificate }, null, 2));
+  if (explain) console.log(JSON.stringify({ abi: result.abi, signatures: result.signatures, observations: result.observations, stats: result.stats, certificate: result.certificate }, null, 2));
 } catch (error) {
   console.error(error instanceof CompileError ? error.format(source) : error.message);
   process.exitCode = 1;

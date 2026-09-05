@@ -1,0 +1,8 @@
+// A bounded convergence search. The result reports exhaustion explicitly;
+// increasing the runtime budget does not unroll more code into the module.
+export fn root(x: Num, tolerance: Num, budget: Num) = require(x >= 0 && tolerance > 0,
+  iterate(1, budget, estimate => {
+    let next = (estimate + x / estimate) / 2;
+    { state: next, done: abs(next - estimate) <= tolerance }
+  })
+);

@@ -1,0 +1,118 @@
+{
+  "source": "export fn snapshot(x:{label:Text,values:[Num]})={label:x.label,total:sum(x.values),doubled:map(x.values,n=>n*2)};",
+  "abi": {
+    "version": 1,
+    "addressBits": 32,
+    "byteOrder": "little",
+    "memory": "env.memory",
+    "hosts": [],
+    "exports": [
+      {
+        "name": "snapshot",
+        "parameters": [
+          {
+            "name": "x",
+            "type": "{ label: Text, values: [Num] }",
+            "schema": {
+              "kind": "Record",
+              "fields": [
+                {
+                  "name": "label",
+                  "schema": {
+                    "kind": "Text"
+                  }
+                },
+                {
+                  "name": "values",
+                  "schema": {
+                    "kind": "Stream",
+                    "element": {
+                      "kind": "Num"
+                    }
+                  }
+                }
+              ]
+            },
+            "slots": [
+              0,
+              1,
+              2,
+              3
+            ]
+          }
+        ],
+        "result": {
+          "schema": {
+            "kind": "Record",
+            "fields": [
+              {
+                "name": "doubled",
+                "schema": {
+                  "kind": "Stream",
+                  "element": {
+                    "kind": "Num"
+                  }
+                }
+              },
+              {
+                "name": "label",
+                "schema": {
+                  "kind": "Text"
+                }
+              },
+              {
+                "name": "total",
+                "schema": {
+                  "kind": "Num"
+                }
+              }
+            ]
+          },
+          "mode": "indirect",
+          "slots": [
+            4,
+            5,
+            6
+          ],
+          "layout": {
+            "size": 24,
+            "align": 8,
+            "fields": [
+              {
+                "name": "doubled",
+                "schema": {
+                  "kind": "Stream",
+                  "element": {
+                    "kind": "Num"
+                  }
+                },
+                "offset": 0,
+                "size": 8,
+                "align": 4
+              },
+              {
+                "name": "label",
+                "schema": {
+                  "kind": "Text"
+                },
+                "offset": 8,
+                "size": 8,
+                "align": 4
+              },
+              {
+                "name": "total",
+                "schema": {
+                  "kind": "Num"
+                },
+                "offset": 16,
+                "size": 8,
+                "align": 8
+              }
+            ]
+          }
+        },
+        "effects": []
+      }
+    ]
+  }
+}

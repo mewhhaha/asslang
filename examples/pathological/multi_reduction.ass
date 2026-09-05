@@ -1,0 +1,4 @@
+// Still three traversals. Compare with the one-pass record accumulator in welford.
+export fn moments(xs) = {
+  count: count(xs), total: sum(xs), energy: xs |> map(x => x * x) |> sum
+};

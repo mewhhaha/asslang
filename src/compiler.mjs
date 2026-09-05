@@ -7,32 +7,35 @@ export { verifyCertificate } from './jte.mjs';
 /** Compile source to a standalone Wasm kernel module and an erased JTE ledger.
  * The compiler itself is JavaScript and is NOT allocation-free.
  * @param {string} source
- * @param {{maxExpansion?: number}} options
+ * @param {{maxExpansion?: number, memoizeReductions?: boolean}} options
  */
 export function compile(source, options = {}) {
   if (options.maxExpansion !== undefined && (!Number.isSafeInteger(options.maxExpansion) || options.maxExpansion < 1)) {
     throw new TypeError('maxExpansion must be a positive safe integer');
   }
+  if (options.memoizeReductions !== undefined && typeof options.memoizeReductions !== 'boolean') throw new TypeError('memoizeReductions must be a boolean');
   const now = () => globalThis.performance.now();
   const start = now();
   try {
     const program = parse(source); const parsed = now();
     const inferred = infer(program); const checked = now();
     const staged = stage(program, inferred, options); const normalized = now();
-    const module = emitModule(staged); const emitted = now();
+    const module = emitModule(staged, options); const emitted = now();
     if (!WebAssembly.validate(module.bytes)) throw new Error('Compiler bug: generated invalid WebAssembly');
     const validated = now();
     return {
       bytes: module.bytes,
+      abi: module.contract,
       signatures: inferred.signatures,
-      exports: staged.kernels.map(k => ({ name: k.name, parameters: k.parameters, result: k.resultType })),
+      observations: staged.observations,
+      exports: staged.kernels.map(k => ({ name: k.name, parameters: k.parameters, result: k.resultSchema.kind })),
       certificate: staged.certificate,
       stats: {
         sourceCharacters: source.length, syntaxNodes: program.nodeCount,
         inferenceConstraints: inferred.constraints, scalarNodes: staged.nodes,
         stagingWork: staged.work, proofSteps: staged.certificate.steps.length,
         staticZips: staged.staticZips, stagedCheckedZips: staged.checkedZips,
-        wasmBytes: module.bytes.length, needsMemory: module.needsMemory,
+        wasmBytes: module.bytes.length, abiMetadataBytes: module.abiMetadataBytes, needsMemory: module.needsMemory,
         kernelHeapAllocationSites: 0, intermediateBufferBytes: 0,
         functions: module.functions,
         milliseconds: { parse: parsed - start, infer: checked - parsed,
@@ -54,6 +57,7 @@ export function compile(source, options = {}) {
  * @param {{memory?: WebAssembly.Memory}} options
  */
 export async function instantiate(compiled, { memory } = {}) {
+  if (compiled.abi?.hosts.length) throw new TypeError('Host effects require createRuntime and an explicit capability; raw instantiate is pure-only');
   if (compiled.stats.needsMemory && !(memory instanceof WebAssembly.Memory)) {
     throw new TypeError('This module borrows inputs: supply a WebAssembly.Memory');
   }

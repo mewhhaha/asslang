@@ -1,164 +1,181 @@
-# Asslang — Jacob Torrang encoding, prototype 0
+# Asslang 0.2 — causal streams and composable scalar machines
 
-A small experimental functional kernel language compiling directly to WebAssembly.
-The initial use case is numerical/data-processing work inside Chrome: pure pipelines,
-borrowed input spans, scalar outputs, and no intermediate collection allocations.
+An experimental functional language compiling directly to WebAssembly for Chrome.
+Types and record rows are inferred; the Jacob Torrang encoding (JTE) additionally
+checks event alignment and legal access to particular streams. Stateful pipelines
+lower to loops and scalar locals rather than runtime iterator/closure objects.
 
-**This is an executable research prototype, not a finished general-purpose language.**
-The compiler is ordinary JavaScript. The generated kernels have no heap allocator,
-reference counting, tracing collector, WasmGC objects, or runtime closure objects.
-That does not make the compiler, JavaScript host, or Chrome itself GC-free.
+**This is a tested kernel-language prototype, not a finished general-purpose
+language, audited sandbox, or claim of worldwide novelty.** Generated kernels have
+no guest heap allocator or collector. Inputs, materialized outputs, the compiler,
+JS adapter and browser still occupy memory; JS objects still use managed storage.
 
-## Try it
+## Run
 
-Node 22 or newer; no npm packages or build-tool installation required:
+Node 22 or newer, with no npm dependencies or separate Wasm toolchain:
 
 ```sh
 npm test
-npm run test:browser       # installed Chrome/Chromium; CHROME_BIN can override
-npm run bench
-npm run build:example
-npm run demo              # open the printed local address in Chrome
+npm run test:causal
+npm run test:browser
+npm run example:host
+npm run bench -- --output /tmp/asslang-node.json
+npm run bench:browser -- --output /tmp/asslang-chrome.json
+npm run demo
 ```
 
-`npm run test:browser` runs compiler/Wasm engine tests in an in-memory test bundle.
-`npm run test:browser:http` additionally tests HTTP module loading and the playground
-worker. The latter could not be validated in the implementation environment because
-Chrome's administrator policy blocks local HTTP navigation. No browser policies are
-changed by the harness. The default engine suite was actually run in Chromium
-144.0.7559.96; see [validation](docs/VALIDATION.md).
+The browser commands require installed Chrome/Chromium; `CHROME_BIN` can override
+its path. The engine suite uses an in-memory bundle. The additional HTTP module
+and playground-worker test (`npm run test:browser:http`) is blocked by the test
+environment's browser policy and remains unvalidated end-to-end. See
+[validation and measurements](docs/VALIDATION.md).
 
-## A program
+## Express recurrence, not mutable machinery
 
 ```text
-fn square(x) = x * x;
+export fn prefixes(xs: [Num]) =
+  xs |> scan(0, (total, x) => total + x);
 
-export fn energy(samples) =
-  samples |> map(square) |> sum;
+export fn fibonacci_history(n) =
+  range(n)
+  |> scan({ a: 0, b: 1 }, (s, x) => { a: s.b, b: s.a + s.b })
+  |> map(s => s.a);
 ```
 
-The inferred type of `energy` is `([Num]) -> Num`. `[Num]` means a numeric stream;
-it does not contain a type-level length. Here the stream is an externally supplied
-span. There are no allocated list cells, iterator objects, closures, or mapped arrays
-in the generated kernel.
+`scan` emits the new state at each input event. Record fields update simultaneously
+from the old state. Both examples use one loop and fixed scalar state, not arrays
+of intermediate state records. No type-level length is required.
 
-The main experiment is an additional relational typing layer:
+`transduce` additionally chooses whether to emit:
 
 ```text
-export fn score(samples) = {
-  let selected = samples |> filter(x => x > 0);
-  let weighted = selected |> map(x => x * 2);
-  let shifted = selected |> map(x => x + 1);
-  zip(weighted, shifted, (a, b) => a * b) |> sum
+export fn deltas(xs: [Num]) =
+  xs |> transduce({ seen: false, previous: 0 }, (s, x) => {
+    state: { seen: true, previous: x },
+    emit: s.seen,
+    value: x - s.previous
+  });
+```
+
+Machines can be ordinary inferred records of `initial` and `step`. The
+[composition example](examples/concepts/machine_composition.ass) defines `connect`
+in Asslang, then writes:
+
+```text
+run(xs, connect(connect(distinct(), difference()), integrate()))
+```
+
+The resulting export has one loop and five recurrence scalars. The records,
+functions and captured environments are staged away. Their names are library
+functions in that example, not extra compiler keywords.
+
+## A dense stream is not necessarily seekable
+
+A source is dense and indexable. A scan stays dense and preserves its source's
+event domain, but is sequential: its values depend on previous transitions.
+
+```text
+let history = scan(xs, 0, (total, x) => total + x);
+zip(xs, history, (x, total) => x + total)
+```
+
+This alignment is inferred and uses one cursor without a zip-length check.
+`at(history, 4)` is instead rejected with `E_CAUSAL_ACCESS`; it does not silently
+replay the prefix. Independent selection operations get fresh domains.
+`zip_checked` explicitly pairs independent dense inputs after checking extents;
+it does not declare their provenance equal.
+
+`compile(source).observations` exposes these derived facts. The ordinary type is
+still `[Num]`; runtime lengths remain bounds, not type parameters. See
+[causal semantics and the JTE rules](docs/CAUSAL.md).
+
+## Bounded state evolution
+
+```text
+export fn root(x: Num, tolerance: Num, budget: Num) =
+  require(x >= 0 && tolerance > 0,
+    iterate(1, budget, estimate => {
+      let next = (estimate + x / estimate) / 2;
+      { state: next, done: abs(next - estimate) <= tolerance }
+    })
+  );
+```
+
+`iterate` returns `{state, steps, done}`. Budget exhaustion is distinct from
+convergence. Increasing the runtime budget does not unroll more source or grow
+a recursive stack. A budget does not preempt an expensive individual step;
+applications still need resource policies and worker cancellation.
+
+## ASABI 1: structured JS values and explicit input lifetime
+
+The binary interface remains **ASABI 1**, with its frozen-binary compatibility
+test. It supports Num, Bool, UTF-8 Text, Bytes, numeric/Boolean arrays and nested
+records. Exports embed versioned schemas in an `asslang.abi` custom section.
+
+```js
+import { compile } from './src/compiler.mjs';
+import { createRuntime } from './src/abi.mjs';
+
+const runtime = await createRuntime(compile(`
+  export fn smooth(xs: [Num], alpha: Num) =
+    xs |> scan(0, (mean, x) => mean + alpha * (x - mean));
+`), { pages: 2 });
+
+const prepared = runtime.prepare('smooth', [[1, 2, 3], 0.5]);
+try {
+  const first = prepared.run();
+  const second = prepared.run({ alpha: 0.25 });
+  // Inputs were copied once. Each result owns its JS storage.
+} finally {
+  prepared.dispose();
+}
+```
+
+Normal `runtime.call` copies and clears a frame per call. Prepared calls reserve
+one private runtime and retain an input snapshot; only top-level scalar arguments
+may be overridden. Disposal clears memory and invalidates the handle. No borrowed
+JS view escapes. Prepared calls are pure-only and cannot bypass host capabilities.
+See [ASABI layouts](docs/ABI.md) and [input leases](docs/LEASES.md).
+
+## Host authority remains explicit
+
+```text
+host fn audit(value: Num): Bool;
+export fn checked_energy(xs: [Num]) = effect {
+  let value = sum(map(xs, x => x * x));
+  let accepted = perform audit(value);
+  { value: value, accepted: accepted }
 };
 ```
 
-JTE records that `weighted` and `shifted` describe the **same ordered iteration
-events**, inherited from `selected`. The program lowers to one loop with one
-filter decision and no runtime zip alignment check. Equal lengths alone would not
-establish this relationship.
+All host functions are impure. The private broker requires an explicit grant and
+checks signature, sequence, budgets, revocation and non-reentrancy. Permissions
+are consumed before calling the host. Neither causal transitions nor prepared
+calls obtain implicit authority. Effects remain synchronous and statically
+sequenced; previous effects are not rolled back after a later trap. A powerful
+callback is not made safe just because it can be called once. The runnable host
+example and [threat model](docs/EFFECTS.md) specify this boundary.
 
-For independent sources, positional pairing must be explicit:
+## Corpus, compilation and limits
 
-```text
-export fn dot(xs, ys) =
-  zip_checked(xs, ys, (x, y) => x * y) |> sum;
-```
+There are **34 accepted exports across 32 source files and 3 rejected files**.
+Every example/export is registered in one corpus used for correctness and runtime
+benchmarks. New examples include segmented scans, running z-scores, rolling means,
+a streaming unsigned-integer lexer, machine products and Newton iteration.
+Pathological repeated prefixes and separate-consumer replay remain visible.
 
-`zip_checked` checks the runtime extents before iteration, traps on mismatch, and
-introduces a new positional domain. It does not claim the original inputs share
-provenance. This first implementation accepts dense inputs only for checked zip.
-Independently filtered streams need a future two-cursor implementation.
+Ordinary pure expressions form a demand graph. Causal transitions introduce an
+explicit strict scheduling boundary when traversed; empty/dead streams do not
+initialize state. The exact rules are in CAUSAL.md. Helpers are still staged into
+consumers: there is no per-definition incremental compilation or separately
+compiled generic ABI. There is no automatic general multi-sink fusion, SIMD,
+array-valued state, arrays of records, variants, general recursion, escaping
+closures, async effects, or general ownership inference yet.
 
-## Browser / JavaScript API
-
-```js
-import { compile, instantiate } from './src/compiler.mjs';
-
-const compiled = compile(`
-  export fn energy(samples) = samples |> map(x => x*x) |> sum;
-`);
-const memory = new WebAssembly.Memory({ initial: 1, maximum: 1 });
-new Float64Array(memory.buffer, 0, 4).set([1, 2, 3, 4]);
-
-const instance = await instantiate(compiled, { memory });
-console.log(instance.exports.energy(0, 4)); // 30: byte offset, element count
-console.log(compiled.signatures);
-console.log(compiled.certificate);
-console.log(compiled.stats);
-```
-
-All span arguments are flattened into `(i32 byteOffset, i32 length)`. Memory belongs
-to the caller. Alignment and memory containment are checked using overflow-safe
-64-bit arithmetic before any input reads. Inputs are read-only during the call.
-Shared memories are rejected; the generated code neither writes nor grows memory.
-The host remains responsible for granting the intended spans and for its own memory
-budget. One memory page in this example is 65,536 bytes; it is not a mandatory heap
-size imposed by Asslang. A range-only module needs no linear memory at all.
-
-For an output file and ABI sidecar:
-
-```sh
-node src/cli.mjs examples/cohort.ass -o /tmp/cohort.wasm --explain
-node src/cli.mjs examples/rejected.ass --check  # intentionally fails with E_DOMAIN
-```
-
-## Language slice
-
-`Num` is an IEEE-754 `f64`; `Bool` uses a canonical `i32` 0/1 ABI. Functions,
-lexically captured lambdas, ordinary let-polymorphism, forward function references,
-scalar conditionals, arithmetic, numeric comparisons, and Boolean logic are
-implemented. `|>` inserts its left-hand side as the first argument.
-
-The builtins are `range`, `map`, `filter`, `zip`, `zip_checked`, `sum`, `count`,
-`fold`, `sqrt`, `abs`, `min`, and `max`. Fold is left-to-right. There is no fast-math
-reassociation. Range lengths must be finite integral values from 0 through
-2,147,483,647; invalid demanded extents trap, rather than silently truncate.
-
-Types are inferred. Optional parameter/return annotations are useful at the ABI
-boundary when operations do not determine a representation:
-
-```text
-fn identity(x) = x;
-export fn length(xs: [Num]): Num = count(xs);
-export fn number_identity(x: Num) = identity(x);
-```
-
-Exported parameters must resolve to `Num`, `Bool`, or `[Num]`; exported results
-must be `Num` or `Bool`. Internal helpers may be polymorphic and higher-order,
-but are staged away. Recursion, escaping closures/streams, records, variants,
-user-defined effects, generic runtime ABIs, and materialized outputs are not yet
-implemented.
-
-### Evaluation is a pure demand graph, not strict ML evaluation
-
-Bindings name computations. Only demanded scalar values execute. A stream is a
-staged description, not a heap of runtime thunks. Thus `count(map(xs, f))` does not
-evaluate `f`, while a filter still evaluates the predicate needed to determine its
-emitted events. Dead bindings do not execute, and scalar branches short-circuit.
-All source expressions are still statically typechecked. This is intentional and
-must be reconsidered explicitly before adding effects; it is not claimed to
-preserve arbitrary strict-language evaluation order.
-
-## Architecture and limits
-
-`frontend.mjs` provides parsing and conventional HM-style inference. `jte.mjs`
-stages pure functions into scalar DAGs and stream plans, and checks a separate
-observation certificate. `wasm.mjs` emits binary Wasm directly. The certificate
-is returned as a sidecar, not embedded in the Wasm binary. There is no LLVM,
-WAT-to-Wasm tool, external optimizer, or runtime library in the build path.
-
-A compatible pipeline is lowered directly into a loop rather than constructed
-as arrays and optimized afterward. Separate reductions may repeat traversal;
-this version has no multi-result fusion or materialization strategy. Staging may
-increase code size. There is an explicit expansion limit, not an inference timeout.
-There is no per-definition incremental compilation/cache or general lifetime
-inference yet. Ordinary type inference and staging have no claimed linear-time
-worst-case bound.
-
-The name **Jacob Torrang encoding** designates this project's observation-certificate
-experiment. It is not a claim that stream fusion, provenance, staged compilation,
-or conventional type inference were invented here. Neither global novelty nor
-formal end-to-end compiler correctness is established. See the [design and research
-hypotheses](docs/JTE.md), [related work](docs/RELATED-WORK.md), and
-[reproducible measurements](docs/measurements.json).
+The current results are **132 Node tests and 255 Chromium checks**. Benchmarks
+separate compiler work, Wasm instantiation, raw reused-buffer kernels, independent
+JS algorithms, copying adapter calls and prepared calls. Compilation excludes V8
+machine-code generation; p95 is over batch averages, not individual-call latency.
+See [current evidence](docs/VALIDATION.md), [concept mappings](docs/CONCEPTS.md),
+and [publication provenance](docs/PROVENANCE.md). Older unprefixed reports are
+historical ASABI evidence, not current 0.2 measurements.

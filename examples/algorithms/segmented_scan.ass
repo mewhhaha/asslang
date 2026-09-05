@@ -1,0 +1,4 @@
+// Independent inputs deliberately aligned by position; reset starts a segment.
+export fn segmented(values: [Num], resets: [Bool]) =
+  zip_checked(values, resets, (value, reset) => { value: value, reset: reset })
+  |> scan(0, (total, item) => if item.reset then item.value else total + item.value);

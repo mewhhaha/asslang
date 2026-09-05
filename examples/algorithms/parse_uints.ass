@@ -1,0 +1,19 @@
+fn digit(c) = c >= 48 && c <= 57;
+fn separator(c) = c == 32 || c == 9 || c == 10 || c == 13 || c == 44;
+
+// UTF-8 ASCII integer fields, separated by whitespace or commas. The synthetic
+// final delimiter flushes the last token without allocating an appended buffer.
+// Values use Num/f64: this is not an arbitrary-precision integer parser.
+export fn integers(text: Text) = {
+  let bytes = utf8(text);
+  let n = byte_length(bytes);
+  let characters = range(n + 1) |> map(i => if i < n then at(byte_values(bytes), i) else 10);
+  characters |> transduce({ active: false, number: 0 }, (s, c) => {
+    state: {
+      active: digit(c),
+      number: require(digit(c) || separator(c), if digit(c) then s.number * 10 + c - 48 else 0)
+    },
+    emit: !digit(c) && s.active,
+    value: s.number
+  })
+};

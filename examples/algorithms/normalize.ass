@@ -1,0 +1,6 @@
+// A shared reduction is memoized on first demand, not repeated for each element.
+// Empty input stays empty; the zero vector maps to zero rather than NaN.
+export fn normalize(xs) = {
+  let norm = xs |> map(x => x * x) |> sum |> sqrt;
+  xs |> map(x => if norm > 0 then x / norm else 0)
+};

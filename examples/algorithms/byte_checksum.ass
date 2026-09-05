@@ -1,0 +1,6 @@
+// Bytes use an explicit byte span, not an array of boxed JS numbers.
+// This is an additive 16-bit checksum, not a cryptographic hash.
+export fn checksum(payload: Bytes) = {
+  let total = payload |> byte_values |> sum;
+  total - floor(total / 65536) * 65536
+};

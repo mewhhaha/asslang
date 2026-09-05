@@ -1,0 +1,14 @@
+fn update(s, x) = {
+  let n = s.n + 1;
+  let delta = x - s.mean;
+  let mean = s.mean + delta / n;
+  { n: n, mean: mean, m2: s.m2 + delta * (x - mean) }
+};
+
+// The observation type permits zip: history preserves the source event domain.
+// It does NOT permit random access into history, despite history being dense.
+export fn zscores(xs: [Num]) = {
+  let history = xs |> scan({ n: 0, mean: 0, m2: 0 }, update);
+  zip(xs, history, (x, s) =>
+    if s.n > 1 && s.m2 > 0 then (x - s.mean) / sqrt(s.m2 / s.n) else 0)
+};

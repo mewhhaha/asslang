@@ -1,0 +1,4 @@
+// A genuinely quadratic workload: one distance contribution for every pair.
+// Nested uses of the same source retain distinct lexical cursors.
+export fn pairwise(xs) =
+  xs |> map(x => xs |> map(y => (x - y) * (x - y)) |> sum) |> sum;

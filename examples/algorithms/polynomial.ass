@@ -1,0 +1,3 @@
+// Horner's rule; coefficients arrive highest degree first.
+export fn evaluate(coefficients, x) =
+  coefficients |> fold(0, (value, coefficient) => value * x + coefficient);

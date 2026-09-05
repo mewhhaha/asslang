@@ -1,0 +1,9 @@
+// Valid 1-D convolution/correlation window, deliberately written compositionally.
+// Coefficients are applied in their given order (cross-correlation convention).
+export fn convolve(xs: [Num], weights: [Num]) = {
+  let width = count(weights);
+  let outputs = max(0, count(xs) - width + 1);
+  require(width > 0,
+    range(outputs) |> map(i =>
+      range(width) |> map(j => at(xs, i + j) * at(weights, j)) |> sum))
+};

@@ -1,0 +1,47 @@
+{
+  "format": "asslang-validation-v1",
+  "sourceSHA256": "9073143a1ddf47a85bedc3438d2bfeed9933aafff7605f2f6d685fd34ff7d3eb",
+  "node": {
+    "command": "npm test",
+    "tests": 132,
+    "passed": 132,
+    "failed": 0
+  },
+  "chromium": {
+    "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+    "checks": 255,
+    "cases": [
+      {
+        "name": "fused-range",
+        "wasmBytes": 535
+      },
+      {
+        "name": "borrowed-dot",
+        "wasmBytes": 706
+      },
+      {
+        "name": "seeded-differential",
+        "cases": 100
+      },
+      {
+        "name": "asabi-algorithm-corpus",
+        "cases": 34
+      },
+      {
+        "name": "causal-differential",
+        "cases": 100
+      }
+    ],
+    "notTested": [
+      "HTTP module loading",
+      "playground worker loading"
+    ],
+    "status": "PASS"
+  },
+  "http": {
+    "command": "npm run test:browser:http",
+    "result": "blocked",
+    "error": "net::ERR_BLOCKED_BY_ADMINISTRATOR"
+  },
+  "playgroundDefaultSource": "Compiled and executed through the Node adapter; Fibonacci outputs checked visually against expected 12-element sequence."
+}

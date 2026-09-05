@@ -1,0 +1,13 @@
+// require is a checked contract, not an SMT proof or a new nominal type.
+fn nonnegative(x) = require(x >= 0, x);
+fn positive(x) = require(x > 0, x);
+
+export fn safe_ratio(numerator, denominator) =
+  nonnegative(numerator) / positive(denominator);
+
+// JTE domains are a STATIC relational refinement: both maps preserve the same
+// selected events, so zip needs no runtime length check or length-indexed type.
+export fn aligned(xs) = {
+  let valid = xs |> filter(x => x >= 0);
+  zip(map(valid, sqrt), map(valid, x => x + 1), (a, b) => a + b) |> sum
+};

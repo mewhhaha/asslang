@@ -1,0 +1,22 @@
+// Compose differently typed recurrences by shape. The ordinary row inference
+// finds each machine's own state; the JTE schedule provides a single clock.
+fn product(left, right) = {
+  initial: { left: left.initial, right: right.initial },
+  step: (s, x) => { left: left.step(s.left, x), right: right.step(s.right, x) }
+};
+fn moments() = {
+  initial: { n: 0, total: 0 },
+  step: (s, x) => { n: s.n + 1, total: s.total + x }
+};
+fn energy() = { initial: 0, step: (s, x) => s + x * x };
+fn history(xs, machine) = scan(xs, machine.initial, machine.step);
+
+export fn analyze(xs: [Num]) = {
+  let machine = product(moments(), energy());
+  let final = history(xs, machine) |> fold(machine.initial, (previous, current) => current);
+  {
+    count: final.left.n,
+    mean: if final.left.n > 0 then final.left.total / final.left.n else 0,
+    energy: final.right
+  }
+};

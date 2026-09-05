@@ -1,0 +1,12 @@
+// The value/type shape is derived compositionally. These helpers are staged;
+// pair is polymorphic in its two fields, and project infers an open record row.
+// This is NOT arbitrary dependent type computation or a typeof operator.
+fn pair(a, b) = { first: a, second: b };
+fn project(value) = value.first;
+fn compose(f, g) = x => f(g(x));
+
+export fn shapes(n: Num, flag: Bool) = {
+  pair: pair(n, flag),
+  selected: project(pair(n, flag)),
+  transformed: compose(x => x * 2, x => x + 1)(n)
+};

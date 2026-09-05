@@ -1,0 +1,9 @@
+// A state record becomes scalar locals, not an object per sample.
+export fn smooth(xs: [Num], alpha: Num) = require(alpha >= 0 && alpha <= 1,
+  xs
+  |> scan({ seen: false, mean: 0 }, (s, x) => {
+    seen: true,
+    mean: if s.seen then s.mean + alpha * (x - s.mean) else x
+  })
+  |> map(s => s.mean)
+);

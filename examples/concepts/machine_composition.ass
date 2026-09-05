@@ -1,0 +1,38 @@
+// Machine descriptions are ordinary inferred records with captured functions.
+// There is no runtime machine object, global trait search, or effectful callback.
+fn connect(first, second) = {
+  initial: { a: first.initial, b: second.initial },
+  step: (s, x) => {
+    let a = first.step(s.a, x);
+    let b = second.step(s.b, a.value);
+    {
+      state: { a: a.state, b: if a.emit then b.state else s.b },
+      emit: a.emit && b.emit,
+      value: b.value
+    }
+  }
+};
+fn distinct() = {
+  initial: { seen: false, previous: 0 },
+  step: (s, x) => {
+    state: { seen: true, previous: x },
+    emit: !s.seen || x != s.previous,
+    value: x
+  }
+};
+fn difference() = {
+  initial: { seen: false, previous: 0 },
+  step: (s, x) => {
+    state: { seen: true, previous: x },
+    emit: s.seen,
+    value: x - s.previous
+  }
+};
+fn integrate() = {
+  initial: 0,
+  step: (s, x) => { state: s + x, emit: true, value: s + x }
+};
+fn run(xs, machine) = transduce(xs, machine.initial, machine.step);
+
+export fn relative_changes(xs: [Num]) =
+  run(xs, connect(connect(distinct(), difference()), integrate()));
