@@ -7,11 +7,14 @@ export { verifyCertificate } from './jte.mjs';
 /** Compile source to a standalone Wasm kernel module and an erased JTE ledger.
  * The compiler itself is JavaScript and is NOT allocation-free.
  * @param {string} source
- * @param {{maxExpansion?: number}} options
+ * @param {{maxExpansion?: number, experimentalReductionFusion?: boolean}} options
  */
 export function compile(source, options = {}) {
   if (options.maxExpansion !== undefined && (!Number.isSafeInteger(options.maxExpansion) || options.maxExpansion < 1)) {
     throw new TypeError('maxExpansion must be a positive safe integer');
+  }
+  if (options.experimentalReductionFusion !== undefined && typeof options.experimentalReductionFusion !== 'boolean') {
+    throw new TypeError('experimentalReductionFusion must be a boolean');
   }
   const now = () => globalThis.performance.now();
   const start = now();
@@ -19,7 +22,7 @@ export function compile(source, options = {}) {
     const program = parse(source); const parsed = now();
     const inferred = infer(program); const checked = now();
     const staged = stage(program, inferred, options); const normalized = now();
-    const module = emitModule(staged); const emitted = now();
+    const module = emitModule(staged, options); const emitted = now();
     if (!WebAssembly.validate(module.bytes)) throw new Error('Compiler bug: generated invalid WebAssembly');
     const validated = now();
     return {
