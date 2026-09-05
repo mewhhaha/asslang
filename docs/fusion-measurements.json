@@ -1,0 +1,286 @@
+{
+  "experiment": "same-domain reduction cohorts v0",
+  "environment": {
+    "node": "v22.16.0",
+    "v8": "12.4.254.21-node.26",
+    "platform": "linux",
+    "arch": "x64",
+    "cpu": "INTEL(R) XEON(R) PLATINUM 8573C"
+  },
+  "method": {
+    "n": 262144,
+    "inputSeed": "0x51a7c0de",
+    "warmupCallsPerVariant": 30,
+    "rounds": 9,
+    "callsPerSample": 12,
+    "order": "alternating baseline/fused pairs",
+    "units": "milliseconds per call",
+    "timing": "execution only, excludes compilation and instantiation"
+  },
+  "cases": [
+    {
+      "name": "moments",
+      "source": "export fn main(xs) = sum(xs) + sum(map(xs,x=>x*x)) + count(xs);",
+      "baseline": {
+        "millisecondsMedian": 0.5866579166666668,
+        "samples": [
+          0.5865155833333328,
+          0.5894468333333313,
+          0.6922377499999991,
+          0.6760382500000001,
+          0.5740306666666655,
+          0.582232,
+          0.5866579166666668,
+          0.5611415000000003,
+          0.8567055833333347
+        ],
+        "wasmBytes": 331,
+        "name": "main",
+        "loops": 3,
+        "wasmLocals": 16,
+        "wasmLocalValueBytes": 116,
+        "runtimeZipChecks": 0,
+        "reductionFusion": {
+          "enabled": false,
+          "groups": [],
+          "eliminatedLoops": 0
+        }
+      },
+      "fused": {
+        "millisecondsMedian": 0.22717600000000004,
+        "samples": [
+          0.21267208333333207,
+          0.21137483333333287,
+          0.20975883333333437,
+          0.2513364166666676,
+          0.23134558333333408,
+          0.2468364166666651,
+          0.22717600000000004,
+          0.19968149999999932,
+          0.3162406666666655
+        ],
+        "wasmBytes": 260,
+        "name": "main",
+        "loops": 1,
+        "wasmLocals": 13,
+        "wasmLocalValueBytes": 100,
+        "runtimeZipChecks": 0,
+        "reductionFusion": {
+          "enabled": true,
+          "groups": [
+            {
+              "domain": 0,
+              "reductions": [
+                7,
+                11,
+                16
+              ],
+              "streams": [
+                0,
+                2,
+                0
+              ]
+            }
+          ],
+          "eliminatedLoops": 2
+        }
+      },
+      "medianSpeedup": 2.582393900177249,
+      "checksum": 77606336044.96875
+    },
+    {
+      "name": "filtered_moments",
+      "source": "export fn main(xs) = { let ys=filter(xs,x=>x>0);\n    sum(ys)+sum(map(ys,x=>x*x))+count(ys) };",
+      "baseline": {
+        "millisecondsMedian": 5.836065083333334,
+        "samples": [
+          5.148746166666669,
+          7.0198377499999935,
+          5.836065083333334,
+          5.16057033333333,
+          4.8016916666666605,
+          5.185826166666668,
+          7.920669250000003,
+          9.780180833333342,
+          7.915703749999996
+        ],
+        "wasmBytes": 388,
+        "name": "main",
+        "loops": 3,
+        "wasmLocals": 20,
+        "wasmLocalValueBytes": 136,
+        "runtimeZipChecks": 0,
+        "reductionFusion": {
+          "enabled": false,
+          "groups": [],
+          "eliminatedLoops": 0
+        }
+      },
+      "fused": {
+        "millisecondsMedian": 2.087573166666658,
+        "samples": [
+          1.8364012499999944,
+          2.087573166666658,
+          2.5578209999999992,
+          1.5772492500000037,
+          1.6159873333333319,
+          2.363330083333333,
+          2.3926609166666517,
+          2.7242683333333275,
+          1.9308827500000045
+        ],
+        "wasmBytes": 274,
+        "name": "main",
+        "loops": 1,
+        "wasmLocals": 14,
+        "wasmLocalValueBytes": 104,
+        "runtimeZipChecks": 0,
+        "reductionFusion": {
+          "enabled": true,
+          "groups": [
+            {
+              "domain": 1,
+              "reductions": [
+                8,
+                12,
+                17
+              ],
+              "streams": [
+                1,
+                3,
+                1
+              ]
+            }
+          ],
+          "eliminatedLoops": 2
+        }
+      },
+      "medianSpeedup": 2.7956218141336318,
+      "checksum": 39679659443.8125
+    },
+    {
+      "name": "shared_map",
+      "source": "export fn main(xs) = { let ys=map(xs,x=>sqrt(abs(x)+1));\n    sum(ys)+sum(map(ys,x=>x*x)) };",
+      "baseline": {
+        "millisecondsMedian": 1.4502419166666602,
+        "samples": [
+          1.7346078333333328,
+          1.2053744166666622,
+          1.4502419166666602,
+          1.644140666666658,
+          1.2698124166666578,
+          1.5703856666666713,
+          1.6137560000000046,
+          1.2511123333333292,
+          1.3025181666666679
+        ],
+        "wasmBytes": 334,
+        "name": "main",
+        "loops": 2,
+        "wasmLocals": 19,
+        "wasmLocalValueBytes": 144,
+        "runtimeZipChecks": 0,
+        "reductionFusion": {
+          "enabled": false,
+          "groups": [],
+          "eliminatedLoops": 0
+        }
+      },
+      "fused": {
+        "millisecondsMedian": 0.8780799166666687,
+        "samples": [
+          0.8780799166666687,
+          0.7426779166666696,
+          1.0644786666666732,
+          1.3571655833333314,
+          0.5863174166666644,
+          0.9416092499999991,
+          0.9292019166666515,
+          0.6472678333333306,
+          0.5747656666666785
+        ],
+        "wasmBytes": 255,
+        "name": "main",
+        "loops": 1,
+        "wasmLocals": 13,
+        "wasmLocalValueBytes": 100,
+        "runtimeZipChecks": 0,
+        "reductionFusion": {
+          "enabled": true,
+          "groups": [
+            {
+              "domain": 0,
+              "reductions": [
+                11,
+                15
+              ],
+              "streams": [
+                1,
+                3
+              ]
+            }
+          ],
+          "eliminatedLoops": 1
+        }
+      },
+      "medianSpeedup": 1.651605838079078,
+      "checksum": 2180799889.207007
+    },
+    {
+      "name": "independent_filters_control",
+      "source": "export fn main(xs) =\n    sum(filter(xs,x=>x>0)) + count(filter(xs,x=>x>0));",
+      "baseline": {
+        "millisecondsMedian": 3.7620917500000055,
+        "samples": [
+          3.5749364166666737,
+          4.2410688333333155,
+          3.543353666666652,
+          3.6299458333333328,
+          4.002591666666679,
+          3.7620917500000055,
+          4.053626083333332,
+          3.260879749999996,
+          5.343743583333321
+        ],
+        "wasmBytes": 294,
+        "name": "main",
+        "loops": 2,
+        "wasmLocals": 13,
+        "wasmLocalValueBytes": 88,
+        "runtimeZipChecks": 0,
+        "reductionFusion": {
+          "enabled": false,
+          "groups": [],
+          "eliminatedLoops": 0
+        }
+      },
+      "fused": {
+        "millisecondsMedian": 3.7481787500000032,
+        "samples": [
+          5.618869333333332,
+          5.683996333333312,
+          3.8183815000000245,
+          3.546207499999999,
+          5.2855231666666596,
+          3.458835166666669,
+          3.67178450000002,
+          3.7481787500000032,
+          3.1408764166666665
+        ],
+        "wasmBytes": 294,
+        "name": "main",
+        "loops": 2,
+        "wasmLocals": 13,
+        "wasmLocalValueBytes": 88,
+        "runtimeZipChecks": 0,
+        "reductionFusion": {
+          "enabled": true,
+          "groups": [],
+          "eliminatedLoops": 0
+        }
+      },
+      "medianSpeedup": 1.003711936096965,
+      "checksum": 935855262
+    }
+  ]
+}

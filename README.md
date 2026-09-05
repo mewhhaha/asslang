@@ -140,6 +140,32 @@ All source expressions are still statically typechecked. This is intentional and
 must be reconsidered explicitly before adding effects; it is not claimed to
 preserve arbitrary strict-language evaluation order.
 
+## Experimental reduction cohorts (opt-in)
+
+The JTE domain can also identify multiple observations that may share a traversal.
+For example, RMS needs a sum and a count, but need not traverse the input twice:
+
+```js
+const compiled = compile(`
+  export fn rms(samples) = sqrt(sum(map(samples,x=>x*x)) / count(samples));
+`, { experimentalReductionFusion: true });
+console.log(compiled.stats.functions[0].loops); // 1 (default: 2)
+console.log(compiled.stats.functions[0].reductionFusion);
+```
+
+```sh
+node src/cli.mjs examples/rms.ass --experimental-reduction-fusion --check --explain
+npm run bench:fusion
+```
+
+This experiment only groups co-demanded, independent reductions with the same
+certified domain and identical iteration schedules. Accumulators remain separate
+and left-to-right; inactive branches and ignored mapped values stay undemanded.
+Independent filters and nested/dependent reductions retain the baseline lowering.
+It is **disabled by default**, with no new syntax or ABI. See the
+[design, limitations and validation](docs/REDUCTION-FUSION.md) and
+[paired benchmark measurements](docs/fusion-measurements.json).
+
 ## Architecture and limits
 
 `frontend.mjs` provides parsing and conventional HM-style inference. `jte.mjs`
@@ -149,9 +175,9 @@ is returned as a sidecar, not embedded in the Wasm binary. There is no LLVM,
 WAT-to-Wasm tool, external optimizer, or runtime library in the build path.
 
 A compatible pipeline is lowered directly into a loop rather than constructed
-as arrays and optimized afterward. Separate reductions may repeat traversal;
-this version has no multi-result fusion or materialization strategy. Staging may
-increase code size. There is an explicit expansion limit, not an inference timeout.
+as arrays and optimized afterward. By default, separate reductions may repeat
+traversal. The opt-in reduction-cohort experiment below fuses eligible reductions;
+there is still no materialization strategy. Staging may increase code size. There is an explicit expansion limit, not an inference timeout.
 There is no per-definition incremental compilation/cache or general lifetime
 inference yet. Ordinary type inference and staging have no claimed linear-time
 worst-case bound.

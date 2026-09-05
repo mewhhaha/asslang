@@ -7,7 +7,8 @@ export async function browserBundle() {
   const specs = [
     ['frontend','', 'CompileError,fail,tokenize,parse,prune,showType,builtinNames,infer'],
     ['jte','const {fail,prune}=modules.frontend;', 'verifyCertificate,stage'],
-    ['wasm','', 'uleb,emitModule'],
+    ['fusion','', 'planReductionFusion'],
+    ['wasm','const {planReductionFusion}=modules.fusion;', 'uleb,emitModule'],
     ['compiler','const {CompileError,parse,infer}=modules.frontend; const {stage,verifyCertificate}=modules.jte; const {emitModule}=modules.wasm;', 'compile,instantiate,CompileError,verifyCertificate'],
   ];
   let code='const modules={};\n';

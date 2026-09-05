@@ -11,6 +11,7 @@
     "test": "node --test test/*.test.mjs",
     "test:browser": "node scripts/browser-test.mjs",
     "bench": "node scripts/bench.mjs",
+    "bench:fusion": "node scripts/bench-fusion.mjs",
     "demo": "node scripts/serve.mjs",
     "build:example": "node src/cli.mjs examples/energy.ass -o /tmp/asslang-energy.wasm --explain",
     "test:browser:http": "node scripts/browser-test.mjs --http"
