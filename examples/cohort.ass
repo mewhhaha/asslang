@@ -1,0 +1,8 @@
+// The branches share an iteration domain, including the filtering decision.
+// No vector length annotation, intermediate vector, or runtime zip check.
+export fn score(samples) = {
+  let selected = samples |> filter(x => x > 0);
+  let weighted = selected |> map(x => x * 2);
+  let shifted = selected |> map(x => x + 1);
+  zip(weighted, shifted, (a, b) => a * b) |> sum
+};

@@ -1,0 +1,7 @@
+// Deliberately rejected with E_DOMAIN: independent filters can select different
+// events even when they happen to emit the same number of elements.
+export fn incorrect(xs) = {
+  let positive = xs |> filter(x => x > 0);
+  let negative = xs |> filter(x => x < 0);
+  zip(positive, negative, (x, y) => x + y) |> sum
+};

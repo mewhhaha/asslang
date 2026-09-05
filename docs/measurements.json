@@ -1,0 +1,79 @@
+{
+  "recordedAt": "2026-09-05T13:45:59.115Z",
+  "node": "v22.16.0",
+  "platform": "linux x64",
+  "cpu": "AMD EPYC 9V74 80-Core Processor",
+  "iterations": 200,
+  "warmup": 30,
+  "notes": [
+    "One container, not a language comparison or production performance guarantee.",
+    "Compile includes parse, ordinary inference, JTE staging/checking, binary emission and WebAssembly.validate.",
+    "Compile excludes V8 machine-code compilation, execution, filesystem IO and process startup.",
+    "Fresh-process check below includes Node startup and source file IO, but does not write Wasm output.",
+    "First call is per case within this process, not necessarily a cold JavaScript engine.",
+    "wasmLocalValueBytes is logical Wasm-local payload, NOT measured V8 stack or process memory."
+  ],
+  "results": [
+    {
+      "name": "scalar",
+      "sourceCharacters": 28,
+      "wasmBytes": 69,
+      "firstCallMilliseconds": 2.289066000000002,
+      "warmedCompileMilliseconds": {
+        "p50": 0.058746999999996774,
+        "p95": 0.15363599999999877
+      },
+      "kernels": [
+        {
+          "name": "main",
+          "loops": 0,
+          "wasmLocals": 3,
+          "wasmLocalValueBytes": 24,
+          "runtimeZipChecks": 0
+        }
+      ]
+    },
+    {
+      "name": "cohort",
+      "sourceCharacters": 372,
+      "wasmBytes": 250,
+      "firstCallMilliseconds": 1.0037499999999966,
+      "warmedCompileMilliseconds": {
+        "p50": 0.2179010000000119,
+        "p95": 0.47739400000000387
+      },
+      "kernels": [
+        {
+          "name": "score",
+          "loops": 1,
+          "wasmLocals": 11,
+          "wasmLocalValueBytes": 80,
+          "runtimeZipChecks": 0
+        }
+      ]
+    },
+    {
+      "name": "pipeline100",
+      "sourceCharacters": 1534,
+      "wasmBytes": 1072,
+      "firstCallMilliseconds": 1.9974050000000005,
+      "warmedCompileMilliseconds": {
+        "p50": 0.581877999999989,
+        "p95": 1.1215939999999875
+      },
+      "kernels": [
+        {
+          "name": "main",
+          "loops": 1,
+          "wasmLocals": 107,
+          "wasmLocalValueBytes": 848,
+          "runtimeZipChecks": 0
+        }
+      ]
+    }
+  ],
+  "freshProcessCohortCheckMilliseconds": {
+    "p50": 34.50329099999999,
+    "p95": 46.11244099999999
+  }
+}

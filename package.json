@@ -1,0 +1,18 @@
+{
+  "name": "asslang-jte-prototype",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "A provenance-typed, allocation-free stream kernel prototype for WebAssembly",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "test:browser": "node scripts/browser-test.mjs",
+    "bench": "node scripts/bench.mjs",
+    "demo": "node scripts/serve.mjs",
+    "build:example": "node src/cli.mjs examples/energy.ass -o /tmp/asslang-energy.wasm --explain",
+    "test:browser:http": "node scripts/browser-test.mjs --http"
+  }
+}

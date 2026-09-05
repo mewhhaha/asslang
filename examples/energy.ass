@@ -1,0 +1,13 @@
+// Input lives in caller-owned Wasm linear memory, not a GC-managed vector.
+fn square(x) = x * x;
+
+export fn energy(samples) =
+  samples
+  |> map(square)
+  |> sum;
+
+// A range needs no linear memory at all when compiled on its own.
+export fn sum_squares(n) =
+  range(n)
+  |> map(square)
+  |> sum;

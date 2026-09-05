@@ -1,0 +1,4 @@
+// Independent sources: positional pairing must be explicit.
+// zip_checked checks lengths before iterating and traps on a mismatch.
+export fn dot(xs, ys) =
+  zip_checked(xs, ys, (x, y) => x * y) |> sum;
