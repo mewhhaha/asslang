@@ -1,3 +1,8 @@
+> Integration note: opt-in reduction cohorts can now share a causal schedule
+> across independent scalar/record reductions when the exact ordered machine IDs
+> also agree. Different histories and iteration-local reductions are not fused.
+> The default replay semantics remain unchanged. See REDUCTION-FUSION.md.
+
 # JTE 1: causal observations and scalar machines
 
 Asslang 0.2 extends the Jacob Torrang encoding from event alignment to access and

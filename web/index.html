@@ -21,6 +21,7 @@ export fn main(n) =
   |> map(s => s.a);</textarea>
 <div class="controls"><div><label for="name">Export</label><input id="name" value="main"></div>
 <div><label for="args">Arguments (JSON array)</label><input id="args" value="[12]" style="width:350px"></div>
+<label><input id="fusion" type="checkbox"> Experimental reduction fusion</label>
 <button id="run">Compile and run</button><button id="cancel" class="secondary">Cancel</button></div>
 <label><input type="checkbox" id="effects" style="width:auto"> Grant demo-only host effects (read_scale and audit, key “demo”, 8 calls maximum)</label>
 <p>Calls run in a cancellable worker with a fixed 256 KiB arena. Records, text, bytes and arrays use ASABI 1. Bytes are entered as JSON arrays of integers 0–255. Other host functions are not granted. The compiler, JS adapter and browser still use managed memory.</p>

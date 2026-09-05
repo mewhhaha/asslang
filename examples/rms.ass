@@ -1,0 +1,6 @@
+// Dense count is now O(1), so RMS uses one traversal even without fusion.
+// Empty inputs produce NaN (0 / 0), as in the original program.
+export fn rms(samples) = {
+  let squares = map(samples, x => x*x);
+  sqrt(sum(squares) / count(samples))
+};

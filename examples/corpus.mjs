@@ -1,6 +1,7 @@
 // Single source of truth for example discovery, correctness tests and benchmarks.
 // Baselines are ordinary hand-written JS algorithms, not translations of the IR.
 export const corpus = [
+  {id:'rms',path:'rms.ass',name:'rms',args:[[3,4]],expected:Math.sqrt(12.5),baseline:'rms',size:8192},
   {id:'prefix-scan',path:'algorithms/prefix_scan.ass',name:'prefixes',args:[[1,2,3]],expected:[1,3,6],baseline:'prefixes',size:8192},
   {id:'ewma',path:'algorithms/ewma.ass',name:'smooth',args:[[2,4,8,4],0.5],expected:[2,3,5.5,4.75],baseline:'ewma',size:8192},
   {id:'segmented',path:'algorithms/segmented_scan.ass',name:'segmented',args:[[1,2,3,4,5],[false,false,true,false,true]],expected:[1,3,3,7,5],baseline:'segmented',size:8192},
@@ -42,6 +43,7 @@ export const rejectedCorpus = [
   {path:'rejected.ass',code:'E_DOMAIN'},
 ];
 export const baselines = {
+  rms(xs){return Math.sqrt(baselines.energy(xs)/xs.length);},
   ewma(xs,alpha){const out=new Float64Array(xs.length);let mean=0;for(let i=0;i<xs.length;i++){mean=i?mean+alpha*(xs[i]-mean):xs[i];out[i]=mean;}return out;},
   segmented(xs,resets){const out=new Float64Array(xs.length);let s=0;for(let i=0;i<xs.length;i++)out[i]=s=resets[i]?xs[i]:s+xs[i];return out;},
   zscores(xs){const out=new Float64Array(xs.length);let n=0,mean=0,m2=0;for(let i=0;i<xs.length;i++){const x=xs[i],d=x-mean;n++;mean+=d/n;m2+=d*(x-mean);out[i]=n>1&&m2>0?(x-mean)/Math.sqrt(m2/n):0;}return out;},

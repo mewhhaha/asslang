@@ -1,3 +1,8 @@
+> **Integration update:** reduction cohorts from PR #1 are reconciled with causal
+> machines. Enable `experimentalReductionFusion: true`, the CLI flag
+> `--experimental-reduction-fusion`, or the playground checkbox. Default compilation
+> is unchanged. See [integration validation](docs/INTEGRATION.md).
+
 # Asslang 0.2 — causal streams and composable scalar machines
 
 An experimental functional language compiling directly to WebAssembly for Chrome.
@@ -158,7 +163,7 @@ example and [threat model](docs/EFFECTS.md) specify this boundary.
 
 ## Corpus, compilation and limits
 
-There are **34 accepted exports across 32 source files and 3 rejected files**.
+There are **35 accepted exports across 33 source files and 3 rejected files**.
 Every example/export is registered in one corpus used for correctness and runtime
 benchmarks. New examples include segmented scans, running z-scores, rolling means,
 a streaming unsigned-integer lexer, machine products and Newton iteration.
@@ -168,11 +173,11 @@ Ordinary pure expressions form a demand graph. Causal transitions introduce an
 explicit strict scheduling boundary when traversed; empty/dead streams do not
 initialize state. The exact rules are in CAUSAL.md. Helpers are still staged into
 consumers: there is no per-definition incremental compilation or separately
-compiled generic ABI. There is no automatic general multi-sink fusion, SIMD,
+compiled generic ABI. There is no unrestricted multi-sink fusion, SIMD,
 array-valued state, arrays of records, variants, general recursion, escaping
 closures, async effects, or general ownership inference yet.
 
-The current results are **132 Node tests and 255 Chromium checks**. Benchmarks
+The current results are **168 Node tests and 596 Chromium checks**. Benchmarks
 separate compiler work, Wasm instantiation, raw reused-buffer kernels, independent
 JS algorithms, copying adapter calls and prepared calls. Compilation excludes V8
 machine-code generation; p95 is over batch averages, not individual-call latency.

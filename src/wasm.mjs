@@ -1,3 +1,4 @@
+import { planReductionFusion } from './fusion.mjs';
 import { ABI_VERSION, layout, flatTypes } from './abi-schema.mjs';
 // Direct Wasm binary emission. No WAT parser, LLVM, binaryen, or runtime library.
 const wasmType = type => type === 'Num' ? 0x7c : 0x7f;
@@ -21,7 +22,8 @@ const f64bytes = value => {
   const view = new DataView(new ArrayBuffer(8)); view.setFloat64(0, value, true); return [...new Uint8Array(view.buffer)];
 };
 
-function lowerKernel(kernel, { memoizeReductions = true } = {}) {
+function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFusion = false } = {}, steps = []) {
+  const fusionGroups = [];
   const code = [], locals = []; let loops = 0, runtimeChecks = 0, zipChecks = 0, stores = 0, memoizedReductions = 0, stateMachines = 0, stateSlots = 0, boundedIterations = 0;
   const emit = (...bytes) => code.push(...bytes);
   const allocate = type => { locals.push(type); return kernel.abi.length + locals.length - 1; };
@@ -35,9 +37,69 @@ function lowerKernel(kernel, { memoizeReductions = true } = {}) {
     const containsZip=n=>n.op==='same_extent'||n.args.some(containsZip);
     if(containsZip(guard))zipChecks++;
   };
-  const copyContext = ctx => ({ cache: new Map(ctx.cache), indices: new Map(ctx.indices), accumulators: new Map(ctx.accumulators), groups: new Map(ctx.groups), lazy: new Map(ctx.lazy), bypass: new Set(ctx.bypass) });
-  const root = { cache: new Map(), indices: new Map(), accumulators: new Map(), groups: new Map(), lazy: new Map(), bypass: new Set() };
+  const copyContext = ctx => ({ ...ctx, cache: new Map(ctx.cache), indices: new Map(ctx.indices), accumulators: new Map(ctx.accumulators), groups: new Map(ctx.groups), lazy: new Map(ctx.lazy), bypass: new Set(ctx.bypass) });
+  const root = { fusionAllowed: experimentalReductionFusion, cohorts: new Map(), cache: new Map(), indices: new Map(), accumulators: new Map(), groups: new Map(), lazy: new Map(), bypass: new Set() };
   function load(node, ctx) { get(evaluate(node, ctx)); }
+  function region(nodes, ctx) {
+    const completed = new Map([...ctx.cache, ...ctx.groups, ...ctx.lazy]);
+    return { ...ctx, cohorts: ctx.fusionAllowed
+      ? planReductionFusion(nodes, steps, completed) : new Map() };
+  }
+  function loadRegion(node, ctx) { load(node, region(node, ctx)); }
+  function disableFusion(ctx) { ctx.fusionAllowed = false; ctx.cohorts = new Map(); }
+  function resultRoots(value) {
+    if (value.kind === 'record') return [...value.fields.values()].flatMap(resultRoots);
+    return value.kind === 'scalar' ? [value] : [];
+  }
+  function reduceCohort(requested, ctx) {
+    const peers = ctx.cohorts.get(requested.id).filter(n =>
+      !ctx.cache.has(n.id) && !ctx.groups.has(n.id) && !ctx.lazy.has(n.id));
+    const nodes = [requested, ...peers.filter(n => n !== requested)];
+    const outer = { ...ctx, cohorts: new Map() };
+    if (nodes.length < 2) {
+      if (requested.op === 'reduce') evaluate(requested, outer);
+      else evaluateGroup(requested, outer);
+      return;
+    }
+    const stream = requested.stream;
+    const frames = nodes.map(node => ({ node,
+      initial: node.op === 'reduce' ? [node.initial] : node.initial,
+      acc: node.op === 'reduce' ? [node.acc] : node.acc,
+      body: node.op === 'reduce' ? [node.body] : node.body,
+    }));
+    for (const guard of stream.guards) { load(guard, outer); trapUnless(); noteGuard(guard); }
+    const extent = evaluate(stream.extent, outer);
+    for (const f of frames) {
+      f.targets = f.initial.map(n => allocate(n.type));
+      f.initial.forEach((n, i) => { load(n, outer); set(f.targets[i]); });
+    }
+    const index = allocate('I32'); i32(0); set(index);
+    const body = copyContext(outer); disableFusion(body);
+    invalidateBindings(body, [...stream.indices.map(n => n.id), ...frames.flatMap(f => f.acc.map(n => n.id))]);
+    for (const identity of stream.indices) body.indices.set(identity.id, index);
+    for (const f of frames) f.acc.forEach((n, i) => body.accumulators.set(n.id, f.targets[i]));
+    const machines = prepareMachines(stream, body);
+    loops++; emit(0x02, 0x40, 0x03, 0x40);
+    get(index); get(extent); emit(0x4f, 0x0d, 0x01);
+    stepMachines(machines, body);
+    if (stream.mask) { load(stream.mask, body); emit(0x04, 0x40); }
+    // Snapshot every component before changing any accumulator, including
+    // record-valued folds. Each recurrence retains its original f64 ordering.
+    const snapshots = frames.map(f => f.body.map(n => {
+      const local = allocate(n.type); load(n, body); set(local); return local;
+    }));
+    frames.forEach((f, i) => snapshots[i].forEach((v, j) => { get(v); set(f.targets[j]); }));
+    if (stream.mask) emit(0x0b);
+    get(index); i32(1); emit(0x6a); set(index); emit(0x0c, 0x00, 0x0b, 0x0b);
+    for (const f of frames) {
+      knownNodes.set(f.node.id, f.node);
+      if (f.node.op === 'reduce') ctx.cache.set(f.node.id, f.targets[0]);
+      else ctx.groups.set(f.node.id, f.targets);
+    }
+    fusionGroups.push({ domain: steps[stream.proof].domain,
+      reductions: nodes.map(n => n.id), streams: nodes.map(n => n.stream.proof),
+      stateMachines: stream.machines.length });
+  }
   const dependencyCache=new Map(), knownNodes=new Map();
   function dependencies(node) {
     knownNodes.set(node.id,node);
@@ -110,18 +172,21 @@ function lowerKernel(kernel, { memoizeReductions = true } = {}) {
     }
     if (node.op==='reduce_field') return evaluateGroup(node.args[0],ctx)[node.data];
     if (node.op==='iterate_field') return evaluateIteration(node.args[0],ctx)[node.data];
+    if (node.op === 'reduce' && ctx.cohorts.has(node.id)) {
+      reduceCohort(node, ctx); return ctx.cache.get(node.id);
+    }
     const target = allocate(node.type), a = node.args;
     if (node.op === 'const') {
       node.type === 'Num' ? f64(node.data) : i32(node.data);
     } else if (node.op === 'if' || node.op === '&&' || node.op === '||') {
-      load(a[0], ctx); emit(0x04, wasmType(node.type));
+      loadRegion(a[0], ctx); emit(0x04, wasmType(node.type));
       const yes = copyContext(ctx), no = copyContext(ctx);
-      if (node.op === 'if') load(a[1], yes);
-      else if (node.op === '&&') load(a[1], yes);
+      if (node.op === 'if') loadRegion(a[1], yes);
+      else if (node.op === '&&') loadRegion(a[1], yes);
       else i32(1);
       emit(0x05);
-      if (node.op === 'if') load(a[2], no);
-      else if (node.op === '||') load(a[1], no);
+      if (node.op === 'if') loadRegion(a[2], no);
+      else if (node.op === '||') loadRegion(a[1], no);
       else i32(0);
       emit(0x0b);
     } else if (node.op === 'extent') {
@@ -134,7 +199,7 @@ function lowerKernel(kernel, { memoizeReductions = true } = {}) {
       for(const arg of a) load(arg,ctx);
       emit(0x10,...uleb(node.data));
     } else if(node.op==='guard') {
-      load(a[0],ctx); trapUnless(); load(a[1],ctx);
+      loadRegion(a[0],ctx); trapUnless(); loadRegion(a[1],ctx);
     } else if(node.op==='checked_index') {
       const n=evaluate(a[0],ctx), extent=evaluate(a[1],ctx);
       get(n); f64(0); emit(0x66); trapUnless();
@@ -164,7 +229,7 @@ function lowerKernel(kernel, { memoizeReductions = true } = {}) {
       const extent = evaluate(stream.extent, ctx);
       load(node.initial, ctx); set(target);
       const index = allocate('I32'); i32(0); set(index);
-      const bodyContext = copyContext(ctx);
+      const bodyContext = copyContext(ctx); disableFusion(bodyContext);
       invalidateBindings(bodyContext,[...stream.indices.map(i=>i.id),node.acc.id]);
       for (const identity of stream.indices) bodyContext.indices.set(identity.id, index);
       bodyContext.accumulators.set(node.acc.id, target);
@@ -231,7 +296,7 @@ function lowerKernel(kernel, { memoizeReductions = true } = {}) {
     const limit=evaluate(node.limit,ctx),targets=node.initial.map(n=>allocate(n.type));
     node.initial.forEach((n,i)=>{load(n,ctx);set(targets[i]);});
     const count=allocate('I32'),done=allocate('Bool');i32(0);set(count);i32(0);set(done);
-    const body=copyContext(ctx);invalidateBindings(body,node.acc.map(a=>a.id));
+    const body=copyContext(ctx);disableFusion(body);invalidateBindings(body,node.acc.map(a=>a.id));
     node.acc.forEach((a,i)=>body.accumulators.set(a.id,targets[i]));
     planLoopMemo([...node.body,node.done],ctx,body);
     loops++;boundedIterations++;emit(0x02,0x40,0x03,0x40);
@@ -247,12 +312,13 @@ function lowerKernel(kernel, { memoizeReductions = true } = {}) {
     knownNodes.set(node.id,node);
     if(ctx.groups.has(node.id)) return ctx.groups.get(node.id);
     if(ctx.lazy.has(node.id) && !ctx.bypass.has(node.id))return forceLazy(node,ctx,true);
+    if(ctx.cohorts.has(node.id)) { reduceCohort(node,ctx); return ctx.groups.get(node.id); }
     const targets=node.initial.map(n=>allocate(n.type)), stream=node.stream;
     for(const guard of stream.guards) {load(guard,ctx);trapUnless();noteGuard(guard);}
     const extent=evaluate(stream.extent,ctx);
     node.initial.forEach((n,i)=>{load(n,ctx);set(targets[i]);});
     const index=allocate('I32'); i32(0);set(index);
-    const bodyContext=copyContext(ctx);
+    const bodyContext=copyContext(ctx); disableFusion(bodyContext);
     invalidateBindings(bodyContext,[...stream.indices.map(i=>i.id),...node.acc.map(a=>a.id)]);
     for(const identity of stream.indices) bodyContext.indices.set(identity.id,index);
     node.acc.forEach((a,i)=>bodyContext.accumulators.set(a.id,targets[i]));
@@ -306,6 +372,7 @@ function lowerKernel(kernel, { memoizeReductions = true } = {}) {
   }
   // All host effects are forced exactly once, in source order, before the result.
   for(const effect of kernel.effects) evaluate(effect,root);
+  const resultContext = region(resultRoots(kernel.result), root);
   function writeDescriptor(base,offset,type,valueLocal) {
     get(base);get(valueLocal);emit(type==='Num'?0x39:0x36,type==='Num'?3:2,...uleb(offset));stores++;
   }
@@ -314,11 +381,11 @@ function lowerKernel(kernel, { memoizeReductions = true } = {}) {
       for(const f of layout(schema).fields) writeResult(value.fields.get(f.name),f.schema,base,offset+f.offset);
       return;
     }
-    if(schema.kind==='Num' || schema.kind==='Bool') {writeDescriptor(base,offset,schema.kind,evaluate(value,root));return;}
+    if(schema.kind==='Num' || schema.kind==='Bool') {writeDescriptor(base,offset,schema.kind,evaluate(value,resultContext));return;}
     if(schema.kind==='Text' || schema.kind==='Bytes') {
       // Borrowed result data is valid through the call frame; JS lifting copies it.
-      writeDescriptor(base,offset,'I32',evaluate(value.pointer,root));
-      writeDescriptor(base,offset+4,'I32',evaluate(value.extent,root));return;
+      writeDescriptor(base,offset,'I32',evaluate(value.pointer,resultContext));
+      writeDescriptor(base,offset+4,'I32',evaluate(value.extent,resultContext));return;
     }
     const stream=value, stride=schema.element.kind==='Num'?8:4;
     // Each array starts at an 8-byte boundary, including after a Bool array.
@@ -326,12 +393,13 @@ function lowerKernel(kernel, { memoizeReductions = true } = {}) {
     get(cursor);get(end);emit(0x4d);trapUnless();
     const begin=allocate('I32'), count=allocate('I32'), index=allocate('I32');
     get(cursor);set(begin);i32(0);set(count);i32(0);set(index);
-    for(const guard of stream.guards) {load(guard,root);trapUnless();noteGuard(guard);}
-    const extent=evaluate(stream.extent,root), ctx=copyContext(root);
+    for(const guard of stream.guards) {load(guard,resultContext);trapUnless();noteGuard(guard);}
+    const extent=evaluate(stream.extent,resultContext), ctx=copyContext(resultContext);
+    disableFusion(ctx);
     invalidateBindings(ctx,stream.indices.map(i=>i.id));
     for(const identity of stream.indices) ctx.indices.set(identity.id,index);
     const machines=prepareMachines(stream,ctx);
-    planLoopMemo([stream.mask,stream.item,...machineRoots(stream)],root,ctx);
+    planLoopMemo([stream.mask,stream.item,...machineRoots(stream)],resultContext,ctx);
     loops++;emit(0x02,0x40,0x03,0x40);
     get(index);get(extent);emit(0x4f,0x0d,1);
     stepMachines(machines,ctx);
@@ -344,16 +412,18 @@ function lowerKernel(kernel, { memoizeReductions = true } = {}) {
     writeDescriptor(base,offset,'I32',begin);writeDescriptor(base,offset+4,'I32',count);
   }
   if(kernel.indirect) {writeResult(kernel.result,kernel.resultSchema,kernel.outputSlots[0]);get(cursor);}
-  else load(kernel.result,root);
+  else loadRegion(kernel.result,root);
   emit(0x0b);
   const declarations = vector(locals.map(type => [1, wasmType(type)]));
   const body = [...declarations, ...code];
   return { bytes: [...uleb(body.length), ...body], locals: locals.length,
-    localBytes: locals.reduce((n, t) => n + (t === 'Num' ? 8 : 4), 0), loops, runtimeChecks, zipChecks, stores, memoizedReductions, stateMachines, stateSlots, boundedIterations };
+    localBytes: locals.reduce((n, t) => n + (t === 'Num' ? 8 : 4), 0), loops, runtimeChecks, zipChecks, stores, memoizedReductions, stateMachines, stateSlots, boundedIterations,
+    reductionFusion: { enabled: experimentalReductionFusion, groups: fusionGroups,
+      eliminatedLoops: fusionGroups.reduce((n, g) => n + g.reductions.length - 1, 0) } };
 }
 
 export function emitModule(staged, options = {}) {
-  const kernels=staged.kernels, hosts=staged.hostDeclarations, bodies=kernels.map(k=>lowerKernel(k,options));
+  const kernels=staged.kernels, hosts=staged.hostDeclarations, bodies=kernels.map(k=>lowerKernel(k,options,staged.certificate.steps));
   const needsMemory=kernels.some(k=>k.indirect || k.inputLeaves.some(p=>p.stride));
   const functionType=(args,result)=>[0x60,...vector(args.map(t=>[wasmType(t)])),1,wasmType(result)];
   const types=[...hosts.map(h=>functionType(['I32',...h.parameters.flatMap(flatTypes)],h.result.kind)),...kernels.map(k=>functionType(k.abi,k.resultType))];
@@ -375,5 +445,5 @@ export function emitModule(staged, options = {}) {
   return {bytes:Uint8Array.from(pieces.flat()),needsMemory,contract,abiMetadataBytes:pieces.at(-1).length,
     functions:kernels.map((k,i)=>({name:k.name,loops:bodies[i].loops,wasmLocals:bodies[i].locals,
       wasmLocalValueBytes:bodies[i].localBytes,runtimeZipChecks:bodies[i].zipChecks,runtimeStreamChecks:bodies[i].runtimeChecks,
-      outputStoreSites:bodies[i].stores,hostCallSites:k.effects.length,memoizedReductions:bodies[i].memoizedReductions,stateMachines:bodies[i].stateMachines,stateSlots:bodies[i].stateSlots,boundedIterations:bodies[i].boundedIterations}))};
+      outputStoreSites:bodies[i].stores,hostCallSites:k.effects.length,memoizedReductions:bodies[i].memoizedReductions,stateMachines:bodies[i].stateMachines,stateSlots:bodies[i].stateSlots,boundedIterations:bodies[i].boundedIterations,reductionFusion:bodies[i].reductionFusion}))};
 }

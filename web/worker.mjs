@@ -12,7 +12,7 @@ function fromJSON(schema,value) {
 self.onmessage = async ({data}) => {
   try {
     const {source}=data,name=data.name??'main',args=data.args??[data.n];
-    const compiled=compile(source),entry=compiled.abi.exports.find(e=>e.name===name);
+    const compiled=compile(source,{experimentalReductionFusion:data.experimentalReductionFusion??false}),entry=compiled.abi.exports.find(e=>e.name===name);
     if(!entry)throw new Error(`No export named '${name}'`);
     if(!Array.isArray(args)||args.length!==entry.parameters.length)throw new Error('Arguments must be a JSON array matching the export parameters');
     const input=entry.parameters.map((p,i)=>fromJSON(p.schema,args[i]));

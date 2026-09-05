@@ -7,13 +7,14 @@ export { verifyCertificate } from './jte.mjs';
 /** Compile source to a standalone Wasm kernel module and an erased JTE ledger.
  * The compiler itself is JavaScript and is NOT allocation-free.
  * @param {string} source
- * @param {{maxExpansion?: number, memoizeReductions?: boolean}} options
+ * @param {{maxExpansion?: number, memoizeReductions?: boolean, experimentalReductionFusion?: boolean}} options
  */
 export function compile(source, options = {}) {
   if (options.maxExpansion !== undefined && (!Number.isSafeInteger(options.maxExpansion) || options.maxExpansion < 1)) {
     throw new TypeError('maxExpansion must be a positive safe integer');
   }
   if (options.memoizeReductions !== undefined && typeof options.memoizeReductions !== 'boolean') throw new TypeError('memoizeReductions must be a boolean');
+  if (options.experimentalReductionFusion !== undefined && typeof options.experimentalReductionFusion !== 'boolean') throw new TypeError('experimentalReductionFusion must be a boolean');
   const now = () => globalThis.performance.now();
   const start = now();
   try {

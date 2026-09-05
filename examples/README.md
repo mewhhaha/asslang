@@ -1,6 +1,14 @@
+# Reduction-fusion integration
+
+`rms.ass` from PR #1 is registered in the shared corpus. Dense `count` already
+avoids traversal, so RMS uses one loop with either compiler option. Explicit
+same-schedule reductions can additionally fuse with `experimentalReductionFusion`.
+`multi_reduction.ass` goes from two loops to one, and `scan_replay.ass` shares one
+recurrence frame instead of replaying it twice. Fusion remains off by default.
+
 # Corpus update: 0.2
 
-There are 34 accepted exports across 32 source files, and 3 deliberate rejections.
+There are 35 accepted exports across 33 source files, and 3 deliberate rejections.
 New cases cover prefix scan, EWMA, segmented scans, running z-scores, rolling means,
 ASCII unsigned-integer lexing, bounded Newton iteration, product/connection of
 machine descriptions, and separate-consumer recurrence replay. Every source and

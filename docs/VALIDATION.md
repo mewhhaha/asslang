@@ -1,3 +1,6 @@
+> This is the historical pre-integration 0.2 report. Current combined validation
+> for PR #2 is in [INTEGRATION.md](INTEGRATION.md). The original evidence is retained.
+
 # Validation: Asslang 0.2 / JTE 1 causal
 
 Executed September 5, 2026. This report supersedes the ASABI 0.1 validation,

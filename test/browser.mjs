@@ -91,6 +91,49 @@ try {
   }
   denied=false;try{compile('export fn main(xs:[Num])=at(scan(xs,0,(s,x)=>s+x),0);');}catch(e){denied=e.code==='E_CAUSAL_ACCESS';}assert(denied,'History-dependent seek denied');
   report.cases.push({name:'causal-differential',cases:100});
+  // PR #1's browser checks, retained alongside the complete causal/ABI suite.
+  const fusionSource=`export fn main(xs)={let ys=filter(xs,x=>x>1);
+    sum(ys)+sum(map(ys,x=>x*x))+count(ys)};`;
+  const fused=compile(fusionSource,{experimentalReductionFusion:true});
+  const f=await instantiate(fused,{memory});
+  assert(Object.is(f.exports.main(0,6),reference(fusionSource,'main',[[1,2,3,4,5,6]])),
+    'Reduction cohort result');
+  assert(fused.stats.functions[0].loops===1,'Three reductions share one loop');
+  assert(fused.stats.functions[0].reductionFusion.eliminatedLoops===2,'Two loops eliminated');
+  const lazy=compile(`export fn main(n)={let xs=range(n);
+    if true then count(map(xs,x=>sum(range(-1))))+sum(xs) else sum(range(-1))};`,
+    {experimentalReductionFusion:true});
+  assert((await instantiate(lazy)).exports.main(5)===15,'Fusion preserves lazy demand');
+  for(let t=0;t<100;t++) {
+    const n=random()%40, cut=random()%13;
+    const s=`export fn main(n)={let xs=filter(range(n),x=>x>${cut});
+      sum(xs)+sum(map(xs,x=>x*x))+count(xs)};`;
+    const compiled=compile(s,{experimentalReductionFusion:true});
+    const instance=await instantiate(compiled);
+    assert(Object.is(instance.exports.main(n),reference(s,'main',[n])),`Fusion differential ${t}`);
+    assert(compiled.stats.functions[0].loops===1,`Fusion structure ${t}`);
+  }
+  report.cases.push({name:'experimental-reduction-fusion',cases:100,wasmBytes:fused.bytes.length});
+  const sharedHistory=`export fn main(xs:[Num])={
+    let ys=scan(xs,0,(s,x)=>s+x);
+    {total:sum(ys),count:count(ys),last:fold(ys,0,(s,x)=>x)}
+  };`;
+  const sharedCompiled=compile(sharedHistory,{experimentalReductionFusion:true});
+  const sharedRuntime=await createRuntime(sharedCompiled,{pages:4});
+  assert(sharedCompiled.stats.functions[0].loops===1,'Causal sinks share one loop');
+  assert(sharedCompiled.stats.functions[0].stateMachines===1,'Shared history advances once');
+  for(let t=0;t<100;t++) {
+    const values=Array.from({length:random()%20},()=>random()%15-7);
+    assert(close(sharedRuntime.call('main',[values]),reference(sharedHistory,'main',[values])),`Causal fusion differential ${t}`);
+  }
+  report.cases.push({name:'causal-reduction-fusion',cases:100});
+  for(const entry of corpus) {
+    if(entry.host)continue;
+    const source=globalThis.asslangSources?.[entry.path] ?? await (await fetch('../examples/'+entry.path)).text();
+    const compiled=compile(source,{experimentalReductionFusion:true});
+    const runtime=await createRuntime(compiled,{pages:4});
+    assert(close(runtime.call(entry.name,entry.args),entry.expected),'Fused corpus '+entry.id);
+  }
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {

@@ -17,6 +17,8 @@
     "bench:browser": "node scripts/browser-test.mjs --bench",
     "test:corpus": "node --test test/corpus.test.mjs",
     "example:host": "node examples/interop/host.mjs",
-    "test:causal": "node --test test/causal.test.mjs test/leases.test.mjs"
+    "test:causal": "node --test test/causal.test.mjs test/leases.test.mjs",
+    "bench:fusion": "node scripts/bench-fusion.mjs",
+    "test:fusion": "node --test test/fusion*.test.mjs"
   }
 }

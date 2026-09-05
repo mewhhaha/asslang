@@ -31,5 +31,6 @@ document.querySelector('#run').onclick=()=>{
   };
   worker.onerror=event=>{stop();output.textContent=event.message;};
   worker.postMessage({source:document.querySelector('#source').value,name:document.querySelector('#name').value,args,
-    allowDemoEffects:document.querySelector('#effects').checked});
+    allowDemoEffects:document.querySelector('#effects').checked,
+    experimentalReductionFusion:document.querySelector('#fusion').checked});
 };
