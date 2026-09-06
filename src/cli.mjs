@@ -1,24 +1,33 @@
 #!/usr/bin/env node
 import { readFile, writeFile, realpath, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { compileSources, CompileError } from './compiler.mjs';
+import { compileSources, checkSources, CompileError, formatDiagnostic } from './compiler.mjs';
+import { diagnosticFromError } from './diagnostics.mjs';
 import { createRuntime } from './abi.mjs';
 
 const usage = `Usage: node src/cli.mjs INPUT.ass [--lib HELPERS.ass ...] [-o OUTPUT.wasm]
-  --check                         Typecheck and compile without writing files
+  --check                         Check through Wasm validation without execution
+  --diagnostics=text|json          Source frames (default), or JSON with --check
   --run EXPORT --args '[...]'      Run a pure export and print its JSON result
   --pages N                       Fixed runtime capacity in 64-KiB pages (default: 16)
   --explain                       Print ABI, types, observations, statistics and proof
   --experimental-reduction-fusion Enable conservative reduction cohorts`;
 const files = [];
-try {
-  const args = process.argv.slice(2);
-  if (args.includes('--help')) { console.log(usage); process.exit(0); }
+const args = process.argv.slice(2);
+// Select error transport before parsing so even preceding option errors are JSON.
+const jsonDiagnostics = args.includes('--diagnostics=json');
+class UsageError extends Error { code = 'E_OPTIONS'; }
+async function main() {
+  if (args.includes('--help')) {
+    if (jsonDiagnostics) throw new UsageError('--help cannot be combined with --diagnostics=json');
+    console.log(usage); return;
+  }
   let input, output, run, jsonArgs, pages = 16, check = false, explain = false, experimentalReductionFusion = false;
   const libraries = [];
+  let diagnosticFlags = 0;
   function value(index, flag) {
     const next = args[index + 1];
-    if (next === undefined || next.startsWith('--')) throw new Error(`${flag} requires a value`);
+    if (next === undefined || next.startsWith('--')) throw new UsageError(`${flag} requires a value`);
     return next;
   }
   for (let i = 0; i < args.length; i++) {
@@ -29,21 +38,34 @@ try {
     else if (flag === '--args') jsonArgs = value(i++, flag);
     else if (flag === '--pages') pages = Number(value(i++, flag));
     else if (flag === '--check') check = true;
+    else if (flag.startsWith('--diagnostics=')) {
+      if (++diagnosticFlags > 1) throw new UsageError('--diagnostics may be specified only once');
+      if (!['--diagnostics=text', '--diagnostics=json'].includes(flag))
+        throw new UsageError('--diagnostics must be text or json');
+    }
     else if (flag === '--explain') explain = true;
     else if (flag === '--experimental-reduction-fusion') experimentalReductionFusion = true;
-    else if (flag.startsWith('-') || input) throw new Error(`Unexpected argument: ${flag}`);
+    else if (flag.startsWith('-') || input) throw new UsageError(`Unexpected argument: ${flag}`);
     else input = flag;
   }
-  if (!input) throw new Error(usage);
-  if (run && check) throw new Error('--run and --check are mutually exclusive');
-  if (run && output) throw new Error('--run and -o are mutually exclusive');
-  if (jsonArgs !== undefined && !run) throw new Error('--args requires --run');
-  if (!Number.isInteger(pages) || pages < 0 || pages > 32767) throw new Error('--pages must be an integer between 0 and 32767');
+  if (jsonDiagnostics && (!check || run || output || explain))
+    throw new UsageError('--diagnostics=json requires --check and cannot be combined with --run, -o, or --explain');
+  if (!input) throw new UsageError(usage);
+  if (run && check) throw new UsageError('--run and --check are mutually exclusive');
+  if (run && output) throw new UsageError('--run and -o are mutually exclusive');
+  if (jsonArgs !== undefined && !run) throw new UsageError('--args requires --run');
+  if (!Number.isInteger(pages) || pages < 0 || pages > 32767) throw new UsageError('--pages must be an integer between 0 and 32767');
   for (const name of [...libraries, input]) files.push({ name, source: await readFile(name, 'utf8') });
+  if (jsonDiagnostics) {
+    const report = checkSources(files, { experimentalReductionFusion });
+    console.log(JSON.stringify(report));
+    process.exitCode = report.ok ? 0 : 1;
+    return;
+  }
   const result = compileSources(files, { experimentalReductionFusion });
   if (run) {
     const values = JSON.parse(jsonArgs ?? '[]');
-    if (!Array.isArray(values)) throw new Error('--args must be a JSON array of export arguments');
+    if (!Array.isArray(values)) throw new UsageError('--args must be a JSON array of export arguments');
     const runtime = await createRuntime(result, { pages });
     console.log(JSON.stringify(runtime.call(run, values), (_, value) => ArrayBuffer.isView(value) ? Array.from(value) : value));
   } else if (!check) {
@@ -58,7 +80,7 @@ try {
     for (const path of [output, output + '.json']) {
       const existing = await stat(path).catch(error => { if (error.code === 'ENOENT') return null; throw error; });
       if (inputs.has(await canonical(path)) || existing && identities.some(s => s.dev === existing.dev && s.ino === existing.ino))
-        throw new Error('Output must not overwrite source');
+        throw new UsageError('Output must not overwrite source');
     }
     await writeFile(output, result.bytes);
     await writeFile(output + '.json', JSON.stringify({ abi: result.abi, exports: result.exports, signatures: result.signatures,
@@ -67,8 +89,13 @@ try {
   }
   if (explain) console.log(JSON.stringify({ abi: result.abi, signatures: result.signatures, observations: result.observations,
     sourceFiles: result.sourceFiles, stats: result.stats, certificate: result.certificate }, null, 2));
+}
+try {
+  await main();
 } catch (error) {
-  const source = files.find(f => f.name === error.sourceName)?.source ?? files.at(-1)?.source ?? '';
-  console.error(error instanceof CompileError ? error.format(source) : error.message);
+  const diagnostic = error instanceof CompileError ? error.toDiagnostic(files.find(f => f.name === error.sourceName)?.source) :
+    diagnosticFromError({ code: error.code ?? 'E_DRIVER', message: error.message, phase: 'driver' });
+  if (jsonDiagnostics) console.log(JSON.stringify({ schemaVersion: 1, ok: false, diagnostics: [diagnostic] }));
+  else console.error(error instanceof CompileError ? formatDiagnostic(diagnostic) : error.message);
   process.exitCode = 1;
 }

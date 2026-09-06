@@ -1,4 +1,5 @@
 import { createUnaryParser } from './unary.mjs';
+import { diagnosticFromError } from './diagnostics.mjs';
 // The front end is deliberately independent of WebAssembly and the JTE ledger.
 export class CompileError extends Error {
   constructor(message, offset = 0, code = 'E_COMPILE') {
@@ -7,6 +8,7 @@ export class CompileError extends Error {
     this.offset = offset;
     this.code = code;
   }
+  toDiagnostic(source) { return diagnosticFromError(this, source); }
   format(source) {
     const before = source.slice(0, this.offset).split('\n');
     return `${this.code} at ${this.sourceName ? this.sourceName + ':' : ''}${before.length}:${before.at(-1).length + 1}: ${this.message}`;

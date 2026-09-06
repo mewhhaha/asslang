@@ -7,12 +7,15 @@ export async function browserBundle({ benchmark = false } = {}) {
     .replace(/^import .*?;\n/gm,'').replace(/^export \{.*?;\n/gm,'').replace(/^export /gm,'');
   const specs=[
     ['abiSchema','src/abi-schema.mjs','','ABI_VERSION,alignTo,layout,flatTypes,isScalarSchema'],
+    ['diagnostics','src/diagnostics.mjs','','diagnosticFromError,formatDiagnostic'],
+    ['navigation','web/diagnostic-navigation.mjs','','selectDiagnostic'],
+    ['diagnosticCases','test/diagnostic-cases.mjs','','diagnosticCases'],
     ['unary','src/unary.mjs','','createUnaryParser'],
-    ['frontend','src/frontend.mjs','const {createUnaryParser}=modules.unary;','CompileError,fail,tokenize,parse,prune,showType,builtinNames,builtinArities,infer'],
+    ['frontend','src/frontend.mjs','const {createUnaryParser}=modules.unary;const {diagnosticFromError}=modules.diagnostics;','CompileError,fail,tokenize,parse,prune,showType,builtinNames,builtinArities,infer'],
     ['jte','src/jte.mjs','const {fail,prune,showType,builtinArities}=modules.frontend;const {flatTypes,isScalarSchema}=modules.abiSchema;','verifyCertificate,schemaOfType,stage'],
     ['fusion','src/fusion.mjs','','planReductionFusion'],
     ['wasm','src/wasm.mjs','const {ABI_VERSION,layout,flatTypes}=modules.abiSchema;const {planReductionFusion}=modules.fusion;','uleb,emitModule'],
-    ['compiler','src/compiler.mjs','const {CompileError,parse,infer}=modules.frontend;const {stage,verifyCertificate}=modules.jte;const {emitModule}=modules.wasm;','compile,compileSources,createCompiler,instantiate,CompileError,verifyCertificate'],
+    ['compiler','src/compiler.mjs','const {CompileError,parse,infer}=modules.frontend;const {stage,verifyCertificate}=modules.jte;const {emitModule}=modules.wasm;const {formatDiagnostic}=modules.diagnostics;','compile,compileSources,check,checkSources,formatDiagnostic,createCompiler,instantiate,CompileError,verifyCertificate'],
     ['abi','src/abi.mjs','const {ABI_VERSION,alignTo,layout,flatTypes,isScalarSchema}=modules.abiSchema;','ABIError,Arena,readABI,createRuntime,createCapability,prepareCall'],
     ['unaryCases','test/unary-cases.mjs','','unaryCases'],
     ['reference','test/reference.mjs','const {parse}=modules.frontend;','reference'],
@@ -26,7 +29,7 @@ export async function browserBundle({ benchmark = false } = {}) {
   if(benchmark) {
     code+=`const report=await modules.benchmark.runBenchmarks({loadSource:async path=>globalThis.asslangSources[path],compileSamples:15,samples:11});report.environment={engine:navigator.userAgent};return report;`;
   } else {
-    code+='const {unaryCases}=modules.unaryCases;const {compile,compileSources,createCompiler,instantiate}=modules.compiler;const {createRuntime,createCapability}=modules.abi;const {reference}=modules.reference;const {corpus,exampleSource}=modules.corpus;\n';
+    code+='const {unaryCases}=modules.unaryCases;const {compile,compileSources,check,checkSources,formatDiagnostic,createCompiler,instantiate}=modules.compiler;const {diagnosticCases}=modules.diagnosticCases;const {selectDiagnostic}=modules.navigation;const {createRuntime,createCapability}=modules.abi;const {reference}=modules.reference;const {corpus,exampleSource}=modules.corpus;\n';
     code+='document.body.innerHTML="<pre id=report></pre>";document.body.dataset.result="pending";globalThis.asslangEngineOnly=true;\n';
     code+=await read('test/browser.mjs');code+='\nreturn report;';
   }

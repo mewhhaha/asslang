@@ -1,3 +1,9 @@
+> **Structured checks and diagnostics:** use `check` / `checkSources`, or
+> `--check --diagnostics=json`, for full compilation without executing an export.
+> Source frames and the playground's Check only / Go to error actions preserve
+> file-local locations. See [the guide](docs/DIAGNOSTICS.md) and
+> [validation](docs/DIAGNOSTICS-VALIDATION.md).
+
 > **Theory-first, unary syntax:** new source uses `x -> y -> body`, space-delimited
 > calls, tuple/record patterns, and explicit `do` blocks. See [syntax and migration](docs/SYNTAX.md),
 > [implementation theory](docs/IMPLEMENTATION.md), and [the documentation index](docs/README.md).
@@ -221,7 +227,8 @@ compiled generic ABI. There is no unrestricted multi-sink fusion, SIMD,
 array-valued state, arrays of records, variants, general recursion, escaping
 closures, async effects, or general ownership inference yet.
 
-The current results are **260 Node tests and 692 Chromium checks**. See
+The current results are **312 Node tests and 787 Chromium checks**. See
+[diagnostics validation](docs/DIAGNOSTICS-VALIDATION.md) for the latest checks,
 [syntax validation](docs/SYNTAX-VALIDATION.md) for the new language tests and
 [composability validation](docs/COMPOSABILITY-VALIDATION.md) for the prior baseline. Benchmarks
 separate compiler work, Wasm instantiation, raw reused-buffer kernels, independent
