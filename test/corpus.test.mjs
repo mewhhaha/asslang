@@ -4,7 +4,7 @@ import {readFile,readdir} from 'node:fs/promises';
 import {compile} from '../src/compiler.mjs';
 import {createRuntime,createCapability} from '../src/abi.mjs';
 import {reference} from './reference.mjs';
-import {corpus,rejectedCorpus,baselines,benchmarkArguments,expansionSource} from '../examples/corpus.mjs';
+import {corpus,rejectedCorpus,baselines,benchmarkArguments,expansionSource,exampleSource} from '../examples/corpus.mjs';
 const read=path=>readFile(new URL('../examples/'+path,import.meta.url),'utf8');
 export function plain(value){if(ArrayBuffer.isView(value))return Array.from(value);if(Array.isArray(value))return value.map(plain);if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,plain(v)]));return value;}
 function close(actual,expected){
@@ -14,7 +14,7 @@ function close(actual,expected){
   assert.equal(actual,expected);
 }
 for(const entry of corpus)test(`corpus: ${entry.id}`,async()=>{
-  const source=await read(entry.path),compiled=compile(source),r=await createRuntime(compiled,{pages:4});
+  const source=await exampleSource(entry,read),compiled=compile(source),r=await createRuntime(compiled,{pages:4});
   const hosts={read_scale:()=>0.5,audit:()=>true};
   const capability=entry.host?createCapability({read_scale:{parameters:['Text'],result:'Num',call:hosts.read_scale},audit:{parameters:['Text','Num'],result:'Bool',call:hosts.audit}},{maxCalls:2}):undefined;
   const value=r.call(entry.name,entry.args,{capability});close(value,entry.expected);close(value,reference(source,entry.name,entry.args,{hosts}));
@@ -23,7 +23,7 @@ for(const entry of corpus)test(`corpus: ${entry.id}`,async()=>{
 test('every .ass example and every accepted export is registered in the corpus',async()=>{
   async function walk(path=''){const files=[];for(const d of await readdir(new URL('../examples/'+path,import.meta.url),{withFileTypes:true})){if(d.isDirectory())files.push(...await walk(path+d.name+'/'));else if(d.name.endsWith('.ass'))files.push(path+d.name);}return files;}
   const paths=await walk(),registered=new Set([...corpus,...rejectedCorpus].map(e=>e.path));assert.deepEqual(paths.sort(),[...registered].sort());
-  for(const path of new Set(corpus.map(e=>e.path))){const c=compile(await read(path));for(const e of c.exports)assert.ok(corpus.some(x=>x.path===path&&x.name===e.name),`${path}:${e.name}`);}
+  for(const path of new Set(corpus.map(e=>e.path))){const c=compile(await exampleSource(corpus.find(e=>e.path===path),read));for(const e of c.exports)assert.ok(corpus.some(x=>x.path===path&&x.name===e.name),`${path}:${e.name}`);}
   for(const e of rejectedCorpus)assert.throws(()=>compile(awaitRead.get(e.path)),x=>x.code===e.code);
 });
 const awaitRead=new Map(await Promise.all(rejectedCorpus.map(async e=>[e.path,await read(e.path)])));

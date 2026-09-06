@@ -1,0 +1,4 @@
+// This explicitly stops at a zero, not an exhaustive IEEE-754 product:
+// a later Infinity or NaN is not evaluated and cannot change the result.
+export fn product_until_zero(xs: [Num]) =
+  fold_until(xs, 1, (s, x) => { state: s * x, done: x == 0 });

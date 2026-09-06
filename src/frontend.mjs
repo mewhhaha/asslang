@@ -8,7 +8,7 @@ export class CompileError extends Error {
   }
   format(source) {
     const before = source.slice(0, this.offset).split('\n');
-    return `${this.code} at ${before.length}:${before.at(-1).length + 1}: ${this.message}`;
+    return `${this.code} at ${this.sourceName ? this.sourceName + ':' : ''}${before.length}:${before.at(-1).length + 1}: ${this.message}`;
   }
 }
 export const fail = (message, node, code) => {
@@ -64,7 +64,7 @@ export function parse(source) {
       if (!at('}')) do { const n = identifier(); need(':');
         if (fields.has(n.text)) fail('Duplicate record field', n, 'E_NAME');
         fields.set(n.text, annotation());
-      } while (eat(','));
+      } while (eat(',') && !at('}'));
       need('}'); return { tag: 'Record', fields, tail: null };
     }
     const token = take();
@@ -77,7 +77,7 @@ export function parse(source) {
     if (!at(')')) do {
       names.push(identifier().text);
       annotations.push(annotated && eat(':') ? annotation() : null);
-    } while (eat(','));
+    } while (eat(',') && !at(')'));
     need(')');
     if (new Set(names).size !== names.length) fail('Duplicate parameter', peek(), 'E_NAME');
     return { names, annotations };
@@ -90,6 +90,7 @@ export function parse(source) {
         j++;
         if (tokens[j].text === ')') return tokens[j + 1]?.text === '=>';
         if (tokens[j++].text !== ',') break;
+        if (tokens[j]?.text === ')') return tokens[j + 1]?.text === '=>';
       }
     }
     return false;
@@ -117,13 +118,15 @@ export function parse(source) {
       return node('effect', t.pos, { bindings, result });
     }
     if (eat('{')) {
-      if (at('}') || /^[A-Za-z_]\w*$/.test(peek().text) && tokens[cursor + 1]?.text === ':') {
-        const fields = [];
+      if (at('}') || /^[A-Za-z_]\w*$/.test(peek().text) && [':', ','].includes(tokens[cursor + 1]?.text)) {
+        const fields = [], names = new Set();
         if (!at('}')) do {
-          const name = identifier(); need(':');
-          if (fields.some(f => f.name === name.text)) fail('Duplicate record field', name, 'E_NAME');
-          fields.push({ name: name.text, value: expression() });
-        } while (eat(','));
+          const name = identifier();
+          if (names.has(name.text)) fail('Duplicate record field', name, 'E_NAME');
+          names.add(name.text);
+          const value = eat(':') ? expression() : node('name', name.pos, { name: name.text });
+          fields.push({ name: name.text, value });
+        } while (eat(',') && !at('}'));
         need('}'); return node('record', t.pos, { fields });
       }
       const bindings = [];
@@ -156,7 +159,7 @@ export function parse(source) {
   }
   function argumentsList() {
     need('('); const args = [];
-    if (!at(')')) do { args.push(expression()); } while (eat(','));
+    if (!at(')')) do { args.push(expression()); } while (eat(',') && !at(')'));
     need(')'); return args;
   }
   function expression(minimum = 0) {
@@ -170,8 +173,14 @@ export function parse(source) {
       if (rank === undefined || rank < minimum) break;
       const op = take();
       if (op.text === '|>') {
-        const name = identifier();
-        const callee = node('name', name.pos, { name: name.text });
+        // Qualified record members and parenthesized static functions are
+        // ordinary callees; the pipeline still inserts exactly one first arg.
+        let callee;
+        if (eat('(')) { callee = expression(); need(')'); }
+        else { const name = identifier(); callee = node('name', name.pos, { name: name.text }); }
+        while (eat('.')) {
+          const field = identifier(); callee = node('field', field.pos, { value: callee, name: field.text });
+        }
         const args = at('(') ? argumentsList() : [];
         left = node('call', op.pos, { callee, args: [left, ...args] });
       } else {
@@ -180,21 +189,23 @@ export function parse(source) {
     }
     return left;
   }
-  const definitions = [], hosts = [];
+  const definitions = [], hosts = [], definitionNames = new Set(), hostNames = new Set();
   while (!at('<eof>')) {
     if (eat('host')) {
       need('fn'); const name = identifier(); const { names, annotations } = params(true);
       if (annotations.some(a => !a)) fail('Host parameters require concrete ABI annotations', name, 'E_ANNOTATION');
       need(':'); const resultAnnotation = annotation(); need(';');
       if (!['Num','Bool'].includes(resultAnnotation.tag)) fail('Host results currently must be Num or Bool', name, 'E_ABI');
-      if (hosts.some(h => h.name === name.text)) fail('Duplicate host name', name, 'E_NAME');
+      if (hostNames.has(name.text)) fail('Duplicate host name', name, 'E_NAME');
+      hostNames.add(name.text);
       hosts.push({ name: name.text, params: names, annotations, resultAnnotation, pos: name.pos }); continue;
     }
     const exported = Boolean(eat('export')); need('fn');
     const name = identifier(); const { names, annotations } = params(true);
     const resultAnnotation = eat(':') ? annotation() : null; need('=');
     const body = expression(); need(';');
-    if (definitions.some(d => d.name === name.text)) fail(`Duplicate function '${name.text}'`, name, 'E_NAME');
+    if (definitionNames.has(name.text)) fail(`Duplicate function '${name.text}'`, name, 'E_NAME');
+    definitionNames.add(name.text);
     definitions.push(node('definition', name.pos, { name: name.text, params: names, annotations, resultAnnotation, body, exported }));
   }
   if (!definitions.length) fail('Program contains no functions', null, 'E_PARSE');
@@ -235,7 +246,7 @@ export function showType(type) {
   return show(type);
 }
 
-export const builtinNames = ['range', 'map', 'filter', 'scan', 'transduce', 'iterate', 'zip', 'zip_checked', 'sum', 'count', 'fold', 'sqrt', 'abs', 'min', 'max', 'floor', 'at', 'byte_length', 'utf8', 'byte_values', 'require'];
+export const builtinNames = ['range', 'map', 'filter', 'scan', 'transduce', 'iterate', 'zip', 'zip_checked', 'sum', 'count', 'fold', 'fold_until', 'sqrt', 'abs', 'min', 'max', 'floor', 'at', 'byte_length', 'utf8', 'byte_values', 'require'];
 export function infer(program) {
   let next = 0, constraints = 0;
   const variable = () => ({ tag: 'Var', id: next++ });
@@ -309,6 +320,9 @@ export function infer(program) {
       case 'sum': return fn([stream(Num)], Num);
       case 'count': return fn([stream(a)], Num);
       case 'fold': return fn([stream(a), b, fn([b, a], b)], b);
+      case 'fold_until': return fn([stream(a), b, fn([b, a], {tag:'Record',
+        fields:new Map([['state',b],['done',Bool]]),tail:null})], {tag:'Record',
+        fields:new Map([['state',b],['steps',Num],['done',Bool]]),tail:null});
       case 'scan': return fn([stream(a), b, fn([b, a], b)], stream(b));
       case 'transduce': return fn([stream(a), b, fn([b, a], {tag:'Record',
         fields:new Map([['state',b],['value',c],['emit',Bool]]),tail:null})], stream(c));

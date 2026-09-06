@@ -1,0 +1,4 @@
+// Early termination composes with causal state without materializing a history.
+export fn threshold(xs: [Num], limit: Num) = xs
+  |> scan(0, (total, x) => total + x)
+  |> fold_until(0, (previous, total) => { state: total, done: total >= limit });

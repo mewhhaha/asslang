@@ -145,9 +145,12 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
       if(replacements.has(n.id)) return replacements.get(n.id);
       if(cache.has(n.id)) return cache.get(n.id);
       if(['wire','index','acc','cell','const'].includes(n.op)) return n;
-      const r=scalar(n.op,n.type,n.args.map(visit),n.data,['reduce','reduce_group','iterate_group'].includes(n.op)); cache.set(n.id,r);
+      const r=scalar(n.op,n.type,n.args.map(visit),n.data,['reduce','reduce_group','reduce_until','iterate_group'].includes(n.op)); cache.set(n.id,r);
       if(n.op==='reduce') Object.assign(r,{stream:visitPlan(n.stream),initial:visit(n.initial),acc:n.acc,body:visit(n.body)});
-      if(n.op==='reduce_group') Object.assign(r,{stream:visitPlan(n.stream),initial:n.initial.map(visit),acc:n.acc,body:n.body.map(visit)});
+      if(n.op==='reduce_group' || n.op==='reduce_until') {
+        Object.assign(r,{stream:visitPlan(n.stream),initial:n.initial.map(visit),acc:n.acc,body:n.body.map(visit)});
+        if(n.op==='reduce_until') r.done=visit(n.done);
+      }
       if(n.op==='iterate_group') Object.assign(r,{initial:n.initial.map(visit),acc:n.acc,body:n.body.map(visit),limit:visit(n.limit),done:visit(n.done)});
       return r;
     }
@@ -274,6 +277,25 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
       let result=scalar('to_num','Num',[input.extent]);
       for(const guard of input.guards)result=guardValue(guard,result,at);
       record('reduce',[input]);return result;
+    }
+    if (name === 'fold_until') {
+      const initial = leaves(args[1], at), acc = initial.map(v => scalar('acc', v.type, [], null, true));
+      let cursor = 0;
+      const state = shape(args[1], () => acc[cursor++]);
+      const transition = iteration([input], () => invoke(args[2], [state, input.item], at));
+      const next = transition.fields.get('state'), body = leaves(next, at);
+      const done = requireScalar(transition.fields.get('done'), at);
+      if (body.length !== initial.length || body.some((v, i) => v.type !== initial[i].type))
+        fail('Early-exit fold state changed representation', at, 'E_LOWER');
+      const group = scalar('reduce_until', 'Group', [], null, true);
+      Object.assign(group, { stream: input, initial, acc, body, done });
+      record('reduce', [input]);
+      cursor = 0;
+      return { kind: 'record', fields: new Map([
+        ['state', shape(next, v => scalar('reduce_field', v.type, [group], cursor++))],
+        ['steps', scalar('reduce_field', 'Num', [group], body.length)],
+        ['done', scalar('reduce_field', 'Bool', [group], body.length + 1)],
+      ]) };
     }
     if (['sum', 'count', 'fold'].includes(name)) {
       if (name==='fold' && args[1].kind==='record') {

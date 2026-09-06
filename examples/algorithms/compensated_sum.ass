@@ -1,0 +1,10 @@
+// Neumaier-style compensation for finite numeric inputs. One record fold,
+// two scalar recurrence slots, and no array of intermediate records.
+export fn compensated_sum(xs: [Num]) = {
+  let r = fold(xs, { total: 0, correction: 0 }, (s, x) => {
+    let total = s.total + x;
+    let lost = if abs(s.total) >= abs(x) then (s.total - total) + x else (x - total) + s.total;
+    { total, correction: s.correction + lost }
+  });
+  r.total + r.correction
+};

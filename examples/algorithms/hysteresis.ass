@@ -1,0 +1,4 @@
+// A Schmitt-trigger-like Boolean state machine: enter at high, leave at low.
+export fn hysteresis(xs: [Num], low: Num, high: Num) = require(low < high,
+  scan(xs, false, (on, x) => if on then x > low else x >= high)
+);

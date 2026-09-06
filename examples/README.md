@@ -8,7 +8,8 @@ recurrence frame instead of replaying it twice. Fusion remains off by default.
 
 # Corpus update: 0.2
 
-There are 35 accepted exports across 33 source files, and 3 deliberate rejections.
+The original 0.2 integration had 35 accepted exports across 33 source files.
+The current corpus has 48 accepted exports across 45 sources, and 3 deliberate rejections.
 New cases cover prefix scan, EWMA, segmented scans, running z-scores, rolling means,
 ASCII unsigned-integer lexing, bounded Newton iteration, product/connection of
 machine descriptions, and separate-consumer recurrence replay. Every source and
@@ -68,3 +69,31 @@ weights in their given order (the cross-correlation convention). `lower_bound`
 requires sorted input; it does not scan to validate that precondition. The checksum
 is additive and explicitly non-cryptographic. Empty and degenerate numerical cases
 have documented outputs rather than hidden divide-by-zero behavior.
+
+
+## Composable stopping kernels
+
+Thirteen new registered exports cover first-index search, any/all, causal threshold
+prefixes, product-until-zero, compensated summation, hysteresis, run-length flushes,
+first peaks, reducer products, terminal products, running RMS and qualified pipes.
+Every accepted source and export remains registered in `corpus.mjs`.
+
+```sh
+node src/cli.mjs examples/algorithms/find_first.ass \
+  --run first_index --args '[[4,7,9],7]'
+node src/cli.mjs examples/concepts/reducer_toolkit.ass \
+  --lib lib/reducers.ass --run summarize --args '[[1,-2,3]]'
+npm run example:reducers
+```
+
+Examples that need the staged reducer library declare `libraries` in the corpus.
+Tests, both benchmark engines and the playground example loader resolve the same
+list; standalone CLI invocations supply `--lib` explicitly. Library files contain
+no exports and are not counted as standalone runnable corpus examples.
+
+`fold_until` counts accepted events, not source indices; its stopping event is
+included. Terminal products freeze completed lanes. `product_until_zero` explicitly
+short-circuits: it is not interchangeable with exhaustive IEEE multiplication when
+a later input is NaN or infinity. The compensated-sum example is intended for
+finite data and illustrates one accumulation strategy, not arbitrary-precision math.
+See [the guide](../docs/COMPOSABILITY.md) for exact semantics and empty identities.

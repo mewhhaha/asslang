@@ -1,0 +1,8 @@
+// The suffix is not visited after the first match. No match uses index -1.
+export fn first_index(xs: [Num], key: Num) = {
+  let r = fold_until(xs, { index: 0, found: -1 }, (s, x) => {
+    state: { index: s.index + 1, found: if x == key then s.index else -1 },
+    done: x == key,
+  });
+  { index: r.state.found, found: r.done, visited: r.steps }
+};

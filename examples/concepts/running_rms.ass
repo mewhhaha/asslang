@@ -1,0 +1,7 @@
+// --lib lib/reducers.ass
+// Change inputs and finalization independently; use the same reducer with
+// reduce_with for a summary or scan_with for every prefix, all scalarized.
+export fn running_rms(xs: [Num]) = {
+  let squares = reducer_map_input(mean_reducer(), x => x * x);
+  xs |> scan_with(reducer_map_result(squares, sqrt))
+};

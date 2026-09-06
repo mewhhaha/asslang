@@ -1,3 +1,6 @@
+> Subsequent stopping-kernel and source-composition changes are documented in
+> [COMPOSABILITY.md](COMPOSABILITY.md), with [current validation](COMPOSABILITY-VALIDATION.md).
+
 # ASABI 1: stable JavaScript / Wasm memory contract
 
 Status: implemented, versioned project ABI. The version-1 layouts below are frozen;

@@ -1,0 +1,70 @@
+// Reducers are ordinary inferred records, not compiler-recognized objects.
+// All functions and record structure are staged away. State must be scalar or
+// nested scalar records; finish can change its shape without changing state.
+fn reduce_with(xs, r) = r.finish(fold(xs, r.initial, r.step));
+fn scan_with(xs, r) = scan(xs, r.initial, r.step) |> map(r.finish);
+fn until_with(xs, r) = {
+  let result = fold_until(xs, r.initial, r.step);
+  { value: r.finish(result.state), steps: result.steps, done: result.done }
+};
+
+fn sum_reducer() = { initial: 0, step: (s, x) => s + x, finish: s => s };
+fn count_reducer() = { initial: 0, step: (s, x) => s + 1, finish: s => s };
+fn mean_reducer() = {
+  initial: { n: 0, total: 0 },
+  step: (s, x) => { n: s.n + 1, total: s.total + x },
+  finish: s => if s.n > 0 then s.total / s.n else 0,
+};
+fn reducer_map_input(r, transform) = {
+  initial: r.initial, step: (s, x) => r.step(s, transform(x)), finish: r.finish,
+};
+fn reducer_map_result(r, transform) = {
+  initial: r.initial, step: r.step, finish: s => transform(r.finish(s)),
+};
+fn reducer_filter(r, predicate) = {
+  initial: r.initial,
+  step: (s, x) => if predicate(x) then r.step(s, x) else s,
+  finish: r.finish,
+};
+fn reducer_product(left, right) = {
+  initial: { left: left.initial, right: right.initial },
+  step: (s, x) => { left: left.step(s.left, x), right: right.step(s.right, x) },
+  finish: s => { left: left.finish(s.left), right: right.finish(s.right) },
+};
+
+// Terminal reducers return {state, done}. A completed product lane is frozen:
+// neither its transition nor its predicate runs at later upstream events.
+fn first_matching(predicate, fallback) = {
+  initial: fallback,
+  step: (s, x) => { let found = predicate(x); { state: if found then x else s, done: found } },
+  finish: s => s,
+};
+fn any_reducer(predicate) = {
+  initial: false, step: (s, x) => { let found = predicate(x); { state: found, done: found } }, finish: s => s,
+};
+fn all_reducer(predicate) = {
+  initial: true, step: (s, x) => { let valid = predicate(x); { state: valid, done: !valid } }, finish: s => s,
+};
+fn threshold_reducer(limit) = {
+  initial: 0, step: (s, x) => { state: s + x, done: s + x >= limit }, finish: s => s,
+};
+fn until_map_input(r, transform) = {
+  initial: r.initial, step: (s, x) => r.step(s, transform(x)), finish: r.finish,
+};
+fn until_product(left, right, completed) = {
+  initial: { left: left.initial, right: right.initial, leftDone: false, rightDone: false },
+  step: (s, x) => {
+    let a = if s.leftDone then { state: s.left, done: true } else left.step(s.left, x);
+    let b = if s.rightDone then { state: s.right, done: true } else right.step(s.right, x);
+    {
+      state: { left: a.state, right: b.state, leftDone: a.done, rightDone: b.done },
+      done: completed(a.done, b.done),
+    }
+  },
+  finish: s => {
+    left: { value: left.finish(s.left), done: s.leftDone },
+    right: { value: right.finish(s.right), done: s.rightDone },
+  },
+};
+fn until_both(left, right) = until_product(left, right, (a, b) => a && b);
+fn until_either(left, right) = until_product(left, right, (a, b) => a || b);

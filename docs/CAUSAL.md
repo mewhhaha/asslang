@@ -1,3 +1,6 @@
+> Subsequent stopping-kernel and source-composition changes are documented in
+> [COMPOSABILITY.md](COMPOSABILITY.md), with [current validation](COMPOSABILITY-VALIDATION.md).
+
 > Integration note: opt-in reduction cohorts can now share a causal schedule
 > across independent scalar/record reductions when the exact ordered machine IDs
 > also agree. Different histories and iteration-local reductions are not fused.

@@ -1,6 +1,6 @@
 import { createRuntime, createCapability } from '../src/abi.mjs';
-import { corpus } from '../examples/corpus.mjs';
-import { compile, instantiate } from '../src/compiler.mjs';
+import { corpus, exampleSource } from '../examples/corpus.mjs';
+import { compile, compileSources, createCompiler, instantiate } from '../src/compiler.mjs';
 import { reference } from './reference.mjs';
 const report = { browser: navigator.userAgent, checks: 0, cases: [] };
 const assert = (condition,message) => { if (!condition) throw new Error(message); report.checks++; };
@@ -59,7 +59,7 @@ try {
     return a===b;
   }
   for(const entry of corpus) {
-    const source=globalThis.asslangSources?.[entry.path] ?? await (await fetch('../examples/'+entry.path)).text();
+    const source=await exampleSource(entry,async path=>globalThis.asslangSources?.[path] ?? await (await fetch('../examples/'+path)).text());
     const compiled=compile(source),runtime=await createRuntime(compiled,{pages:4});
     const capability=entry.host?createCapability({read_scale:{parameters:['Text'],result:'Num',call:()=>0.5},audit:{parameters:['Text','Num'],result:'Bool',call:()=>true}},{maxCalls:2}):undefined;
     assert(close(runtime.call(entry.name,entry.args,{capability}),entry.expected),'Corpus '+entry.id);
@@ -129,11 +129,39 @@ try {
   report.cases.push({name:'causal-reduction-fusion',cases:100});
   for(const entry of corpus) {
     if(entry.host)continue;
-    const source=globalThis.asslangSources?.[entry.path] ?? await (await fetch('../examples/'+entry.path)).text();
+    const source=await exampleSource(entry,async path=>globalThis.asslangSources?.[path] ?? await (await fetch('../examples/'+path)).text());
     const compiled=compile(source,{experimentalReductionFusion:true});
     const runtime=await createRuntime(compiled,{pages:4});
     assert(close(runtime.call(entry.name,entry.args),entry.expected),'Fused corpus '+entry.id);
   }
+  // The stopping boundary must avoid even *evaluating* the causal suffix.
+  for(const memoizeReductions of [false,true])for(const experimentalReductionFusion of [false,true]) {
+    const stop=compile(`export fn main(xs:[Num])=fold_until(
+      scan(xs,0,(s,x)=>require(x>=0,s+x)),0,(s,x)=>{state:x,done:x>=3});`,
+      {memoizeReductions,experimentalReductionFusion});
+    const runtime=await createRuntime(stop);
+    assert(close(runtime.call('main',[[1,2,-10]]),{state:3,steps:2,done:true}),'No causal suffix after stop');
+    assert(close(runtime.call('main',[[]]),{state:0,steps:0,done:false}),'Empty stopping fold');
+    assert(stop.stats.functions[0].shortCircuitFolds===1,'Explicit stopping fold in diagnostics');
+  }
+  const session=createCompiler({maxEntries:2}),files=[
+    {name:'app.ass',source:'export fn main(x:Num)={let ops={add:add};x |> ops.add(2,) };'},
+    {name:'lib.ass',source:'fn add(x,y)=x+y; // no newline'},
+  ];
+  const linked=session.compileSources(files);linked.bytes.fill(0);
+  const cached=session.compileSources(files);
+  assert(cached.cache.hit&&WebAssembly.validate(cached.bytes),'Cache snapshot isolation');
+  assert((await createRuntime(new WebAssembly.Module(cached.bytes))).call('main',[3])===5,'Linked sources and native module reuse');
+  let localized=false;
+  try{compileSources([{name:'bad.ass',source:'export fn main(x:Num)=missing(x);'}]);}
+  catch(e){localized=e.sourceName==='bad.ass'&&e.offset===22;}
+  assert(localized,'File-local browser diagnostics');
+  const copyRuntime=await createRuntime(compile('export fn main(xs:[Num])=map(xs,x=>x);'));
+  const special=copyRuntime.call('main',[Float64Array.of(-0,NaN,Infinity,-Infinity)]);
+  assert(Object.is(special[0],-0)&&Number.isNaN(special[1])&&special[2]===Infinity&&special[3]===-Infinity,'Bulk Float64 bit-sensitive values');
+  copyRuntime.call('main',[Float64Array.of(9)]);
+  assert(Object.is(special[0],-0)&&special.length===4,'Bulk results own storage after arena reuse');
+  report.cases.push({name:'composable-stopping-kernels',cases:17});
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {

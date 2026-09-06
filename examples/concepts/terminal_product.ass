@@ -1,0 +1,5 @@
+// --lib lib/reducers.ass
+// The first lane freezes once it finds a match; the other keeps accumulating.
+export fn milestones(xs: [Num]) = until_with(xs,
+  until_both(first_matching(x => x > 10, -1), threshold_reducer(15))
+);
