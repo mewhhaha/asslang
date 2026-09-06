@@ -1,0 +1,2 @@
+// Pattern inspiration: explicit state-passing style.
+fn increment = amount -> state -> {state:state+amount,value:state}; export fn main = (initial:Num) -> do {let a=increment 2 initial; let b=increment 3 a.state; {state:b.state,first:a.value,second:b.value}};

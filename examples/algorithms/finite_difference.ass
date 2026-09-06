@@ -1,0 +1,2 @@
+// Pattern inspiration: pairwise iterator state.
+export fn differences = (xs:[Num]) -> transduce xs {seen:false,last:0} (s -> x -> {state:{seen:true,last:x},emit:s.seen,value:x-s.last});

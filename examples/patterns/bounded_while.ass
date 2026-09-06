@@ -1,0 +1,2 @@
+// Pattern inspiration: while-loop variant with explicit work budget.
+export fn main = (limit:Num) -> iterate 1 20 (state -> {state:state*2,done:state*2>=limit});

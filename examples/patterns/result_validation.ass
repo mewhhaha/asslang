@@ -1,0 +1,2 @@
+// Pattern inspiration: Rust Result-style explicit error values.
+export fn main = (numerator:Num) -> (denominator:Num) -> do {let r={ok:denominator!=0,code:if denominator==0 then 1 else 0,value:if denominator!=0 then numerator/denominator else 0}; result_map (x -> x*100) r};

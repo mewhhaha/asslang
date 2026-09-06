@@ -1,0 +1,6 @@
+// Promoted: the invariant sum is memoized lazily, not repeated per element.
+// Empty outputs still do not demand the sum. No speculative hoisting.
+export fn shared = (xs: [Num]) -> do {
+  let total = sum xs;
+  map xs (x -> total + x)
+};

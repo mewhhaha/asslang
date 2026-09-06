@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: Text construction.
+// Current diagnostic: E_TYPE.
+// Extension: An output text builder with capacity and encoding rules.
+// Current variant: Return text fields separately and concatenate in the host.
+export fn main = (left:Text) -> (right:Text) -> left+right;

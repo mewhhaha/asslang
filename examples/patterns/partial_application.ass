@@ -1,0 +1,2 @@
+// Pattern inspiration: ML/Haskell currying.
+fn add = x -> y -> x+y; export fn main = (x:Num) -> do {let add_ten=add 10; add_ten x};

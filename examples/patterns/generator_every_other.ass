@@ -1,0 +1,2 @@
+// Pattern inspiration: generator-style state machine; at most one output per input.
+export fn main = (xs:[Num]) -> transduce xs false (skip -> x -> {state:!skip,emit:!skip,value:x});

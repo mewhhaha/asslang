@@ -90,7 +90,7 @@ test('compiler sessions return independent bytes, ABI, statistics and proofs on 
 test('cache keys include all semantic compiler options and normalize defaults', () => {
   const c = createCompiler();
   const source='export fn main(xs:[Num])=sum(xs)+sum(map(xs,x=>x*x));';
-  const a=c.compile(source),b=c.compile(source,{experimentalReductionFusion:true});
+  const a=c.compile(source,{reductionFusion:false}),b=c.compile(source);
   assert.equal(a.cache.hit,false);assert.equal(b.cache.hit,false);
   assert.equal(a.stats.functions[0].loops,2);assert.equal(b.stats.functions[0].loops,1);
   assert.equal(c.compile(source,{memoizeReductions:true,maxExpansion:100000,experimentalReductionFusion:false}).cache.hit,true);

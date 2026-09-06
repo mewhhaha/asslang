@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: Guest array construction.
+// Current diagnostic: E_PARSE.
+// Extension: Literal syntax plus fixed-size products or materialization/lifetime rules.
+// Current variant: Use tuples for fixed-size products or a mapped range for numeric output.
+export fn main = (x:Num) -> [x,x+1];

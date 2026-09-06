@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: Growable mutable arrays.
+// Current diagnostic: E_NAME.
+// Extension: Ownership, capacity, bounds and allocation effects.
+// Current variant: Use fixed scalar state or host-owned input/output arenas.
+export fn main = (size:Num) -> buffer_new size;

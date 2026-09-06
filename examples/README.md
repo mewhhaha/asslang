@@ -1,99 +1,69 @@
-# Reduction-fusion integration
+# Executable examples and feature catalogue
 
-`rms.ass` from PR #1 is registered in the shared corpus. Dense `count` already
-avoids traversal, so RMS uses one loop with either compiler option. Explicit
-same-schedule reductions can additionally fuse with `experimentalReductionFusion`.
-`multi_reduction.ass` goes from two loops to one, and `scan_replay.ass` shares one
-recurrence frame instead of replaying it twice. Fusion remains off by default.
+The corpus now registers **91 runnable exports**, **18 unsupported-feature
+fixtures**, and **3 deliberate safety rejections**. `corpus.mjs` is the discovery
+entry point for tests, benchmarks and the playground. `expanded-corpus.mjs` adds
+43 canonical-syntax examples, including six app-like case studies. Every `.ass`
+file is registered, and every accepted export has arguments and expected output.
 
-# Corpus update: 0.2
-
-The original 0.2 integration had 35 accepted exports across 33 source files.
-The current corpus has 48 accepted exports across 45 sources, and 3 deliberate rejections.
-New cases cover prefix scan, EWMA, segmented scans, running z-scores, rolling means,
-ASCII unsigned-integer lexing, bounded Newton iteration, product/connection of
-machine descriptions, and separate-consumer recurrence replay. Every source and
-export is registered in `corpus.mjs`, which drives correctness and benchmarks.
-
-`algorithms/prefix_scan.ass` is a linear-time replacement for the intentionally
-quadratic `pathological/repeated_prefix.ass`. The compiler does not automatically
-rewrite the old algorithm. `pathological/scan_replay.ass` intentionally retains two
-traversals. `rejected/` checks non-seekable history and unproved transducer alignment.
-
-The remaining notes describe the original algorithm corpus and still apply:
-
-# Executable example corpus
-
-`corpus.mjs` registers every `.ass` file and every accepted export. Tests enforce
-complete registration, compare fixed expected answers with both Wasm execution
-and an allocation-heavy reference interpreter, and check the rejected example's
-diagnostic. The same manifest supplies compilation and runtime benchmarks.
-
-| Directory | Examples / purpose |
-| --- | --- |
-| Root | Energy, sum of squares, aligned filtered views, checked dot product, deliberate provenance rejection |
-| `algorithms/` | Welford statistics, centered linear regression, Fibonacci, normalization, window correlation, binary search, Horner polynomial evaluation, partition, pairwise distances, byte checksum |
-| `concepts/` | Staged trait dictionaries, inferred type-shape transformations, runtime contracts and static relational refinements |
-| `interop/` | Nested JS values and explicitly granted host effects; `host.mjs` is a runnable embedding |
-| `pathological/` | Shared reductions, repeated prefixes, multiple reductions and expanding function composition |
-
-Run `npm run test:corpus`, `npm run bench`, and `npm run bench:browser`. The browser
-playground also lists the corpus, accepts a JSON argument array, and requires an
-explicit checkbox for its tightly restricted demo host grants.
-
-## Performance traps retained deliberately
-
-**Repeated prefixes** read well as a range of prefix reductions, but still take
-quadratic work. The JS benchmark baseline deliberately uses a linear scan; this
-is a missing algorithmic lowering, not something hidden by a weak comparison.
-
-**Multiple reductions** still perform multiple traversals. Welford's record state
-is the current way to write a true one-pass multi-statistic computation. There is
-no general multi-sink fusion pass.
-
-**Expanding composition** is staged by body expansion. Larger generated variants
-reach the explicit `E_LIMIT` budget. There is no claim of separate compilation or
-linear compile-time complexity.
-
-**Convolution** still pays repeated checked random-access costs and lacks SIMD and
-loop tiling. It is retained even when slower than the JS baseline.
-
-Two discovered pathologies were fixed: nested traversals now distinguish lexical
-cursors from JTE observation identity, and reductions invariant across a loop are
-memoized lazily on first demand. Dense `count` also uses the validated extent
-rather than traversing values. Tests keep empty/unselected trapping computations
-from being speculatively evaluated by those changes.
-
-The algorithms use f64 arithmetic, not arbitrary precision. `convolve` applies
-weights in their given order (the cross-correlation convention). `lower_bound`
-requires sorted input; it does not scan to validate that precondition. The checksum
-is additive and explicitly non-cryptographic. Empty and degenerate numerical cases
-have documented outputs rather than hidden divide-by-zero behavior.
-
-
-## Composable stopping kernels
-
-Thirteen new registered exports cover first-index search, any/all, causal threshold
-prefixes, product-until-zero, compensated summation, hysteresis, run-length flushes,
-first peaks, reducer products, terminal products, running RMS and qualified pipes.
-Every accepted source and export remains registered in `corpus.mjs`.
+## Start here
 
 ```sh
-node src/cli.mjs examples/algorithms/find_first.ass \
-  --run first_index --args '[[4,7,9],7]'
-node src/cli.mjs examples/concepts/reducer_toolkit.ass \
-  --lib lib/reducers.ass --run summarize --args '[[1,-2,3]]'
-npm run example:reducers
+npm run test:corpus
+npm run test:simd
+npm run example:case-studies
+node src/cli.mjs examples/simd/saxpy.ass --simd \
+  --run saxpy --args '[[1,2,3],[4,5,6],2]'
+printf '[[0,10],[2,-2],0.5]' | \
+  node examples/case-studies/app.mjs particle-step --simd
 ```
 
-Examples that need the staged reducer library declare `libraries` in the corpus.
-Tests, both benchmark engines and the playground example loader resolve the same
-list; standalone CLI invocations supply `--lib` explicitly. Library files contain
-no exports and are not counted as standalone runnable corpus examples.
+| Area | Purpose |
+| --- | --- |
+| Root and `algorithms/` | Numeric reductions, scans, searches, stateful algorithms, integration, histograms, finite differences and explicit empty results |
+| `patterns/` | [Language-pattern guide](patterns/README.md): currying, closures, products, option/result encodings, dictionaries, readers, lenses, state passing and dual numbers |
+| `concepts/` | Staged reducers, trait dictionaries, contracts, observation proofs and shared reduction cohorts |
+| `simd/` | [Ordered f64x2 kernels](simd/README.md): SAXPY, distance, polynomial maps, clipping and vector math |
+| `case-studies/` | [App guide](case-studies/README.md): telemetry, checkout, sessions, inventory, simulation and text logs, plus a bounded stdin/JSON host shell |
+| `interop/` | ASABI nested values, prepared calls, explicit host capabilities and legacy-compatible reducer linking |
+| `unsupported/` | [Feature backlog](unsupported/README.md): checked nonworking source, exact current diagnostic, extension needed, and a supported alternative |
+| `rejected/` | Safety violations that must remain errors; not a feature wish list |
+| `pathological/` | Repeated-prefix quadratic work and bounded but expanding function composition |
 
-`fold_until` counts accepted events, not source indices; its stopping event is
-included. Terminal products freeze completed lanes. `product_until_zero` explicitly
-short-circuits: it is not interchangeable with exhaustive IEEE multiplication when
-a later input is NaN or infinity. The compensated-sum example is intended for
-finite data and illustrates one accumulation strategy, not arbitrary-precision math.
-See [the guide](../docs/COMPOSABILITY.md) for exact semantics and empty identities.
+## Examples that have graduated from pathological
+
+`algorithms/shared_reduction.ass` uses demand-preserving lazy memoization: its
+invariant sum executes once when needed, not once per output element. Empty or
+unselected output does not demand it.
+
+`concepts/multi_reduction.ass` now has one traversal by default, rather than two;
+dense `count` requires no loop. `concepts/scan_replay.ass` shares the exact scan
+machine between its two sinks, also in one traversal. Tests assert these shapes.
+The source algorithms are not rewritten into weaker examples. To inspect the
+previous independent-traversal lowering, use `reductionFusion: false` or CLI
+`--no-reduction-fusion`.
+
+Remaining costs are explicit. `pathological/repeated_prefix.ass` is still
+quadratic; `algorithms/prefix_scan.ass` is the linear source-level alternative.
+`pathological/expansion.ass` still expands function bodies and eventually reaches
+`E_LIMIT`. Convolution still lacks loop tiling and general random-access SIMD.
+No end-to-end speedup is claimed from loop counts alone.
+
+## Correctness and interpretation
+
+The accepted corpus compares Wasm execution, fixed answers and an independent
+allocation-heavy interpreter. Expanded examples also run with scalar/SIMD crossed
+with fused/unfused lowering. Unsupported examples must fail with their registered
+diagnostic; unexpected success prompts promotion rather than silently skipping a
+test. They do not enter the executable benchmark list.
+
+Canonical source uses unary arrows, whitespace application, and explicit product
+values. Required helper files appear in each entry's `libraries`; CLI users pass
+`--lib lib/patterns.ass` or `--lib lib/reducers.ass` explicitly. Source linking is
+not an implicit module loader.
+
+`Num` is f64. Money, integer tags, units, option/result records, trait dictionaries,
+and fixed-size matrices are explicitly documented encodings, not new primitive
+language types. SIMD retains f64 and ordered addition. App kernels do not provide
+networking, persistence, dynamic allocation or implicit authority. Historical
+benchmark JSON under `docs/` remains unchanged.

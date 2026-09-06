@@ -25,6 +25,8 @@
     "test:fusion": "node --test test/fusion*.test.mjs",
     "test:composability": "node --test test/fold-until.test.mjs test/reducers.test.mjs test/ergonomics.test.mjs",
     "example:reducers": "node examples/interop/reducers.mjs",
-    "bench:improvements": "node scripts/bench-improvements.mjs"
+    "bench:improvements": "node scripts/bench-improvements.mjs",
+    "example:case-studies": "node examples/case-studies/run.mjs",
+    "test:simd": "node --test test/simd.test.mjs test/expanded-corpus.test.mjs"
   }
 }

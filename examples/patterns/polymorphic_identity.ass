@@ -1,0 +1,2 @@
+// Pattern inspiration: let-polymorphic reuse.
+export fn main = (x:Num) -> {number:identity x,flag:identity true,pair:identity (x,false)};

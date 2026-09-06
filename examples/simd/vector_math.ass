@@ -1,0 +1,2 @@
+// Pattern inspiration: lane-wise math; no f32 narrowing.
+export fn transform = (xs:[Num]) -> map xs (x -> floor (sqrt (abs (-x))) / 2);

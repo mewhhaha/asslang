@@ -1,0 +1,2 @@
+// Pattern inspiration: finite state machine with numeric tags.
+export fn main = (ticks:[Num]) -> scan ticks 0 (state -> tick -> if state==2 then 0 else state+1);

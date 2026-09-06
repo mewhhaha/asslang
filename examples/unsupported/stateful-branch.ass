@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: Selection between stateful stream plans.
+// Current diagnostic: E_STATE_BRANCH.
+// Extension: Branch-specific causal frames and checked clocks.
+// Current variant: Choose the source before scan, or branch inside its transition.
+export fn main = (xs:[Num]) -> (enabled:Bool) -> if enabled then scan xs 0 (s -> x -> s+x) else xs;

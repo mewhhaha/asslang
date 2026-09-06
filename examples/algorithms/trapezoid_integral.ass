@@ -1,0 +1,2 @@
+// Pattern inspiration: streaming numerical integration.
+export fn integral = (xs:[Num]) -> (step:Num) -> do {let state=fold xs {seen:false,last:0,area:0} (s -> x -> {seen:true,last:x,area:s.area+(if s.seen then (s.last+x)*step/2 else 0)}); state.area};

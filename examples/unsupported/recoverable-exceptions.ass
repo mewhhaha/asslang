@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: Recovering from a failed computation.
+// Current diagnostic: E_NAME.
+// Extension: Typed recoverable errors and demand-preserving handlers.
+// Current variant: Use result-validation.ass for explicit result records; require traps are not caught.
+export fn main = (x:Num) -> catch_error (y -> require (y>0) y) x;

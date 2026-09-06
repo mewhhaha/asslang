@@ -1,0 +1,2 @@
+// Pattern inspiration: unit wrappers; structural rather than nominal types.
+fn meters = value -> {meters:value}; fn add_distance = a -> b -> meters (a.meters+b.meters); export fn main = (x:Num) -> add_distance (meters x) (meters 2);

@@ -1,0 +1,2 @@
+// Pattern inspiration: empty-aware aggregate result; finite data.
+export fn extrema = (xs:[Num]) -> fold xs {valid:false,low:0,high:0} (s -> x -> {valid:true,low:if s.valid then min s.low x else x,high:if s.valid then max s.high x else x});

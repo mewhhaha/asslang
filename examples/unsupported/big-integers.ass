@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: Arbitrary-precision integers.
+// Current diagnostic: E_NAME.
+// Extension: A distinct integer type, bounded storage and arithmetic costs.
+// Current variant: Num is f64; use host big integers when exact large values are required.
+export fn main = (x:Num) -> bigint x;

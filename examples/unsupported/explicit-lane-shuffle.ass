@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: Public SIMD lane manipulation.
+// Current diagnostic: E_NAME.
+// Extension: First-class vector types, lane immediates and scalar fallback semantics.
+// Current variant: Enable simd:true for supported ordinary numeric maps and sums.
+export fn main = (xs:[Num]) -> simd_shuffle xs;

@@ -29,10 +29,11 @@ jobs:
           node-version: '22'
       - name: Test language, ABI, effects, causal streams and fusion
         run: npm test | tee node-tests.tap
-      - name: Run both interop examples
+      - name: Run interop and app-like case studies
         run: |
           npm run example:host
           npm run example:reducers
+          npm run example:case-studies
       - name: Validate Chrome kernels and boundary behavior
         run: npm run test:browser -- --output browser-tests.json
       - name: Snapshot the tested source

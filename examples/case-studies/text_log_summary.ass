@@ -1,0 +1,10 @@
+// Pattern inspiration: log/text ingestion with UTF-8 and ASCII classification.
+// Counts UTF-8 bytes and ASCII classes, not Unicode characters or graphemes.
+export fn summarize = (text:Text) -> do {
+  let bytes=byte_values (utf8 text);
+  let s=fold bytes {bytes:0,newlines:0,digits:0,last:0} (s -> byte -> {
+    bytes:s.bytes+1,newlines:s.newlines+(if byte==10 then 1 else 0),
+    digits:s.digits+(if byte>=48 && byte<=57 then 1 else 0),last:byte
+  });
+  {bytes:s.bytes,digits:s.digits,lines:s.newlines+(if s.bytes>0 && s.last!=10 then 1 else 0)}
+};

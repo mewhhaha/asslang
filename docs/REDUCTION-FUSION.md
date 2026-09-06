@@ -1,9 +1,10 @@
 # Demand-scoped reduction cohorts, integrated with JTE 1 causal
 
 This reconciles PR #1 with ASABI 1, record folds, causal stream machines and
-prepared input leases from PR #2. The experiment remains **off by default**.
-Enable `compile(source, {experimentalReductionFusion: true})`, the CLI flag
-`--experimental-reduction-fusion`, or the playground checkbox.
+prepared input leases from PR #2. Demand-scoped fusion is now **enabled by default** in the prototype.
+Disable it with `compile(source, {reductionFusion: false})` or CLI
+`--no-reduction-fusion`. The old `experimentalReductionFusion` option remains an
+alias; contradictory options are rejected. See [the migration and SIMD design](EXAMPLES-SIMD.md).
 
 ## What may share a traversal
 
@@ -24,7 +25,7 @@ export fn summarize(xs: [Num]) = {
 };
 ```
 
-Default: three traversals with independent replay frames. Opt-in: one traversal,
+Disabled: three traversals with independent replay frames. Default: one traversal,
 one shared scan frame, three independent sinks. The observation certificate and
 ASABI layouts do not change. No history array, allocator or runtime helper is added.
 
@@ -72,7 +73,7 @@ npm test
 npm run test:fusion
 npm run test:browser
 npm run bench:fusion
-node src/cli.mjs examples/pathological/scan_replay.ass --experimental-reduction-fusion --check --explain
+node src/cli.mjs examples/concepts/scan_replay.ass --check --explain
 ```
 
 The original design and measurements are preserved in

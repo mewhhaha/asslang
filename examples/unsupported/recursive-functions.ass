@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: General recursion.
+// Current diagnostic: E_RECURSION.
+// Extension: Runtime call frames, recursion types/termination and stack budgets.
+// Current variant: Use iterate with an explicit finite work budget.
+fn fact = n -> if n<=1 then 1 else n*fact (n-1); export fn main = (n:Num) -> fact n;

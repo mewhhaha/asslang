@@ -1,0 +1,2 @@
+// Pattern inspiration: Church numeral as staged iteration.
+fn three = f -> x -> f (f (f x)); export fn main = (x:Num) -> three (n -> n+2) x;

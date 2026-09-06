@@ -1,0 +1,2 @@
+// Pattern inspiration: forward-mode dual-number differentiation.
+fn multiply = a -> b -> {value:a.value*b.value,derivative:a.derivative*b.value+a.value*b.derivative}; export fn main = (x:Num) -> do {let v={value:x,derivative:1}; multiply (multiply v v) v};

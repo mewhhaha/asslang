@@ -1,0 +1,2 @@
+// Pattern inspiration: Reader-style dependency injection.
+export fn main = (x:Num) -> (scale:Num) -> do {let reader=environment -> x*environment.scale+environment.offset; reader_map (n -> n*n) reader {scale,offset:1}};

@@ -22,7 +22,7 @@ async function check(source, args = []) {
     if (Array.isArray(arg)) { input.set(arg, offset); abi.push(offset * 8, arg.length); offset += arg.length; }
     else abi.push(arg);
   }
-  const baseline = compile(source), fused = compile(source, enabled);
+  const baseline = compile(source, { reductionFusion: false }), fused = compile(source, enabled);
   const a = await instantiate(baseline, { memory }), b = await instantiate(fused, { memory });
   const expected = reference(source, 'main', args);
   equivalent(a.exports.main(...abi), expected);
@@ -34,12 +34,12 @@ async function check(source, args = []) {
 // Ported from PR #1. Dense stateless count is already O(1) in 0.2, so its
 // former loop is not a fusion opportunity. Explicit counting folds below keep
 // tests of two independent reductions distinct from this separate optimization.
-test('fusion is opt-in, deterministic and validates its option', () => {
+test('fusion is enabled by default, deterministic and validates its legacy option', () => {
   const s = 'export fn main(xs) = sum(xs) + count(xs);';
   const baseline = compile(s), off = compile(s, { experimentalReductionFusion: false });
   assert.deepEqual(baseline.bytes, off.bytes);
   assert.equal(stats(baseline).loops, 1);
-  assert.equal(stats(baseline).reductionFusion.enabled, false);
+  assert.equal(stats(baseline).reductionFusion.enabled, true);
   const a = compile(s, enabled), b = compile(s, enabled);
   assert.deepEqual(a.bytes, b.bytes);
   assert.deepEqual(a.stats.functions, b.stats.functions);
@@ -262,10 +262,10 @@ test('500 seeded programs agree with unfused Wasm and independent reference sema
   }
 });
 
-test('CLI flag enables the same opt-in path and exposes its diagnostics', () => {
+test('CLI flags select enabled and disabled paths and exposes its diagnostics', () => {
   for (const flag of [false,true]) {
     const result=spawnSync(process.execPath,['src/cli.mjs','examples/rms.ass','--check','--explain',
-      ...(flag ? ['--experimental-reduction-fusion'] : [])],
+      ...(flag ? ['--experimental-reduction-fusion'] : ['--no-reduction-fusion'])],
       {cwd:new URL('../',import.meta.url),encoding:'utf8'});
     assert.equal(result.status,0,result.stderr);
     const report=JSON.parse(result.stdout);

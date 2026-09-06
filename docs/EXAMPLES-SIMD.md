@@ -9,7 +9,7 @@ would be required to implement it and a test checks its current diagnostic. App
 examples should compose several operations behind a concrete ABI and have an
 independent expected answer, not merely rename a scalar arithmetic expression.
 
-This change plans a larger canonical-syntax corpus, a small ordinary-source
+This change implements a larger canonical-syntax corpus, a small ordinary-source
 pattern library, app-like case studies with a runnable host driver, ordered
 WebAssembly SIMD, and default demand-scoped reduction fusion. It does not propose
 a guest heap, a new ABI, implicit I/O, arbitrary recursion, or dynamic dispatch.
@@ -90,7 +90,9 @@ values. SIMD instructions and vectorized-loop counts are reported structurally.
 SIMD requires an engine supporting the emitted Wasm instructions. The compiler
 still validates its complete binary before returning it. Users targeting engines
 without SIMD compile with `simd: false`; no speedup or universal availability is
-claimed. A feature probe can be used by hosts when selecting a compile option.
+claimed. `supportsSIMD()` is exported for host option selection. When emitted vector
+loops require an unavailable target feature, compilation reports `E_TARGET`
+with scalar-compilation guidance instead of labeling the failure a compiler bug.
 
 ## Extensibility without new runtime machinery
 
@@ -107,7 +109,7 @@ independent sparse joins, seeking causal histories, asynchronous effects, and
 other genuinely absent mechanisms. Each entry documents a useful current variant
 or the necessary runtime/type-system extension, without weakening safety checks.
 
-## Validation plan
+## Validation strategy
 
 Run the complete Node suite and both existing interop drivers on Node 22+, plus
 the new case-study runner. Test scalar/SIMD crossed with fused/unfused lowering;
@@ -119,3 +121,10 @@ locations. Check unsupported diagnostics and full registration. Run browser chec
 when Chrome is available, recording unavailable checks explicitly. Structural
 loop-count assertions, not timing thresholds, justify pathology promotion. Final
 executed results and limitations belong in EXAMPLES-SIMD-VALIDATION.md.
+
+## Executed evidence
+
+See [EXAMPLES-SIMD-VALIDATION.md](EXAMPLES-SIMD-VALIDATION.md) for executed checks,
+corpus counts, pathology promotions, browser scope and remaining limitations.
+The initial theory was committed before implementation; this document now
+describes the implemented scope, not the entire unsupported-feature roadmap.

@@ -1,0 +1,11 @@
+// Pattern inspiration: checkout pricing with explicit input contracts.
+// Currency is a numeric demo, not decimal/money arithmetic. Host owns rounding.
+export fn invoice = (prices:[Num]) -> (quantities:[Num]) -> (tax_rate:Num) -> (discount:Num) -> do {
+  let lines=zip_checked prices quantities (price -> quantity -> require (price>=0 && quantity>=0) (price*quantity));
+  let subtotal=sum lines;
+  let discounted=subtotal*(1-discount);
+  require (tax_rate>=0 && discount>=0 && discount<=1) {
+    line_count:count lines,subtotal,tax:discounted*tax_rate,
+    total:discounted*(1+tax_rate)
+  }
+};

@@ -1,0 +1,2 @@
+// Pattern inspiration: design-by-contract with explicit trap.
+export fn main = (xs:[Num]) -> (denominator:Num) -> require (denominator>0) (map xs (x -> x/denominator));

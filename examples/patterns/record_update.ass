@@ -1,0 +1,2 @@
+// Pattern inspiration: immutable record update written explicitly.
+fn with_score = new_score -> record -> {name:record.name,score:new_score,enabled:record.enabled}; export fn main = (name:Text) -> with_score 9 {name,score:0,enabled:true};

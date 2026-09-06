@@ -1,0 +1,5 @@
+// Promoted: default demand-scoped fusion shares one numeric traversal.
+// reductionFusion:false retains two traversals; dense count needs none.
+export fn moments = (xs: [Num]) -> {
+  count: count xs, total: sum xs, energy: sum (map xs (x -> x*x))
+};

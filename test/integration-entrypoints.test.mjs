@@ -5,10 +5,10 @@ let reply;
 globalThis.self={postMessage:value=>{reply=value;}};
 await import('../web/worker.mjs');
 const source='export fn main(xs:[Num])={let ys=scan(xs,0,(s,x)=>s+x);sum(ys)+count(ys)};';
-test('playground worker keeps reduction fusion disabled by default',async()=>{
+test('playground worker enables reduction fusion by default',async()=>{
   await self.onmessage({data:{source,args:[[1,2,3]]}});
-  assert.equal(reply.value,13);assert.equal(reply.stats.functions[0].loops,2);
-  assert.equal(reply.stats.functions[0].reductionFusion.enabled,false);
+  assert.equal(reply.value,13);assert.equal(reply.stats.functions[0].loops,1);
+  assert.equal(reply.stats.functions[0].reductionFusion.enabled,true);
 });
 test('playground worker forwards the fusion option and returns diagnostics',async()=>{
   await self.onmessage({data:{source,args:[[1,2,3]],experimentalReductionFusion:true}});
@@ -55,4 +55,13 @@ test('playground rejects unknown modes rather than accidentally running a progra
   assert.match(reply.error, /Unknown worker mode/); assert.equal(reply.value, undefined);
   await self.onmessage({ data: null });
   assert.match(reply.error, /Worker request must be an object/);
+});
+
+
+test('worker honors explicit fusion opt-out and SIMD opt-in', async () => {
+  await self.onmessage({data:{source,args:[[1,2,3]],experimentalReductionFusion:false}});
+  assert.equal(reply.stats.functions[0].loops,2);
+  await self.onmessage({data:{source:'export fn main = (xs:[Num]) -> map xs (x -> x*x);',args:[[1,2,3]],simd:true}});
+  assert.equal(reply.stats.functions[0].simd.vectorizedLoops,1);
+  assert.deepEqual(Array.from(reply.value),[1,4,9]);
 });

@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: Exported runtime closures.
+// Current diagnostic: E_ABI.
+// Extension: Closure environments, lifetime and a function-reference ABI.
+// Current variant: Apply closures inside the kernel; closure-factory.ass stages them away.
+export fn main = (offset:Num) -> do {let add=x -> x+offset; {add}};

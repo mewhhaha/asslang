@@ -3,6 +3,8 @@
 Design changes begin here, before code. The repository-wide workflow is in
 [AGENTS.md](../AGENTS.md).
 
+- [Expanded examples and ordered SIMD](EXAMPLES-SIMD.md): corpus categories,
+  extensibility, default reduction cohorts, SIMD eligibility, and app case studies.
 - [Implementation theory](IMPLEMENTATION.md): phases, representations, invariants,
   and the boundary between static abstractions and runtime kernels.
 - [Structured diagnostics](DIAGNOSTICS.md): source-local error data, full-pipeline
@@ -13,7 +15,7 @@ Design changes begin here, before code. The repository-wide workflow is in
 - [Causal streams](CAUSAL.md), [JTE](JTE.md), and [concepts](CONCEPTS.md): event
   alignment, sequential access, and scalar machines.
 - [Composability](COMPOSABILITY.md) and [integration](INTEGRATION.md): reducers,
-  linked sources, compiler sessions, and optional reduction fusion.
+  linked sources, compiler sessions, and demand-scoped reduction fusion.
 - [ASABI 1](ABI.md), [effects](EFFECTS.md), and [leases](LEASES.md): representation,
   host authority, and input lifetime.
 - [Syntax validation](SYNTAX-VALIDATION.md): executed unary-language checks and
@@ -23,3 +25,5 @@ Design changes begin here, before code. The repository-wide workflow is in
 
 Existing benchmark JSON and `history/` are historical evidence, not measurements
 of subsequent changes. New validation reports must identify what was actually run.
+
+* [Examples and SIMD validation](EXAMPLES-SIMD-VALIDATION.md): executed checks and remaining limitations.

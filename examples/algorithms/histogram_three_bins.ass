@@ -1,0 +1,2 @@
+// Pattern inspiration: fixed-size GROUP BY / histogram; finite data.
+export fn histogram = (xs:[Num]) -> fold xs {negative:0,zero:0,positive:0} (s -> x -> {negative:s.negative+(if x<0 then 1 else 0),zero:s.zero+(if x==0 then 1 else 0),positive:s.positive+(if x>0 then 1 else 0)});

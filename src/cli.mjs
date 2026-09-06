@@ -11,7 +11,9 @@ const usage = `Usage: node src/cli.mjs INPUT.ass [--lib HELPERS.ass ...] [-o OUT
   --run EXPORT --args '[...]'      Run a pure export and print its JSON result
   --pages N                       Fixed runtime capacity in 64-KiB pages (default: 16)
   --explain                       Print ABI, types, observations, statistics and proof
-  --experimental-reduction-fusion Enable conservative reduction cohorts`;
+  --simd                          Enable ordered f64x2 maps and sums
+  --no-reduction-fusion            Disable default demand-scoped reduction cohorts
+  --experimental-reduction-fusion Legacy alias for enabling reduction cohorts`;
 const files = [];
 const args = process.argv.slice(2);
 // Select error transport before parsing so even preceding option errors are JSON.
@@ -22,7 +24,7 @@ async function main() {
     if (jsonDiagnostics) throw new UsageError('--help cannot be combined with --diagnostics=json');
     console.log(usage); return;
   }
-  let input, output, run, jsonArgs, pages = 16, check = false, explain = false, experimentalReductionFusion = false;
+  let input, output, run, jsonArgs, pages = 16, check = false, explain = false, experimentalReductionFusion, simd = false;
   const libraries = [];
   let diagnosticFlags = 0;
   function value(index, flag) {
@@ -44,7 +46,15 @@ async function main() {
         throw new UsageError('--diagnostics must be text or json');
     }
     else if (flag === '--explain') explain = true;
-    else if (flag === '--experimental-reduction-fusion') experimentalReductionFusion = true;
+    else if (flag === '--simd') simd = true;
+    else if (flag === '--no-reduction-fusion') {
+      if (experimentalReductionFusion === true) throw new UsageError('Conflicting reduction fusion flags');
+      experimentalReductionFusion = false;
+    }
+    else if (flag === '--experimental-reduction-fusion') {
+      if (experimentalReductionFusion === false) throw new UsageError('Conflicting reduction fusion flags');
+      experimentalReductionFusion = true;
+    }
     else if (flag.startsWith('-') || input) throw new UsageError(`Unexpected argument: ${flag}`);
     else input = flag;
   }
@@ -57,12 +67,12 @@ async function main() {
   if (!Number.isInteger(pages) || pages < 0 || pages > 32767) throw new UsageError('--pages must be an integer between 0 and 32767');
   for (const name of [...libraries, input]) files.push({ name, source: await readFile(name, 'utf8') });
   if (jsonDiagnostics) {
-    const report = checkSources(files, { experimentalReductionFusion });
+    const report = checkSources(files, { experimentalReductionFusion, simd });
     console.log(JSON.stringify(report));
     process.exitCode = report.ok ? 0 : 1;
     return;
   }
-  const result = compileSources(files, { experimentalReductionFusion });
+  const result = compileSources(files, { experimentalReductionFusion, simd });
   if (run) {
     const values = JSON.parse(jsonArgs ?? '[]');
     if (!Array.isArray(values)) throw new UsageError('--args must be a JSON array of export arguments');

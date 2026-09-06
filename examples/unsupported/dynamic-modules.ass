@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: Runtime module loading.
+// Current diagnostic: E_NAME.
+// Extension: Module resolution, permissions, linking and resource limits.
+// Current variant: Use compileSources with an explicit finite list of source fragments.
+export fn main = (name:Text) -> load_module name;

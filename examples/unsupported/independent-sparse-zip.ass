@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: Zip independently filtered streams.
+// Current diagnostic: E_DENSE.
+// Extension: Two-cursor sparse traversal and explicit length/domain policy.
+// Current variant: Share one filter for static zip, or materialize both streams in the host.
+export fn main = (xs:[Num]) -> (ys:[Num]) -> zip_checked (filter xs (x -> x>0)) (filter ys (y -> y>0)) (x -> y -> x+y);

@@ -1,0 +1,2 @@
+// Pattern inspiration: Haskell composition.
+export fn main = (x:Num) -> compose (n -> n*n) (n -> n+1) x;

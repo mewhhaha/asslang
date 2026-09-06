@@ -1,6 +1,9 @@
+import { expandedCorpus } from './expanded-corpus.mjs';
+export { unsupportedCorpus } from './unsupported-corpus.mjs';
 // Single source of truth for example discovery, correctness tests and benchmarks.
 // Baselines are ordinary hand-written JS algorithms, not translations of the IR.
 export const corpus = [
+  ...expandedCorpus,
   {id:'first-index',path:'algorithms/find_first.ass',name:'first_index',args:[[1,4,2,4],4],expected:{index:1,found:true,visited:2},baseline:'firstIndex',size:8192},
   {id:'any-negative',path:'algorithms/any_all.ass',name:'has_negative',args:[[2,3,-1,9]],expected:true,baseline:'hasNegative',size:8192},
   {id:'all-finite',path:'algorithms/any_all.ass',name:'all_finite',args:[[1,2,3]],expected:true,baseline:'allFinite',size:8192},
@@ -24,7 +27,7 @@ export const corpus = [
   {id:'newton',path:'algorithms/newton.ass',name:'root',args:[4,0.000000001,32],expected:{state:2,done:true,steps:6},baseline:'newton',size:32},
   {id:'machine-composition',path:'concepts/machine_composition.ass',name:'relative_changes',args:[[1,1,3,3,2,5]],expected:[2,1,4],baseline:'relativeChanges',size:8192},
   {id:'machine-product',path:'concepts/machine_product.ass',name:'analyze',args:[[1,2,3]],expected:{count:3,mean:2,energy:14},baseline:'analyze',size:8192},
-  {id:'scan-replay',path:'pathological/scan_replay.ass',name:'replay',args:[[1,2,3]],expected:{total:10,peak:6},baseline:'scanReplay',size:8192},
+  {id:'scan-replay',path:'concepts/scan_replay.ass',name:'replay',args:[[1,2,3]],expected:{total:10,peak:6},baseline:'scanReplay',size:8192},
   {id:'energy',path:'energy.ass',name:'energy',args:[[1,-2,3,4]],expected:30,baseline:'energy',size:8192},
   {id:'sum-squares',path:'energy.ass',name:'sum_squares',args:[8],expected:140,baseline:'sumSquares',size:8192},
   {id:'cohort',path:'cohort.ass',name:'score',args:[[-2,0,1,3]],expected:28,baseline:'cohort',size:8192},
@@ -43,9 +46,9 @@ export const corpus = [
   {id:'type-shapes',path:'concepts/type_shapes.ass',name:'shapes',args:[5,true],expected:{pair:{first:5,second:true},selected:5,transformed:12}},
   {id:'contracts',path:'concepts/refinements.ass',name:'safe_ratio',args:[6,2],expected:3},
   {id:'relations',path:'concepts/refinements.ass',name:'aligned',args:[[-1,0,4,9]],expected:21},
-  {id:'shared-reduction',path:'pathological/shared_reduction.ass',name:'shared',args:[[1,2,3]],expected:[7,8,9],baseline:'shared',size:8192},
+  {id:'shared-reduction',path:'algorithms/shared_reduction.ass',name:'shared',args:[[1,2,3]],expected:[7,8,9],baseline:'shared',size:8192},
   {id:'prefixes-quadratic',path:'pathological/repeated_prefix.ass',name:'prefixes',args:[[1,2,3]],expected:[1,3,6],baseline:'prefixes',size:256},
-  {id:'multi-reduction',path:'pathological/multi_reduction.ass',name:'moments',args:[[1,2,3]],expected:{count:3,total:6,energy:14},baseline:'moments',size:8192},
+  {id:'multi-reduction',path:'concepts/multi_reduction.ass',name:'moments',args:[[1,2,3]],expected:{count:3,total:6,energy:14},baseline:'moments',size:8192},
   {id:'staging-expansion',path:'pathological/expansion.ass',name:'expanded',args:[1],expected:129},
   {id:'roundtrip',path:'interop/roundtrip.ass',name:'summarize',args:[{name:'Å字🙂',payload:new Uint8Array([0,255]),values:[1,2,3],enabled:true}],expected:{name:'Å字🙂',payload:new Uint8Array([0,255]),summary:{enabled:true,bytes:2,total:6},doubled:[2,4,6]}},
   {id:'host-effects',path:'interop/host_effects.ass',name:'measured',args:['demo',[3,4]],expected:{accepted:true,value:12.5},host:true},

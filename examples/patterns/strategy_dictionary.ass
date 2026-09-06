@@ -1,0 +1,2 @@
+// Pattern inspiration: typeclass/trait dictionary passing; statically staged.
+fn aggregate = policy -> xs -> fold xs policy.zero policy.combine; export fn main = (xs:[Num]) -> {total:aggregate {zero:0,combine:a -> b -> a+b} xs,product:aggregate {zero:1,combine:a -> b -> a*b} xs};
