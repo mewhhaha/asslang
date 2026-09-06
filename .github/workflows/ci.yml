@@ -16,6 +16,9 @@ concurrency:
 jobs:
   node:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +29,12 @@ jobs:
           node-version: '22'
       - name: Test language, ABI, effects, causal streams and fusion
         run: npm test | tee node-tests.tap
+      - name: Run both interop examples
+        run: |
+          npm run example:host
+          npm run example:reducers
+      - name: Validate Chrome kernels and boundary behavior
+        run: npm run test:browser -- --output browser-tests.json
       - name: Snapshot the tested source
         if: always()
         run: git archive --format=tar -o validation-source.tar HEAD
@@ -36,5 +45,6 @@ jobs:
           name: asslang-validation-${{ github.sha }}
           path: |
             node-tests.tap
+            browser-tests.json
             validation-source.tar
           retention-days: 7
