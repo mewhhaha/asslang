@@ -1,5 +1,5 @@
 import { flatTypes, isScalarSchema } from './abi-schema.mjs';
-import { fail, prune, showType } from './frontend.mjs';
+import { fail, prune, showType, builtinArities } from './frontend.mjs';
 
 // JTE v0 encodes relational observations of values, not sizes in ordinary types.
 // A domain identifies an ordered sequence of iteration events. A positional
@@ -181,13 +181,21 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
   function invoke(callee, args, at) {
     if (++work > maxExpansion) fail('Staging expansion limit exceeded; recursive/expansive abstraction is not supported', at, 'E_LIMIT');
     if (callee.kind === 'closure') {
-      if (callee.params.length !== args.length) fail('Wrong argument count', at, 'E_ARITY');
-      const local = new Map(callee.env);
-      callee.params.forEach((p, i) => local.set(p, args[i]));
-      return expression(callee.body, local);
+      // Legacy f() and canonical f () both apply the unit value.
+      if (callee.params.length && !args.length) args = [{ kind: 'record', fields: new Map() }];
+      if (!callee.params.length && args[0]?.kind === 'record' && !args[0].fields.size) args = args.slice(1);
+      const local = new Map(callee.env), count = Math.min(callee.params.length, args.length);
+      for (let i = 0; i < count; i++) local.set(callee.params[i], args[i]);
+      if (count < callee.params.length) return { ...callee, params: callee.params.slice(count), env: local };
+      const result = expression(callee.body, local);
+      return count < args.length ? invoke(result, args.slice(count), at) : result;
     }
     if (callee.kind !== 'builtin') fail('Only statically known functions can be called', at, 'E_LOWER');
-    const name = callee.name;
+    const name = callee.name, arity = builtinArities[name];
+    if (arity === undefined) fail(`Unknown builtin '${name}'`, at, 'E_NAME');
+    args = [...(callee.args ?? []), ...args];
+    if (args.length < arity) return { ...callee, args };
+    if (args.length > arity) return invoke(invoke({ kind: 'builtin', name }, args.slice(0, arity), at), args.slice(arity), at);
     if (name === 'range') {
       const index = scalar('index', 'I32', [], null, true);
       const extent = scalar('extent', 'I32', [requireScalar(args[0], at)]);

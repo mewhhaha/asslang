@@ -1,3 +1,8 @@
+> **Theory-first, unary syntax:** new source uses `x -> y -> body`, space-delimited
+> calls, tuple/record patterns, and explicit `do` blocks. See [syntax and migration](docs/SYNTAX.md),
+> [implementation theory](docs/IMPLEMENTATION.md), and [the documentation index](docs/README.md).
+> Legacy declarations remain compatible; ASABI 1 is unchanged.
+
 > **Composable stopping kernels:** explicit `fold_until`, staged reducer libraries,
 > multi-source builds, qualified pipes, bounded compiler sessions, and faster
 > binary emission/Float64 transfers. Start with [the guide](docs/COMPOSABILITY.md)
@@ -41,6 +46,35 @@ its path. The engine suite uses an in-memory bundle. The additional HTTP module
 and playground-worker test (`npm run test:browser:http`) is blocked by the test
 environment's browser policy and remains unvalidated end-to-end. See
 [validation and measurements](docs/VALIDATION.md).
+
+## One function shape, one call rule
+
+```text
+fn add = x -> y -> x + y;
+fn add_pair = (x, y) -> x + y;
+fn add_fields = { z, y } -> z + y;
+
+export fn compute = (x: Num) -> do {
+  let plus_two = add 2;
+  let y = plus_two x;
+  let z = add_pair (x, y);
+  add_fields { z, y }
+};
+
+export fn energy = (xs: [Num]) ->
+  xs |> map (x -> x * x) |> fold 0 (total -> x -> total + x);
+```
+
+`f x y` means `(f x) y`; `f (x, y)` passes one tuple, not two arguments.
+Arrows associate right. A singleton record is `{ x }`; a block is `do { ... }`.
+Use `() -> value` for a constant function and `value ()` to apply it.
+Partial applications and curried callbacks are staged away, not guest closures.
+
+For migration, `fn name = ...` selects the canonical grammar and
+`fn name(args) = ...` keeps the historical grammar for that declaration. The older
+examples below remain valid, but new source should use the canonical form.
+At JS boundaries, tuples reuse records (`{ _0: x, _1: y }`); arrays still mean streams.
+See [the full rules](docs/SYNTAX.md) and [syntax validation](docs/SYNTAX-VALIDATION.md).
 
 ## Express recurrence, not mutable machinery
 
@@ -187,8 +221,9 @@ compiled generic ABI. There is no unrestricted multi-sink fusion, SIMD,
 array-valued state, arrays of records, variants, general recursion, escaping
 closures, async effects, or general ownership inference yet.
 
-The current results are **215 Node tests and 639 Chromium checks**. See the
-[new validation and before/after measurements](docs/COMPOSABILITY-VALIDATION.md). Benchmarks
+The current results are **260 Node tests and 692 Chromium checks**. See
+[syntax validation](docs/SYNTAX-VALIDATION.md) for the new language tests and
+[composability validation](docs/COMPOSABILITY-VALIDATION.md) for the prior baseline. Benchmarks
 separate compiler work, Wasm instantiation, raw reused-buffer kernels, independent
 JS algorithms, copying adapter calls and prepared calls. Compilation excludes V8
 machine-code generation; p95 is over batch averages, not individual-call latency.

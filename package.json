@@ -9,6 +9,8 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
+    "test:syntax": "node --test test/unary-syntax.test.mjs",
+    "bench:syntax": "node scripts/bench-syntax.mjs",
     "test:browser": "node scripts/browser-test.mjs",
     "bench": "node scripts/bench.mjs",
     "demo": "node scripts/serve.mjs",

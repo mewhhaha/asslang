@@ -1,3 +1,4 @@
+import { createUnaryParser } from './unary.mjs';
 // The front end is deliberately independent of WebAssembly and the JTE ledger.
 export class CompileError extends Error {
   constructor(message, offset = 0, code = 'E_COMPILE') {
@@ -19,7 +20,7 @@ export function tokenize(source) {
   if (typeof source !== 'string') throw new TypeError('Source must be a string');
   if (source.length > 1_000_000) fail('Source limit is 1,000,000 characters', null, 'E_LIMIT');
   const tokens = [];
-  const pattern = /\s+|\/\/[^\n]*|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|[A-Za-z_][A-Za-z_0-9]*|\|>|=>|==|!=|<=|>=|&&|\|\||[(){}\[\]:;,.=+*/<>!\-]/y;
+  const pattern = /\s+|\/\/[^\n]*|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|[A-Za-z_][A-Za-z_0-9]*|\|>|->|=>|==|!=|<=|>=|&&|\|\||[(){}\[\]:;,.=+*/<>!\-]/y;
   let pos = 0;
   while (pos < source.length) {
     pattern.lastIndex = pos;
@@ -55,6 +56,8 @@ export function parse(source) {
     if (++nodes > 50_000) fail('Syntax node limit exceeded', { pos }, 'E_LIMIT');
     return { kind, pos, ...rest };
   };
+  let unary;
+  const canonical = () => unary ??= createUnaryParser({ tokens, cursor: () => cursor, peek, at, take, eat, need, node, fail });
   const precedence = { '|>': 1, '||': 2, '&&': 3, '==': 4, '!=': 4,
     '<': 5, '<=': 5, '>': 5, '>=': 5, '+': 6, '-': 6, '*': 7, '/': 7 };
   function annotation() {
@@ -192,7 +195,12 @@ export function parse(source) {
   const definitions = [], hosts = [], definitionNames = new Set(), hostNames = new Set();
   while (!at('<eof>')) {
     if (eat('host')) {
-      need('fn'); const name = identifier(); const { names, annotations } = params(true);
+      need('fn'); const name = identifier();
+      if (eat(':')) {
+        if (hostNames.has(name.text)) fail('Duplicate host name', name, 'E_NAME');
+        hostNames.add(name.text); hosts.push(canonical().host(name)); continue;
+      }
+      const { names, annotations } = params(true);
       if (annotations.some(a => !a)) fail('Host parameters require concrete ABI annotations', name, 'E_ANNOTATION');
       need(':'); const resultAnnotation = annotation(); need(';');
       if (!['Num','Bool'].includes(resultAnnotation.tag)) fail('Host results currently must be Num or Bool', name, 'E_ABI');
@@ -201,7 +209,12 @@ export function parse(source) {
       hosts.push({ name: name.text, params: names, annotations, resultAnnotation, pos: name.pos }); continue;
     }
     const exported = Boolean(eat('export')); need('fn');
-    const name = identifier(); const { names, annotations } = params(true);
+    const name = identifier();
+    if (eat('=')) {
+      if (definitionNames.has(name.text)) fail(`Duplicate function '${name.text}'`, name, 'E_NAME');
+      definitionNames.add(name.text); definitions.push(canonical().definition(name, exported)); continue;
+    }
+    const { names, annotations } = params(true);
     const resultAnnotation = eat(':') ? annotation() : null; need('=');
     const body = expression(); need(';');
     if (definitionNames.has(name.text)) fail(`Duplicate function '${name.text}'`, name, 'E_NAME');
@@ -226,7 +239,7 @@ function free(t, out = new Set()) {
   else for (const x of children(t)) free(x, out);
   return out;
 }
-export function showType(type) {
+export function showType(type, curried = false) {
   const names = new Map();
   function show(t) {
     t = prune(t);
@@ -240,13 +253,21 @@ export function showType(type) {
       while (tail?.tag === 'Record') { for (const [k,v] of tail.fields) fields.set(k,v); tail = tail.tail && prune(tail.tail); }
       return `{ ${[...fields].sort(([a],[b]) => a < b ? -1 : a > b ? 1 : 0).map(([k,v]) => `${k}: ${show(v)}`).concat(tail ? ['..'+show(tail)] : []).join(', ')} }`;
     }
-    if (t.tag === 'Fn') return `(${t.args.map(show).join(', ')}) -> ${show(t.result)}`;
+    if (t.tag === 'Fn') {
+      if (!curried) return `(${t.args.map(show).join(', ')}) -> ${show(t.result)}`;
+      const argument = a => prune(a).tag === 'Fn' ? `(${show(a)})` : show(a);
+      return `${t.args.length ? t.args.map(argument).join(' -> ') : '()'} -> ${show(t.result)}`;
+    }
     return t.tag;
   }
   return show(type);
 }
 
-export const builtinNames = ['range', 'map', 'filter', 'scan', 'transduce', 'iterate', 'zip', 'zip_checked', 'sum', 'count', 'fold', 'fold_until', 'sqrt', 'abs', 'min', 'max', 'floor', 'at', 'byte_length', 'utf8', 'byte_values', 'require'];
+export const builtinArities = Object.freeze({ range: 1, map: 2, filter: 2, scan: 3,
+  transduce: 3, iterate: 3, zip: 3, zip_checked: 3, sum: 1, count: 1, fold: 3,
+  fold_until: 3, sqrt: 1, abs: 1, min: 2, max: 2, floor: 1, at: 2,
+  byte_length: 1, utf8: 1, byte_values: 1, require: 2 });
+export const builtinNames = Object.keys(builtinArities);
 export function infer(program) {
   let next = 0, constraints = 0;
   const variable = () => ({ tag: 'Var', id: next++ });
@@ -286,8 +307,19 @@ export function infer(program) {
       a.link = b; return;
     }
     if (b.tag === 'Var') return unify(b, a, ast);
-    if (a.tag !== b.tag || a.tag === 'Fn' && a.args.length !== b.args.length) {
+    if (a.tag !== b.tag) {
       fail(`Cannot unify ${showType(a)} with ${showType(b)}`, ast, 'E_TYPE');
+    }
+    if (a.tag === 'Fn') {
+      // Parameter vectors are compact arrow chains, not a separate function type.
+      // Legacy nullary functions correspond to a unit-taking function.
+      const unit = { tag: 'Record', fields: new Map(), tail: null };
+      const aa = a.args.length ? a.args : [unit], bb = b.args.length ? b.args : [unit];
+      const count = Math.min(aa.length, bb.length);
+      for (let i = 0; i < count; i++) unify(aa[i], bb[i], ast);
+      const left = aa.length === count ? a.result : fn(aa.slice(count), a.result);
+      const right = bb.length === count ? b.result : fn(bb.slice(count), b.result);
+      unify(left, right, ast); return;
     }
     if (a.tag === 'Record') { unifyRows(a,b,ast); return; }
     const aa = children(a), bb = children(b);
@@ -339,6 +371,14 @@ export function infer(program) {
       default: return null;
     }
   };
+  function annotationType(t) {
+    if (t.tag === 'Hole') return variable();
+    if (t.tag === 'Record') return { ...t, fields: new Map([...t.fields].map(([k, v]) => [k, annotationType(v)])),
+      tail: t.tail && annotationType(t.tail) };
+    if (t.tag === 'Stream') return stream(annotationType(t.element));
+    if (t.tag === 'Fn') return fn(t.args.map(annotationType), annotationType(t.result));
+    return t;
+  }
   function definition(name, at) {
     if (schemes.has(name)) return schemes.get(name);
     if (active.has(name)) fail(`Recursion through '${name}' is not supported in the kernel prototype`, at, 'E_RECURSION');
@@ -347,7 +387,7 @@ export function infer(program) {
     active.add(name);
     const env = new Map(), args = d.params.map(() => variable());
     d.params.forEach((p, i) => env.set(p, { type: args[i], vars: new Set() }));
-    d.annotations.forEach((annotation, i) => { if (annotation) unify(args[i], annotation, d); });
+    d.annotations.forEach((annotation, i) => { if (annotation) unify(args[i], annotationType(annotation), d); });
     const result = d.body.kind === 'effect' && d.exported ? effect(d.body,env) : expression(d.body, env);
     if (d.resultAnnotation) unify(result, d.resultAnnotation, d);
     const scheme = generalize(fn(args, result), new Map());
@@ -362,6 +402,8 @@ export function infer(program) {
         const call = binding.value;
         const h = call.kind === 'call' && call.callee.kind === 'name' && !local.has(call.callee.name) && hosts.get(call.callee.name);
         if (!h) fail('perform must directly name a declared host function',call,'E_EFFECT');
+        if (!h.params.length && call.args.length === 1 && call.args[0].kind === 'record' && !call.args[0].fields.length) call.args = [];
+        if (call.args.length !== h.params.length) fail('Host calls must be fully applied', call, 'E_EFFECT');
         const args = call.args.map(a=>expression(a,local)); type=h.resultAnnotation;
         unify(fn(args,type),fn(h.annotations,h.resultAnnotation),call);
       } else type = expression(binding.value,local);
@@ -386,6 +428,9 @@ export function infer(program) {
       case 'lambda': {
         const local = new Map(env), args = ast.params.map(() => variable());
         ast.params.forEach((p, i) => local.set(p, { type: args[i], vars: new Set() }));
+        (ast.annotations ?? []).forEach((annotation, i) => {
+          if (annotation) unify(args[i], annotationType(annotation), ast);
+        });
         type = fn(args, expression(ast.body, local)); break;
       }
       case 'call': {
@@ -425,5 +470,5 @@ export function infer(program) {
   }
   for (const h of hosts.values()) if (builtinNames.includes(h.name) || h.name === 'memory') fail('Reserved host name',h,'E_NAME');
   for (const d of program.definitions) definition(d.name, d);
-  return { schemes, constraints, variables: next, signatures: Object.fromEntries([...schemes].map(([k, s]) => [k, showType(s.type)])) };
+  return { schemes, constraints, variables: next, signatures: Object.fromEntries([...schemes].map(([k, s]) => [k, showType(s.type, definitions.get(k)?.syntax === 'unary')])) };
 }

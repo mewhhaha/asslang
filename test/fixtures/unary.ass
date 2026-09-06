@@ -1,0 +1,10 @@
+// One application rule for ordinary values, tuples, and records.
+fn apply_pair = (f, x) -> f x;
+fn add = x -> y -> x + y;
+fn totals = { energy, total } -> { energy, total };
+export fn main = (xs: [Num]) -> do {
+  let square = x -> x * x;
+  let energy = xs |> map (x -> apply_pair (square, x)) |> sum;
+  let total = xs |> fold 0 add;
+  totals { energy, total }
+};
