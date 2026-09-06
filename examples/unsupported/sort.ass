@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: Sorting an input stream.
+// Current diagnostic: E_NAME.
+// Extension: Bounded random-write storage and a sorting primitive or library.
+// Current variant: Sort in the host before calling a kernel.
+export fn main = (xs:[Num]) -> sort xs;

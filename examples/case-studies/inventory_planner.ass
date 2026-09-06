@@ -1,0 +1,6 @@
+// Pattern inspiration: inventory replenishment; nonnegative integral unit inputs.
+// Forecast and stock are structure-of-arrays input supplied by the host.
+export fn replenish = (daily_demand:[Num]) -> (stock:[Num]) -> (lead_days:Num) -> (safety:Num) ->
+  require (lead_days>=0 && safety>=0 && lead_days==floor lead_days && safety==floor safety) (zip_checked daily_demand stock
+    (demand -> available -> require (demand>=0 && available>=0 && demand==floor demand && available==floor available)
+      (max 0 (demand*lead_days+safety-available))));

@@ -1,0 +1,2 @@
+// Pattern inspiration: iterator pipelines / SQL WHERE plus aggregate.
+export fn main = (xs:[Num]) -> xs |> filter (x -> x>0) |> map (x -> x*x) |> sum;

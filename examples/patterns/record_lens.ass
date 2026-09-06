@@ -1,0 +1,2 @@
+// Pattern inspiration: functional lenses.
+export fn main = (x:Num) -> do {let lens={get:r -> r.score,set:r -> value -> {score:value,active:r.active}}; lens_modify lens (n -> n+5) {score:x,active:true}};

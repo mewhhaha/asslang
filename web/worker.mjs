@@ -15,13 +15,13 @@ self.onmessage = async ({data}) => {
     if (data.mode !== undefined && !['check', 'run'].includes(data.mode)) throw new Error('Unknown worker mode');
     if (data.mode === 'check') {
       // Return before arguments, runtimes, or capabilities are touched.
-      const report = check(data.source, { experimentalReductionFusion: data.experimentalReductionFusion ?? false });
+      const report = check(data.source, { experimentalReductionFusion: data.experimentalReductionFusion ?? true, simd: data.simd ?? false });
       self.postMessage({ mode: 'check', ...report,
         ...(report.ok ? {} : { error: report.diagnostics.map(formatDiagnostic).join('\n\n') }) });
       return;
     }
     const {source}=data,name=data.name??'main',args=data.args??[data.n];
-    const compiled=compile(source,{experimentalReductionFusion:data.experimentalReductionFusion??false}),entry=compiled.abi.exports.find(e=>e.name===name);
+    const compiled=compile(source,{experimentalReductionFusion:data.experimentalReductionFusion??true,simd:data.simd??false}),entry=compiled.abi.exports.find(e=>e.name===name);
     if(!entry)throw new Error(`No export named '${name}'`);
     if(!Array.isArray(args)||args.length!==entry.parameters.length)throw new Error('Arguments must be a JSON array matching the export parameters');
     const input=entry.parameters.map((p,i)=>fromJSON(p.schema,args[i]));

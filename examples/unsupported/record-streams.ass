@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: Exported stream of records.
+// Current diagnostic: E_ABI.
+// Extension: Versioned record-stream layout and materialization support.
+// Current variant: Return a record of scalar streams (structure of arrays).
+export fn main = (xs:[Num]) -> map xs (x -> {value:x,squared:x*x});

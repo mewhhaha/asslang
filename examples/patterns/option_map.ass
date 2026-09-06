@@ -1,0 +1,2 @@
+// Pattern inspiration: Rust Option / ML Maybe encoded as a record.
+export fn main = (x:Num) -> (present:Bool) -> do {let o=if present then option_some x else option_none 0; option_default (-1) (option_map (n -> n*n) o)};

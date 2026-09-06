@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: Asynchronous host computation.
+// Current diagnostic: E_NAME.
+// Extension: Suspension/resumption, cancellation and capability lifetime rules.
+// Current variant: Await I/O in JavaScript and pass resolved values to a pure kernel.
+export fn main = (x:Num) -> await_result x;

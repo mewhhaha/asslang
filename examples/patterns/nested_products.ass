@@ -1,0 +1,2 @@
+// Pattern inspiration: ML destructuring.
+fn length_squared = ({point:(x,y)},scale) -> (x*x+y*y)*scale; export fn main = (x:Num) -> length_squared ({point:(x,4)},2);

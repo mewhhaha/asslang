@@ -1,0 +1,2 @@
+// Pattern inspiration: record-based complex arithmetic.
+fn multiply = a -> b -> {real:a.real*b.real-a.imag*b.imag,imag:a.real*b.imag+a.imag*b.real}; export fn main = (x:Num) -> multiply {real:x,imag:2} {real:3,imag:4};

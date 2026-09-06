@@ -1,7 +1,8 @@
+import { planSIMD, SIMD_OPS } from './simd.mjs';
 import { planReductionFusion } from './fusion.mjs';
 import { ABI_VERSION, layout, flatTypes } from './abi-schema.mjs';
 // Direct Wasm binary emission. No WAT parser, LLVM, binaryen, or runtime library.
-const wasmType = type => type === 'Num' ? 0x7c : 0x7f;
+const wasmType = type => type === 'V128' ? 0x7b : type === 'Num' ? 0x7c : 0x7f;
 export function uleb(value) {
   const bytes = [];
   do { const b = value & 127; value >>>= 7; bytes.push(b | (value ? 128 : 0)); } while (value);
@@ -31,8 +32,9 @@ const f64bytes = value => {
   const view = new DataView(new ArrayBuffer(8)); view.setFloat64(0, value, true); return [...new Uint8Array(view.buffer)];
 };
 
-function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFusion = false } = {}, steps = []) {
+function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFusion = true, simd = false } = {}, steps = []) {
   const fusionGroups = [];
+  let vectorizedLoops = 0, vectorInstructions = 0;
   const code = [], locals = []; let loops = 0, runtimeChecks = 0, zipChecks = 0, stores = 0, memoizedReductions = 0, stateMachines = 0, stateSlots = 0, boundedIterations = 0, shortCircuitFolds = 0;
   const emit = (...bytes) => code.push(...bytes);
   const allocate = type => { locals.push(type); return kernel.abi.length + locals.length - 1; };
@@ -166,6 +168,32 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     return group?entry.targets:entry.targets[0];
   }
 
+  const vectorOp = (opcode, ...immediates) => {
+    emit(0xfd, ...uleb(opcode), ...immediates); vectorInstructions++;
+  };
+  function vectorValue(plan, ctx, memo = new Map()) {
+    if (memo.has(plan.node.id)) { get(memo.get(plan.node.id)); return; }
+    const node = plan.node;
+    if (plan.kind === 'splat') { load(node, ctx); vectorOp(0x14); }
+    else if (plan.kind === 'load') {
+      load(node.args[0], ctx); load(node.args[1], ctx);
+      i32(3); emit(0x74, 0x6a); vectorOp(0x00, 3, 0); // v128.load, align=8
+    } else {
+      for (const arg of plan.args) vectorValue(arg, ctx, memo);
+      vectorOp(SIMD_OPS[node.op]);
+    }
+    const local = allocate('V128'); set(local); memo.set(node.id, local); get(local);
+  }
+  function vectorLoop(index, extent, body) {
+    loops++; vectorizedLoops++;
+    emit(0x02, 0x40, 0x03, 0x40);
+    // i is <= extent and extents are <= INT32_MAX: i+1 cannot wrap.
+    get(index); i32(1); emit(0x6a); get(extent); emit(0x4f, 0x0d, 1);
+    body();
+    get(index); i32(2); emit(0x6a); set(index);
+    emit(0x0c, 0, 0x0b, 0x0b);
+  }
+
   function evaluate(node, ctx) {
     knownNodes.set(node.id,node);
     if (ctx.cache.has(node.id)) return ctx.cache.get(node.id);
@@ -244,6 +272,18 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
       bodyContext.accumulators.set(node.acc.id, target);
       const machines=prepareMachines(stream,bodyContext);
       planLoopMemo([stream.mask,node.body,...machineRoots(stream)],ctx,bodyContext);
+      const plan = simd && node.body.op === '+' && node.body.args[0] === node.acc
+        ? planSIMD(stream, node.body.args[1]) : null;
+      if (plan) {
+        // Separate code-generation caches: a scalar tail can run with zero pairs.
+        const vectorContext = copyContext(bodyContext), pair = allocate('V128');
+        vectorLoop(index, extent, () => {
+          vectorValue(plan, vectorContext); set(pair);
+          for (const lane of [0, 1]) {
+            get(target); get(pair); vectorOp(0x21, lane); emit(0xa0); set(target);
+          }
+        });
+      }
       loops++;
       emit(0x02, 0x40, 0x03, 0x40); // block(exit) { loop(next) {
       get(index); get(extent); emit(0x4f, 0x0d, 0x01); // br_if exit when i >= length
@@ -444,6 +484,16 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     for(const identity of stream.indices) ctx.indices.set(identity.id,index);
     const machines=prepareMachines(stream,ctx);
     planLoopMemo([stream.mask,stream.item,...machineRoots(stream)],resultContext,ctx);
+    const plan = simd && stride === 8 ? planSIMD(stream, stream.item) : null;
+    if (plan) {
+      const vectorContext = copyContext(ctx);
+      vectorLoop(index, extent, () => {
+        get(end); get(cursor); emit(0x6b); i32(16); emit(0x4f); trapUnless();
+        get(cursor); vectorValue(plan, vectorContext); vectorOp(0x0b, 3, 0); stores++;
+        get(cursor); i32(16); emit(0x6a); set(cursor);
+        get(count); i32(2); emit(0x6a); set(count);
+      });
+    }
     loops++;emit(0x02,0x40,0x03,0x40);
     get(index);get(extent);emit(0x4f,0x0d,1);
     stepMachines(machines,ctx);
@@ -467,7 +517,8 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
   const declarations = vector(runs.map(({ type, count }) => [...uleb(count), wasmType(type)]));
   const body = concatenate([declarations, code]);
   return { bytes: concatenate([uleb(body.length), body]), locals: locals.length, localGroups: runs.length,
-    localBytes: locals.reduce((n, t) => n + (t === 'Num' ? 8 : 4), 0), loops, runtimeChecks, zipChecks, stores, memoizedReductions, stateMachines, stateSlots, boundedIterations, shortCircuitFolds,
+    localBytes: locals.reduce((n, t) => n + (t === 'V128' ? 16 : t === 'Num' ? 8 : 4), 0), loops, runtimeChecks, zipChecks, stores, memoizedReductions, stateMachines, stateSlots, boundedIterations, shortCircuitFolds,
+    simd: { enabled: simd, lanes: 2, vectorizedLoops, vectorInstructions },
     reductionFusion: { enabled: experimentalReductionFusion, groups: fusionGroups,
       eliminatedLoops: fusionGroups.reduce((n, g) => n + g.reductions.length - 1, 0) } };
 }
@@ -495,5 +546,5 @@ export function emitModule(staged, options = {}) {
   return {bytes:concatenate(pieces),needsMemory,contract,abiMetadataBytes:pieces.at(-1).length,
     functions:kernels.map((k,i)=>({name:k.name,loops:bodies[i].loops,wasmLocals:bodies[i].locals,wasmLocalDeclarationGroups:bodies[i].localGroups,
       wasmLocalValueBytes:bodies[i].localBytes,runtimeZipChecks:bodies[i].zipChecks,runtimeStreamChecks:bodies[i].runtimeChecks,
-      outputStoreSites:bodies[i].stores,hostCallSites:k.effects.length,memoizedReductions:bodies[i].memoizedReductions,stateMachines:bodies[i].stateMachines,stateSlots:bodies[i].stateSlots,boundedIterations:bodies[i].boundedIterations,shortCircuitFolds:bodies[i].shortCircuitFolds,reductionFusion:bodies[i].reductionFusion}))};
+      outputStoreSites:bodies[i].stores,hostCallSites:k.effects.length,memoizedReductions:bodies[i].memoizedReductions,stateMachines:bodies[i].stateMachines,stateSlots:bodies[i].stateSlots,boundedIterations:bodies[i].boundedIterations,shortCircuitFolds:bodies[i].shortCircuitFolds,simd:bodies[i].simd,reductionFusion:bodies[i].reductionFusion}))};
 }

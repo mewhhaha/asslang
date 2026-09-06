@@ -1,6 +1,6 @@
 // Deliberately allocation-heavy reference semantics, independent of JTE and Wasm.
 // Used ONLY in tests, never included in a compiled program.
-import { parse } from '../src/frontend.mjs';
+import { parse, builtinArities } from '../src/frontend.mjs';
 const memo = thunk => {
   let ready = false, value;
   return () => { if (!ready) { value = thunk(); ready = true; } return value; };
@@ -99,10 +99,20 @@ export function reference(source, name, args, {hosts={}}={}) {
     }
   }
   function invoke(callee, args) {
-    if (callee.builtin) return builtin(callee.builtin, args);
-    const env = new Map(callee.env);
-    callee.params.forEach((p, i) => env.set(p, args[i]));
-    return evaluate(callee.body, env);
+    if (callee.builtin) {
+      args = [...(callee.args ?? []), ...args];
+      const arity = builtinArities[callee.builtin];
+      if (args.length < arity) return { ...callee, args };
+      const result = builtin(callee.builtin, args.slice(0, arity));
+      return args.length > arity ? invoke(result, args.slice(arity)) : result;
+    }
+    if (callee.params.length && !args.length) args = [constant({[recordTag]: true})];
+    if (!callee.params.length && args[0]?.()?.[recordTag] && !Object.keys(args[0]()).length) args = args.slice(1);
+    const env = new Map(callee.env), count = Math.min(callee.params.length, args.length);
+    for (let i = 0; i < count; i++) env.set(callee.params[i], args[i]);
+    if (count < callee.params.length) return { ...callee, params: callee.params.slice(count), env };
+    const result = evaluate(callee.body, env);
+    return count < args.length ? invoke(result, args.slice(count)) : result;
   }
   function evaluate(ast, env) {
     switch (ast.kind) {
@@ -116,9 +126,11 @@ export function reference(source, name, args, {hosts={}}={}) {
         const local=new Map(env);
         for(const b of ast.bindings) {
           if(b.performed) {
-            const call=b.value,values=call.args.map(a=>output(evaluate(a,local)));
-            if(!Object.hasOwn(hosts,call.callee.name))throw new Error('Reference host not provided');
-            const value=hosts[call.callee.name](...values);
+            let call=b.value; const argumentsList=[];
+            while(call.kind==='call'){argumentsList.unshift(...call.args);call=call.callee;}
+            const values=argumentsList.map(a=>output(evaluate(a,local)));
+            if(!Object.hasOwn(hosts,call.name))throw new Error('Reference host not provided');
+            const value=hosts[call.name](...values);
             if(b.name)local.set(b.name,constant(value));
           } else {const previous=new Map(local);local.set(b.name,memo(()=>evaluate(b.value,previous)));}
         }

@@ -1,0 +1,2 @@
+// Pattern inspiration: Horner evaluation over arrays.
+export fn polynomial = (xs:[Num]) -> map xs (x -> ((2*x+3)*x+4)*x+5);

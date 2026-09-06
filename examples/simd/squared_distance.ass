@@ -1,0 +1,2 @@
+// Pattern inspiration: numeric array broadcasting and ordered reduction.
+export fn distance = (xs:[Num]) -> (ys:[Num]) -> sum (zip_checked xs ys (x -> y -> (x-y)*(x-y)));

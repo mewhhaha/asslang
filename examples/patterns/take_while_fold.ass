@@ -1,0 +1,2 @@
+// Pattern inspiration: take-while aggregate variant; stopping event is visited.
+export fn main = (xs:[Num]) -> fold_until xs 0 (total -> x -> {state:if x>=0 then total+x else total,done:x<0});

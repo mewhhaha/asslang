@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: One-to-many stream expansion.
+// Current diagnostic: E_NAME.
+// Extension: Nested cursor scheduling, output capacity and event-provenance rules.
+// Current variant: Use transduce for zero-or-one output per input or scalar nested reductions.
+export fn main = (xs:[Num]) -> flat_map xs (x -> range x);

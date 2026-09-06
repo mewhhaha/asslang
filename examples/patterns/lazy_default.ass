@@ -1,0 +1,2 @@
+// Pattern inspiration: lazy optional/default selection.
+export fn main = (xs:[Num]) -> if count xs>0 then at xs 0 else 42;

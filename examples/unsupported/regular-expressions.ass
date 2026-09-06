@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: Regular-expression text search.
+// Current diagnostic: E_NAME.
+// Extension: A bounded regex engine and Unicode/encoding semantics.
+// Current variant: Classify ASCII bytes in a transducer, or use a host regex engine.
+export fn main = (text:Text) -> regex_match text;

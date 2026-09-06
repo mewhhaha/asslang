@@ -1,0 +1,2 @@
+// Pattern inspiration: Python enumerate / Rust enumerate via checked positional pairing.
+export fn main = (xs:[Num]) -> zip_checked (range (count xs)) xs (index -> value -> index+value);

@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: Runtime callback parameter.
+// Current diagnostic: E_ABI.
+// Extension: Typed function references and an explicit host authority boundary.
+// Current variant: Pass a static strategy dictionary or declare a capability-backed host call.
+export fn main = (callback:Num -> Num) -> (x:Num) -> callback x;

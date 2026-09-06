@@ -1,0 +1,5 @@
+// NOT IMPLEMENTED: Runtime-keyed grouping.
+// Current diagnostic: E_NAME.
+// Extension: Dynamic keys, equality/hash rules and bounded dictionary storage.
+// Current variant: Use histogram-three-bins.ass for a fixed known key set.
+export fn main = (xs:[Num]) -> group_by xs (x -> x);

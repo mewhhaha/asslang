@@ -1,9 +1,11 @@
 import { CompileError, parse, infer } from './frontend.mjs';
 import { stage } from './jte.mjs';
 import { emitModule } from './wasm.mjs';
+import { supportsSIMD } from './simd.mjs';
 export { CompileError } from './frontend.mjs';
 export { formatDiagnostic } from './diagnostics.mjs';
 export { verifyCertificate } from './jte.mjs';
+export { supportsSIMD } from './simd.mjs';
 
 function validateOptions(options) {
   if (!options || typeof options !== 'object' || Array.isArray(options)) throw new TypeError('Compiler options must be an object');
@@ -11,13 +13,16 @@ function validateOptions(options) {
     throw new TypeError('maxExpansion must be a positive safe integer');
   }
   if (options.memoizeReductions !== undefined && typeof options.memoizeReductions !== 'boolean') throw new TypeError('memoizeReductions must be a boolean');
+  if (options.simd !== undefined && typeof options.simd !== 'boolean') throw new TypeError('simd must be a boolean');
+  if (options.reductionFusion !== undefined && typeof options.reductionFusion !== 'boolean') throw new TypeError('reductionFusion must be a boolean');
+  if (options.reductionFusion !== undefined && options.experimentalReductionFusion !== undefined && options.reductionFusion !== options.experimentalReductionFusion) throw new TypeError('Conflicting reduction fusion options');
   if (options.experimentalReductionFusion !== undefined && typeof options.experimentalReductionFusion !== 'boolean') throw new TypeError('experimentalReductionFusion must be a boolean');
 }
 
 /** Compile source to a standalone Wasm kernel module and an erased JTE ledger.
  * The compiler itself is JavaScript and is NOT allocation-free.
  * @param {string} source
- * @param {{maxExpansion?: number, memoizeReductions?: boolean, experimentalReductionFusion?: boolean}} options
+ * @param {{maxExpansion?: number, memoizeReductions?: boolean, experimentalReductionFusion?: boolean, reductionFusion?: boolean, simd?: boolean}} options
  */
 export function compile(source, options = {}) {
   validateOptions(options);
@@ -31,8 +36,10 @@ export function compile(source, options = {}) {
     phase = 'stage';
     const staged = stage(program, inferred, options); const normalized = now();
     phase = 'emit';
-    const module = emitModule(staged, options); const emitted = now();
+    const module = emitModule(staged, { ...options, experimentalReductionFusion: options.reductionFusion ?? options.experimentalReductionFusion ?? true }); const emitted = now();
     phase = 'validate';
+    if (module.functions.some(f => f.simd.vectorizedLoops) && !supportsSIMD())
+      throw new CompileError('WebAssembly SIMD is unavailable; compile with simd: false', 0, 'E_TARGET');
     if (!WebAssembly.validate(module.bytes)) throw new Error('Compiler bug: generated invalid WebAssembly');
     const validated = now();
     return {
@@ -171,7 +178,8 @@ export function createCompiler({ maxEntries = 16, maxBytes = 8 * 1024 * 1024 } =
     const normalized = {
       maxExpansion: options.maxExpansion ?? 100_000,
       memoizeReductions: options.memoizeReductions ?? true,
-      experimentalReductionFusion: options.experimentalReductionFusion ?? false,
+      reductionFusion: options.reductionFusion ?? options.experimentalReductionFusion ?? true,
+      simd: options.simd ?? false,
     };
     const key = JSON.stringify(normalized) + '\n' + source;
     if (entries.has(key)) {

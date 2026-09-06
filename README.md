@@ -1,3 +1,11 @@
+> **Corpus and backend update:** 91 runnable exports, 18 explicit unsupported
+> feature fixtures, six [app-like case studies](examples/case-studies/README.md),
+> and opt-in [ordered f64x2 SIMD](examples/simd/README.md). Demand-scoped reduction
+> fusion is now enabled by default; use `reductionFusion: false` or
+> `--no-reduction-fusion` to restore independent traversals. The legacy
+> `experimentalReductionFusion` option remains an alias. See the
+> [examples guide](examples/README.md) and [validation report](docs/EXAMPLES-SIMD-VALIDATION.md).
+
 > **Structured checks and diagnostics:** use `check` / `checkSources`, or
 > `--check --diagnostics=json`, for full compilation without executing an export.
 > Source frames and the playground's Check only / Go to error actions preserve
@@ -15,9 +23,8 @@
 > and [current validation](docs/COMPOSABILITY-VALIDATION.md).
 
 > **Integration update:** reduction cohorts from PR #1 are reconciled with causal
-> machines. Enable `experimentalReductionFusion: true`, the CLI flag
-> `--experimental-reduction-fusion`, or the playground checkbox. Default compilation
-> is unchanged. See [integration validation](docs/INTEGRATION.md).
+> machines. That integration report is historical; fusion is now the default,
+> with an explicit opt-out. See [integration validation](docs/INTEGRATION.md).
 
 # Asslang 0.2 — causal streams and composable scalar machines
 
@@ -210,25 +217,32 @@ example and [threat model](docs/EFFECTS.md) specify this boundary.
 
 ## Corpus, compilation and limits
 
-There are **48 accepted exports across 45 source files and 3 rejected files**.
+There are **91 runnable exports, 18 unsupported-feature fixtures and 3 intentionally
+rejected files**. The expansion adds 43 runnable exports, including six app-like
+case studies; unsupported fixtures assert their current diagnostics rather than
+being silently skipped. See [the corpus guide](examples/README.md).
 Every example/export is registered in one corpus used for correctness and runtime
 benchmarks. New examples include segmented scans, running z-scores, rolling means,
 a streaming unsigned-integer lexer, machine products and Newton iteration.
 The new examples add early search, causal threshold detection, hysteresis, run-length
 flushes, first peaks, compensated summation, running RMS, and exhaustive/terminal
 reducer products. Helpers in `lib/reducers.ass` are explicitly linked source, not
-builtins. Pathological repeated prefixes and separate-consumer replay remain visible.
+builtins. Shared reductions, compatible multi-reductions and shared-scan replay
+have graduated from `pathological/`; repeated prefixes and expansion remain.
 
 Ordinary pure expressions form a demand graph. Causal transitions introduce an
 explicit strict scheduling boundary when traversed; empty/dead streams do not
 initialize state. The exact rules are in CAUSAL.md. Helpers are still staged into
 consumers: there is no per-definition incremental compilation or separately
-compiled generic ABI. There is no unrestricted multi-sink fusion, SIMD,
+compiled generic ABI. Optional f64x2 SIMD covers eligible dense numeric maps and
+ordered additive reductions. There is still no unrestricted multi-sink fusion,
 array-valued state, arrays of records, variants, general recursion, escaping
 closures, async effects, or general ownership inference yet.
 
-The current results are **312 Node tests and 787 Chromium checks**. See
-[diagnostics validation](docs/DIAGNOSTICS-VALIDATION.md) for the latest checks,
+The current results are **445 Node tests and 1,076 Chromium checks**. See
+[examples and SIMD validation](docs/EXAMPLES-SIMD-VALIDATION.md) for the latest checks
+and the blocked HTTP-loading check,
+[diagnostics validation](docs/DIAGNOSTICS-VALIDATION.md) for the diagnostics baseline,
 [syntax validation](docs/SYNTAX-VALIDATION.md) for the new language tests and
 [composability validation](docs/COMPOSABILITY-VALIDATION.md) for the prior baseline. Benchmarks
 separate compiler work, Wasm instantiation, raw reused-buffer kernels, independent

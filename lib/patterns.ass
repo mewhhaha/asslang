@@ -1,0 +1,21 @@
+// Ordinary source-level building blocks. No runtime registration or dispatch.
+// Option/result records are structural encodings, not built-in algebraic types.
+fn compose = f -> g -> x -> f (g x);
+fn identity = x -> x;
+fn option_some = x -> {present: true, value: x};
+fn option_none = fallback -> {present: false, value: fallback};
+fn option_map = f -> option -> {
+  present: option.present,
+  value: if option.present then f option.value else option.value
+};
+fn option_default = fallback -> option -> if option.present then option.value else fallback;
+fn result_map = f -> result -> {
+  ok: result.ok, code: result.code,
+  value: if result.ok then f result.value else result.value
+};
+fn predicate_and = p -> q -> x -> p x && q x;
+fn predicate_not = p -> x -> !(p x);
+fn reader_map = f -> reader -> environment -> f (reader environment);
+fn lens_modify = lens -> f -> record -> lens.set record (f (lens.get record));
+fn clamp_between = low -> high -> x -> min high (max low x);
+fn remainder = x -> modulus -> x - floor (x / modulus) * modulus;

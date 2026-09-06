@@ -1,0 +1,2 @@
+// Pattern inspiration: capturing closure factory, erased before runtime.
+fn scale_then_offset = scale -> offset -> x -> x*scale+offset; export fn main = (xs:[Num]) -> do {let transform=scale_then_offset 2 3; map xs transform};

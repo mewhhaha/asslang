@@ -1,0 +1,13 @@
+// Pattern inspiration: telemetry ingestion, validation, aggregation and alerting.
+// Host supplies readings; discard nonfinite samples before analytics.
+export fn analyze = (readings:[Num]) -> (threshold:Num) -> do {
+  let valid=filter readings (x -> x-x==0);
+  let stats=fold valid {count:0,total:0,energy:0,alerts:0} (s -> x -> {
+    count:s.count+1,total:s.total+x,energy:s.energy+x*x,
+    alerts:s.alerts+(if x>threshold then 1 else 0)
+  });
+  {count:stats.count,rejected:count readings-stats.count,
+   mean:if stats.count>0 then stats.total/stats.count else 0,
+   rms:if stats.count>0 then sqrt (stats.energy/stats.count) else 0,
+   alerts:stats.alerts}
+};

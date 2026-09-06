@@ -11,7 +11,7 @@ class Element {
   focus() { this.focused = true; }
   setSelectionRange(start, end) { this.selection = [start, end]; }
 }
-const elements = new Map(['output', 'details', 'examples', 'source', 'locate', 'name', 'args', 'effects', 'fusion', 'cancel', 'check', 'run']
+const elements = new Map(['output', 'details', 'examples', 'source', 'locate', 'name', 'args', 'effects', 'fusion', 'simd', 'cancel', 'check', 'run']
   .map(id => [id, new Element()]));
 const get = id => elements.get(id), workers = [];
 class WorkerDouble {
@@ -99,4 +99,14 @@ test('navigation rejects missing, nonintegral and out-of-range offsets while per
   }
   assert.equal(selectDiagnostic(input, 'abc', { range: { start: { offset: 3 } } }), true);
   assert.deepEqual(input.selection, [3, 3]);
+});
+
+
+test('SIMD UI forwards an explicit opt-in independently of fusion', () => {
+  get('simd').checked = true; get('fusion').checked = false;
+  const worker = start();
+  assert.equal(worker.request.simd, true);
+  assert.equal(worker.request.experimentalReductionFusion, false);
+  worker.deliver(success);
+  get('simd').checked = false;
 });

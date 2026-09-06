@@ -1,0 +1,2 @@
+// Pattern inspiration: argmax with first-tie semantics; finite data.
+export fn argmax = (xs:[Num]) -> fold xs {value:0,index:-1,next:0} (s -> x -> {value:if s.index<0 || x>s.value then x else s.value,index:if s.index<0 || x>s.value then s.next else s.index,next:s.next+1});

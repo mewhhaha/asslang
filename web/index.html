@@ -21,7 +21,8 @@ export fn main(n) =
   |> map(s => s.a);</textarea>
 <div class="controls"><div><label for="name">Export</label><input id="name" value="main"></div>
 <div><label for="args">Arguments (JSON array)</label><input id="args" value="[12]" style="width:350px"></div>
-<label><input id="fusion" type="checkbox"> Experimental reduction fusion</label>
+<label><input id="fusion" type="checkbox" checked> Reduction fusion</label>
+<label><input id="simd" type="checkbox"> f64x2 SIMD</label>
 <button id="check" class="secondary">Check only</button><button id="run">Compile and run</button><button id="cancel" class="secondary">Cancel</button></div>
 <label><input type="checkbox" id="effects" style="width:auto"> Grant demo-only host effects (read_scale and audit, key “demo”, 8 calls maximum)</label>
 <p>Check only validates through Wasm emission without executing an export or granting host authority. Calls run in a cancellable worker with a fixed 256 KiB arena. Records, text, bytes and arrays use ASABI 1. Bytes are entered as JSON arrays of integers 0–255. Other host functions are not granted. The compiler, JS adapter and browser still use managed memory.</p>

@@ -1,0 +1,2 @@
+// Pattern inspiration: elementwise clipping without a predicate.
+export fn clamp = (xs:[Num]) -> map xs (clamp_between (-1) 1);

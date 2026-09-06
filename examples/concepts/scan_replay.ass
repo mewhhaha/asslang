@@ -1,0 +1,6 @@
+// Promoted: co-demanded sinks share this exact causal machine by default.
+// Independently constructed scans still have distinct state frames.
+export fn replay = (xs: [Num]) -> do {
+  let prefixes = scan xs 0 (total -> x -> total + x);
+  {total: sum prefixes, peak: fold prefixes 0 (peak -> x -> max peak x)}
+};

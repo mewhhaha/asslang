@@ -1,0 +1,2 @@
+// Pattern inspiration: lambda-calculus Church encodings; static functions.
+fn yes = a -> b -> a; fn no = a -> b -> b; export fn main = (x:Num) -> yes (x+1) (no 0 (x*2));

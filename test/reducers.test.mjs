@@ -8,7 +8,7 @@ const build=(source,options)=>compileSources([library,{name:'main.ass',source}],
 
 test('ordinary reducer products fuse structurally without experimental optimization', async () => {
   const c=build(`export fn main(xs:[Num])=reduce_with(xs,reducer_product(sum_reducer(),
-    reducer_map_input(sum_reducer(),x=>x*x)));`);
+    reducer_map_input(sum_reducer(),x=>x*x)));`, {reductionFusion:false});
   assert.equal(c.stats.functions[0].loops,1);
   assert.equal(c.stats.functions[0].reductionFusion.enabled,false);
   assert.equal(c.stats.kernelHeapAllocationSites,0);

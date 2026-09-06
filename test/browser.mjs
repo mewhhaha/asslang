@@ -2,8 +2,8 @@ import { diagnosticCases } from './diagnostic-cases.mjs';
 import { selectDiagnostic } from '../web/diagnostic-navigation.mjs';
 import { unaryCases } from './unary-cases.mjs';
 import { createRuntime, createCapability } from '../src/abi.mjs';
-import { corpus, exampleSource } from '../examples/corpus.mjs';
-import { compile, compileSources, check, checkSources, formatDiagnostic, createCompiler, instantiate } from '../src/compiler.mjs';
+import { corpus, unsupportedCorpus, exampleSource } from '../examples/corpus.mjs';
+import { compile, compileSources, check, checkSources, formatDiagnostic, createCompiler, instantiate, supportsSIMD } from '../src/compiler.mjs';
 import { reference } from './reference.mjs';
 const report = { browser: navigator.userAgent, checks: 0, cases: [] };
 const assert = (condition,message) => { if (!condition) throw new Error(message); report.checks++; };
@@ -216,6 +216,29 @@ try {
   const unaryCapability=createCapability({add:{parameters:['Num','Num'],result:'Num',call:(a,b)=>(unaryHostCalls++,a+b)}},{maxCalls:1});
   assert(unaryHost.call('main',[3],{capability:unaryCapability})===10&&unaryHostCalls===1,'Unary host calls retain capability sequencing');
   report.cases.push({name:'unary-syntax',cases:unaryCases.length*2+1});
+  assert(supportsSIMD(), 'Browser supports standard SIMD');
+  let vectorized = 0;
+  for (const entry of corpus.filter(e => !e.host)) {
+    const loadSource = async path => globalThis.asslangSources?.[path] ?? await (await fetch('../examples/'+path)).text();
+    const source = await exampleSource(entry, loadSource);
+    for (const reductionFusion of [false,true]) {
+      const compiled = compile(source,{simd:true,reductionFusion});
+      vectorized += compiled.stats.functions.reduce((n,f)=>n+f.simd.vectorizedLoops,0);
+      assert(close((await createRuntime(compiled,{pages:4})).call(entry.name,entry.args),entry.expected),'SIMD corpus '+entry.id);
+    }
+  }
+  assert(vectorized>0,'Actual vector kernels emitted');
+  for (const entry of unsupportedCorpus) {
+    const source = globalThis.asslangSources?.[entry.path] ?? await (await fetch('../examples/'+entry.path)).text();
+    const result = check(source);
+    assert(!result.ok && result.diagnostics[0].code===entry.code,'Unsupported '+entry.id);
+  }
+  const ordered = await createRuntime(compile('export fn main = (xs:[Num]) -> sum xs;',{simd:true}));
+  assert(Object.is(ordered.call('main',[[1e16,1,-1e16,1]]),1),'SIMD keeps reduction order');
+  const oddMap = await createRuntime(compile('export fn main = (xs:[Num]) -> map xs (x -> x*x);',{simd:true}));
+  assert(close(oddMap.call('main',[[2,3,4]]),[4,9,16]),'SIMD odd tail');
+  assert(close(oddMap.call('main',[[]]),[]),'SIMD empty output');
+  report.cases.push({name:'ordered-simd-corpus',exports:corpus.filter(e=>!e.host).length,modes:2,vectorizedLoops:vectorized,unsupported:unsupportedCorpus.length});
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {

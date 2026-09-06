@@ -1,0 +1,8 @@
+// Pattern inspiration: simulation update with vector maps and numeric reduction.
+// A one-dimensional structure-of-arrays simulation step, not an object heap.
+export fn advance = (positions:[Num]) -> (velocities:[Num]) -> (dt:Num) ->
+  require (dt>=0) {
+    positions:zip_checked positions velocities (x -> velocity -> x+dt*velocity),
+    kinetic:sum (map velocities (velocity -> velocity*velocity/2)),
+    particles:count positions
+  };

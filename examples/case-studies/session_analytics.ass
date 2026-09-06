@@ -1,0 +1,9 @@
+// Pattern inspiration: sessionizing an event stream with a causal state machine.
+// Timestamps must be finite and nondecreasing; gap must be nonnegative.
+export fn session_ids = (timestamps:[Num]) -> (gap:Num) -> require (gap>=0) (do {
+  let sessions=scan timestamps {seen:false,last:0,id:0} (s -> time ->
+    require (time-time==0 && (!s.seen || time>=s.last)) {
+      seen:true,last:time,id:if !s.seen || time-s.last>gap then s.id+1 else s.id
+    });
+  map sessions (s -> s.id)
+});

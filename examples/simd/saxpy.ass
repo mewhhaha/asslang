@@ -1,0 +1,2 @@
+// Pattern inspiration: BLAS-style affine vector map, retaining f64.
+export fn saxpy = (xs:[Num]) -> (ys:[Num]) -> (scale:Num) -> zip_checked xs ys (x -> y -> scale*x+y);

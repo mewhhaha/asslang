@@ -81,7 +81,8 @@ function start(mode) {
   };
   active.postMessage({ mode, source, name: document.querySelector('#name').value, args,
     allowDemoEffects: mode === 'run' && document.querySelector('#effects').checked,
-    experimentalReductionFusion: document.querySelector('#fusion').checked });
+    experimentalReductionFusion: document.querySelector('#fusion').checked,
+    simd: document.querySelector('#simd').checked });
 }
 document.querySelector('#check').onclick = () => start('check');
 document.querySelector('#run').onclick = () => start('run');
