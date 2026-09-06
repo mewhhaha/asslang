@@ -48,6 +48,18 @@ export function reference(source, name, args, {hosts={}}={}) {
         for (const x of xs()) total = snapshot(invoke(f, [constant(total), x]));
         return total;
       }
+      // This eager value oracle does not certify suffix-demand behavior.
+      // Direct Wasm tests cover traps and strict causal stopping boundaries.
+      case 'fold_until': {
+        let state = snapshot(thunks[1]()), steps = 0, done = false;
+        const f = thunks[2]();
+        for (const x of xs()) {
+          const next = invoke(f, [constant(state), x]);
+          state = snapshot(next.state); done = next.done; steps++;
+          if (done) break;
+        }
+        return {[recordTag]:true,state,steps,done};
+      }
       case 'scan': case 'transduce': return stream(()=>{
         let state,initialized=false;const result=[],f=thunks[2]();
         for(const x of xs()) {

@@ -1,0 +1,50 @@
+name: Kernel correctness
+
+on:
+  push:
+    branches: [main, feat/composable-kernels-performance]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: correctness-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test language, ABI, effects, causal streams and fusion
+        run: npm test | tee node-tests.tap
+      - name: Run both interop examples
+        run: |
+          npm run example:host
+          npm run example:reducers
+      - name: Validate Chrome kernels and boundary behavior
+        run: npm run test:browser -- --output browser-tests.json
+      - name: Snapshot the tested source
+        if: always()
+        run: git archive --format=tar -o validation-source.tar HEAD
+      - name: Retain reproducible validation bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: asslang-validation-${{ github.sha }}
+          path: |
+            node-tests.tap
+            browser-tests.json
+            validation-source.tar
+          retention-days: 7

@@ -1,6 +1,6 @@
 import { compile } from '../src/compiler.mjs';
 import { Arena, prepareCall, createRuntime, createCapability } from '../src/abi.mjs';
-import { corpus, baselines, benchmarkArguments, expansionSource } from '../examples/corpus.mjs';
+import { corpus, baselines, benchmarkArguments, expansionSource, exampleSource } from '../examples/corpus.mjs';
 
 const now=()=>performance.now();
 export function quantiles(values) {
@@ -44,7 +44,7 @@ async function rawKernel(compiled,name,args,pages=4) {
  * they are intentionally NOT presented as equivalent memory-management costs.
  */
 export async function runBenchmarks({loadSource,compileSamples=21,samples=15,includeScaling=true}={}) {
-  const sources=new Map();for(const e of corpus)if(!sources.has(e.path))sources.set(e.path,await loadSource(e.path));
+  const sources=new Map();for(const e of corpus)if(!sources.has(e.path))sources.set(e.path,await exampleSource(e,loadSource));
   const compilation=[];
   for(const [path,source] of sources) {
     const first=compile(source);

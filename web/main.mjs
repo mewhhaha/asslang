@@ -1,4 +1,4 @@
-import { corpus } from '../examples/corpus.mjs';
+import { corpus, exampleSource } from '../examples/corpus.mjs';
 const output=document.querySelector('#output'),details=document.querySelector('#details'),examples=document.querySelector('#examples');
 let worker=null,timer=null;
 const display=(_key,value)=>ArrayBuffer.isView(value)?Array.from(value):typeof value==='number'&&!Number.isFinite(value)?String(value):Object.is(value,-0)?'-0':value;
@@ -7,8 +7,10 @@ for(const e of corpus){const option=document.createElement('option');option.valu
 examples.onchange=async()=>{
   const e=corpus.find(e=>e.id===examples.value);if(!e)return;
   try {
-    const response=await fetch('../examples/'+e.path);if(!response.ok)throw new Error('Example load failed');
-    document.querySelector('#source').value=await response.text();
+    document.querySelector('#source').value=await exampleSource(e,async path=>{
+      const response=await fetch('../examples/'+path);if(!response.ok)throw new Error('Example load failed: '+path);
+      return response.text();
+    });
     document.querySelector('#name').value=e.name;document.querySelector('#args').value=JSON.stringify(e.args,display);
     // Loading an effectful example is not a grant. The checkbox remains explicit.
     document.querySelector('#effects').checked=false;

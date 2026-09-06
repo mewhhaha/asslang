@@ -1,0 +1,44 @@
+{
+  "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+  "checks": 639,
+  "cases": [
+    {
+      "name": "fused-range",
+      "wasmBytes": 523
+    },
+    {
+      "name": "borrowed-dot",
+      "wasmBytes": 700
+    },
+    {
+      "name": "seeded-differential",
+      "cases": 100
+    },
+    {
+      "name": "asabi-algorithm-corpus",
+      "cases": 48
+    },
+    {
+      "name": "causal-differential",
+      "cases": 100
+    },
+    {
+      "name": "experimental-reduction-fusion",
+      "cases": 100,
+      "wasmBytes": 608
+    },
+    {
+      "name": "causal-reduction-fusion",
+      "cases": 100
+    },
+    {
+      "name": "composable-stopping-kernels",
+      "cases": 17
+    }
+  ],
+  "notTested": [
+    "HTTP module loading",
+    "playground worker loading"
+  ],
+  "status": "PASS"
+}

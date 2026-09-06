@@ -1,0 +1,9 @@
+// A namespace is just an ordinary inferred record of static functions.
+fn operations() = {
+  positive: xs => filter(xs, x => x > 0),
+  energy: xs => sum(map(xs, x => x * x)),
+};
+export fn positive_energy(xs: [Num],) = {
+  let ops = operations();
+  xs |> ops.positive |> ops.energy |> (x => x / 2)
+};

@@ -1,0 +1,8 @@
+// Empty inputs have the usual existential/universal identities.
+export fn has_negative(xs: [Num]) =
+  fold_until(xs, false, (s, x) => { state: x < 0, done: x < 0 }).state;
+export fn all_finite(xs: [Num]) =
+  fold_until(xs, true, (s, x) => {
+    state: x == x && abs(x) <= 1.7976931348623157e308,
+    done: !(x == x && abs(x) <= 1.7976931348623157e308),
+  }).state;

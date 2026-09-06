@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {compile} from '../src/compiler.mjs';
 import {createRuntime,createCapability} from '../src/abi.mjs';
-import {corpus} from '../examples/corpus.mjs';
+import {corpus,exampleSource} from '../examples/corpus.mjs';
 import {reference} from './reference.mjs';
 const plain=v=>ArrayBuffer.isView(v)?Array.from(v):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,plain(x)])):v;
 async function verify(source,args,{expected,run}={}) {
@@ -99,7 +99,7 @@ test('prepared input leases execute fused causal sinks and reject expired handle
 });
 test('every pure corpus export agrees across all fusion/memoization combinations',async()=>{
   for(const e of corpus.filter(e=>!e.host)){
-    const source=readFileSync(new URL('../examples/'+e.path,import.meta.url),'utf8');
+    const source=await exampleSource(e,path=>readFileSync(new URL('../examples/'+path,import.meta.url),'utf8'));
     for(const memoizeReductions of [true,false]){
       let baseline;
       for(const experimentalReductionFusion of [false,true]){

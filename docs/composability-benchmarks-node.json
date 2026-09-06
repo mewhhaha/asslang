@@ -1,0 +1,529 @@
+{
+  "status": "PASS",
+  "environment": {
+    "node": "v22.16.0",
+    "v8": "12.4.254.21-node.26",
+    "platform": "linux",
+    "arch": "x64",
+    "release": "6.18.35",
+    "cpu": "INTEL(R) XEON(R) PLATINUM 8573C"
+  },
+  "methodology": {
+    "samples": 21,
+    "warmups": 40,
+    "targetBatchMilliseconds": 4,
+    "order": "alternating baseline/candidate",
+    "quantiles": "batch averages, NOT individual-call tail latency",
+    "compilation": "uncached source-to-validated-Wasm; excludes native machine-code generation, I/O and process startup",
+    "cache": "current uncached build versus exact-source cache hit with snapshot cloning, not incremental compilation",
+    "transfer": "same source and values, same fixed arena; ordinary calls copy and scrub; prepared setup excluded",
+    "stopping": "raw reused-buffer search, old exhaustive fold versus new fold_until; no input/output copies; same finite-input answer",
+    "warning": "One warmed single-process host measurement, not a universal performance guarantee. Tiny early-hit timings are timer/JIT sensitive."
+  },
+  "baselineCompilerSha256": "54e8e862a80248992d9a5870742a78f5d581fbb26456f9d531964883a2012369",
+  "candidateCompilerSha256": "2a86a8b96b06b5200d129d251f002158f12c63169a1419dcbd597fd0fa5c34b2",
+  "baselineFiles": {
+    "abi-schema.mjs": "ef53a04d0d119a9cbb05e341a1d56307ed2592195e7ed174330b8290344c4cb5",
+    "abi.mjs": "dc95aed0409e0888f2936ba712aab7871ef5850b58c1a9941a8aa145e5612760",
+    "cli.mjs": "d0750288d47758e2d60771aedb247faa5c380847d79ebadbbaf003c58b0154f1",
+    "compiler.mjs": "54e8e862a80248992d9a5870742a78f5d581fbb26456f9d531964883a2012369",
+    "frontend.mjs": "f45fc4a6754577c9254ae827456a499aaaec79421a40ead94973053eb04ee66b",
+    "fusion.mjs": "5e462c8d13b629496da988cdd6d73ca7345dd44e8db3acffbd0f42b13181f495",
+    "jte.mjs": "3ff2682ff946b01f2971d821fbaf93c91b89e70e8f9d5e7e88b3824feffcd89b",
+    "wasm.mjs": "8987907d0f46472552cd2dc67facf209fd51ee6758ec8723bb88493eb7b319c1"
+  },
+  "candidateFiles": {
+    "abi-schema.mjs": "ef53a04d0d119a9cbb05e341a1d56307ed2592195e7ed174330b8290344c4cb5",
+    "abi.mjs": "c2f4cd184530e5d9cc2354121328cdc0103aeae23b1e6880104450ca93ac38c4",
+    "cli.mjs": "67050c19030e987e2be334743c64911df8237351e937f54872904fd173ac7e53",
+    "compiler.mjs": "2a86a8b96b06b5200d129d251f002158f12c63169a1419dcbd597fd0fa5c34b2",
+    "frontend.mjs": "d98cc5826e47a31963e4cd5c1389874f8e867bf320679172954c11ce1606e6f6",
+    "fusion.mjs": "053e4f9bab69ad17e857499ee703e96c5de28360426d6948f3ab19d1226682f8",
+    "jte.mjs": "f3eacb76754a15e954cbfbd049144448dffd2086a35770357e2377ac25e97d20",
+    "wasm.mjs": "3b3ccff83d4dd52828f867835e14756eb924505125347b32f7c55147145b39ab"
+  },
+  "compilation": [
+    {
+      "path": "examples/energy.ass",
+      "sourceSha256": "f9f33becbb6e8053ba02814ec1cf793d0faa7e393526281c5b2a49f13dadda5c",
+      "sourceCharacters": 297,
+      "baselineWasmBytes": 901,
+      "candidateWasmBytes": 891,
+      "baseline": {
+        "p50": 0.46122981250000095,
+        "p95": 0.986015124999998,
+        "batch": 16,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.3409673125000001,
+        "p95": 0.5694306250000025,
+        "batch": 16,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 1.3527097630509692
+    },
+    {
+      "path": "examples/algorithms/welford.ass",
+      "sourceSha256": "dd89a0b860481e8057bd87d358445e355fb72bd2944dcfda406e3937648da5da",
+      "sourceCharacters": 430,
+      "baselineWasmBytes": 1479,
+      "candidateWasmBytes": 1445,
+      "baseline": {
+        "p50": 0.7172898749999916,
+        "p95": 0.9773057499999993,
+        "batch": 8,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.3592481249999935,
+        "p95": 0.6653031875000011,
+        "batch": 16,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 1.9966419448953412
+    },
+    {
+      "path": "examples/concepts/machine_composition.ass",
+      "sourceSha256": "c6c8631e9582f7442011838baacd8530a388fd0298a8e11a024e833dd704893f",
+      "sourceCharacters": 1093,
+      "baselineWasmBytes": 1199,
+      "candidateWasmBytes": 1165,
+      "baseline": {
+        "p50": 1.1590444999999363,
+        "p95": 2.4214774999999236,
+        "batch": 2,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 1.2083150000000273,
+        "p95": 1.470702000000017,
+        "batch": 4,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 0.9592237951195757
+    },
+    {
+      "path": "examples/algorithms/convolution.ass",
+      "sourceSha256": "067346aa279703126e61f32ac0554aca284f7e4ae052aec63da6fc25322483e4",
+      "sourceCharacters": 418,
+      "baselineWasmBytes": 1556,
+      "candidateWasmBytes": 1520,
+      "baseline": {
+        "p50": 0.7183927500000209,
+        "p95": 1.398286999999982,
+        "batch": 4,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.46550937499998213,
+        "p95": 0.8017770000000155,
+        "batch": 8,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 1.543240133456063
+    },
+    {
+      "path": "generated/300-unused-helpers",
+      "sourceSha256": "8c573770140add4287ad79333409c49970388eda5b7c9b9207ad5da5bc059b6d",
+      "sourceCharacters": 7016,
+      "baselineWasmBytes": 369,
+      "candidateWasmBytes": 367,
+      "baseline": {
+        "p50": 1.4751300000000356,
+        "p95": 2.0678760000000693,
+        "batch": 1,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 1.2645712499999604,
+        "p95": 1.3799874999999702,
+        "batch": 4,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 1.1665060391022506
+    },
+    {
+      "path": "generated/24-record-sinks",
+      "sourceSha256": "d9b8dafd96e2808ff6d3c5353c7c1e05bdfa7c904f00ac9bf8758c0f0cbc22f4",
+      "sourceCharacters": 607,
+      "baselineWasmBytes": 5639,
+      "candidateWasmBytes": 5444,
+      "baseline": {
+        "p50": 1.1498742499999253,
+        "p95": 1.9763355000000047,
+        "batch": 4,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.8700821250000104,
+        "p95": 1.6563264999999774,
+        "batch": 8,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 1.3215697885988769
+    }
+  ],
+  "cached": [
+    {
+      "path": "examples/energy.ass",
+      "baselineLabel": "uncached current compiler",
+      "candidateLabel": "exact-source LRU hit including defensive snapshot",
+      "baseline": {
+        "p50": 0.16278887500000394,
+        "p95": 0.23621234374999744,
+        "batch": 32,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.04366785937499884,
+        "p95": 0.07104494531250083,
+        "batch": 128,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 3.727887680548991,
+      "cache": {
+        "hits": 2983,
+        "misses": 1,
+        "entries": 1,
+        "retainedBytes": 7121
+      }
+    },
+    {
+      "path": "examples/algorithms/welford.ass",
+      "baselineLabel": "uncached current compiler",
+      "candidateLabel": "exact-source LRU hit including defensive snapshot",
+      "baseline": {
+        "p50": 0.2007983437499945,
+        "p95": 0.307726187500009,
+        "batch": 32,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.03465037500000179,
+        "p95": 0.041862070312500776,
+        "batch": 128,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 5.79498327940128,
+      "cache": {
+        "hits": 2983,
+        "misses": 1,
+        "entries": 1,
+        "retainedBytes": 7257
+      }
+    },
+    {
+      "path": "examples/concepts/machine_composition.ass",
+      "baselineLabel": "uncached current compiler",
+      "candidateLabel": "exact-source LRU hit including defensive snapshot",
+      "baseline": {
+        "p50": 0.5122994999999833,
+        "p95": 0.8459793749999562,
+        "batch": 8,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.02646494531249921,
+        "p95": 0.05042145703125023,
+        "batch": 256,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 19.357663276864123,
+      "cache": {
+        "hits": 5927,
+        "misses": 1,
+        "entries": 1,
+        "retainedBytes": 8835
+      }
+    },
+    {
+      "path": "examples/algorithms/convolution.ass",
+      "baselineLabel": "uncached current compiler",
+      "candidateLabel": "exact-source LRU hit including defensive snapshot",
+      "baseline": {
+        "p50": 0.18453437499999836,
+        "p95": 0.22187731249999842,
+        "batch": 32,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.03425767187499673,
+        "p95": 0.04073478125000207,
+        "batch": 128,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 5.386658371688195,
+      "cache": {
+        "hits": 2983,
+        "misses": 1,
+        "entries": 1,
+        "retainedBytes": 7642
+      }
+    },
+    {
+      "path": "generated/24-record-sinks",
+      "baselineLabel": "uncached current compiler",
+      "candidateLabel": "exact-source LRU hit including defensive snapshot",
+      "baseline": {
+        "p50": 0.777171624999994,
+        "p95": 1.1485189999999648,
+        "batch": 8,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.15166368749999037,
+        "p95": 0.19930003124999018,
+        "batch": 32,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 5.124309172556835,
+      "cache": {
+        "hits": 775,
+        "misses": 1,
+        "entries": 1,
+        "retainedBytes": 24478
+      }
+    }
+  ],
+  "transfer": [
+    {
+      "name": "sum",
+      "path": "copying runtime.call",
+      "elements": 32768,
+      "arenaBytes": 1048576,
+      "baseline": {
+        "p50": 0.18558818750000228,
+        "p95": 0.30292568750000726,
+        "batch": 32,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.05741030468750097,
+        "p95": 0.0771605234374988,
+        "batch": 128,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 3.2326633434573537
+    },
+    {
+      "name": "sum",
+      "path": "prepared.run (setup excluded; result copy and output scrub included)",
+      "elements": 32768,
+      "arenaBytes": 1048576,
+      "baseline": {
+        "p50": 0.02471109765624746,
+        "p95": 0.027412105468748393,
+        "batch": 256,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.024142847656246857,
+        "p95": 0.03111557421875233,
+        "batch": 256,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 1.0235369914970893
+    },
+    {
+      "name": "identity-output",
+      "path": "copying runtime.call",
+      "elements": 32768,
+      "arenaBytes": 1048576,
+      "baseline": {
+        "p50": 0.22839293750001843,
+        "p95": 0.3042760625000369,
+        "batch": 16,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.08838462500000333,
+        "p95": 0.12986170312498757,
+        "batch": 64,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 2.5840799516885413
+    },
+    {
+      "name": "identity-output",
+      "path": "prepared.run (setup excluded; result copy and output scrub included)",
+      "elements": 32768,
+      "arenaBytes": 1048576,
+      "baseline": {
+        "p50": 0.10490714062500217,
+        "p95": 0.1402434687500005,
+        "batch": 64,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.05779046875002791,
+        "p95": 0.2032394375000024,
+        "batch": 32,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 1.8153017771628908
+    },
+    {
+      "name": "prefix-output",
+      "path": "copying runtime.call",
+      "elements": 32768,
+      "arenaBytes": 1048576,
+      "baseline": {
+        "p50": 0.24349599999999327,
+        "p95": 0.3370498124999983,
+        "batch": 32,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.09940421874999572,
+        "p95": 0.16324742187499908,
+        "batch": 64,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 2.449553983341414
+    },
+    {
+      "name": "prefix-output",
+      "path": "prepared.run (setup excluded; result copy and output scrub included)",
+      "elements": 32768,
+      "arenaBytes": 1048576,
+      "baseline": {
+        "p50": 0.1156743281249959,
+        "p95": 0.1751854843750067,
+        "batch": 64,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.08061189062500773,
+        "p95": 0.18477742187499757,
+        "batch": 64,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 1.4349536678539452
+    }
+  ],
+  "stopping": [
+    {
+      "name": "first",
+      "elements": 65536,
+      "expected": 0,
+      "baselineVisited": 65536,
+      "candidateVisited": 1,
+      "baseline": {
+        "p50": 0.04655646874999775,
+        "p95": 0.06645080468749853,
+        "batch": 128,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.000011425926208494253,
+        "p95": 0.000013643547058100891,
+        "batch": 131072,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 4074.63411722253
+    },
+    {
+      "name": "middle",
+      "elements": 65536,
+      "expected": 32768,
+      "baselineVisited": 65536,
+      "candidateVisited": 32769,
+      "baseline": {
+        "p50": 0.06307808593749797,
+        "p95": 0.07946051562500145,
+        "batch": 128,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.03445191406249393,
+        "p95": 0.037194023437500334,
+        "batch": 128,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 1.8309022199195581
+    },
+    {
+      "name": "last",
+      "elements": 65536,
+      "expected": 65535,
+      "baselineVisited": 65536,
+      "candidateVisited": 65536,
+      "baseline": {
+        "p50": 0.08275921874999881,
+        "p95": 0.098970796874994,
+        "batch": 64,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.07185220312500462,
+        "p95": 0.07707109374999277,
+        "batch": 64,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 1.1517979289517226
+    },
+    {
+      "name": "absent",
+      "elements": 65536,
+      "expected": -1,
+      "baselineVisited": 65536,
+      "candidateVisited": 65536,
+      "baseline": {
+        "p50": 0.08095514062500797,
+        "p95": 0.11145268750000525,
+        "batch": 64,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "candidate": {
+        "p50": 0.0696292812500019,
+        "p95": 0.10308257812499733,
+        "batch": 64,
+        "samples": 21,
+        "unit": "ms/call"
+      },
+      "speedup": 1.1626594325215123
+    }
+  ]
+}

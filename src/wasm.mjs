@@ -15,16 +15,25 @@ function sleb(value) {
     bytes.push(byte | (done ? 0 : 128)); if (done) return bytes;
   }
 }
-const vector = entries => [...uleb(entries.length), ...entries.flat()];
-const text = value => { const bytes = [...new TextEncoder().encode(value)]; return [...uleb(bytes.length), ...bytes]; };
-const section = (id, data) => [id, ...uleb(data.length), ...data];
+function concatenate(chunks) {
+  let length = 0;
+  for (const chunk of chunks) length += chunk.length;
+  const bytes = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+  return bytes;
+}
+const encoder = new TextEncoder();
+const vector = entries => concatenate([uleb(entries.length), ...entries]);
+const text = value => { const bytes = encoder.encode(value); return concatenate([uleb(bytes.length), bytes]); };
+const section = (id, data) => concatenate([[id], uleb(data.length), data]);
 const f64bytes = value => {
   const view = new DataView(new ArrayBuffer(8)); view.setFloat64(0, value, true); return [...new Uint8Array(view.buffer)];
 };
 
 function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFusion = false } = {}, steps = []) {
   const fusionGroups = [];
-  const code = [], locals = []; let loops = 0, runtimeChecks = 0, zipChecks = 0, stores = 0, memoizedReductions = 0, stateMachines = 0, stateSlots = 0, boundedIterations = 0;
+  const code = [], locals = []; let loops = 0, runtimeChecks = 0, zipChecks = 0, stores = 0, memoizedReductions = 0, stateMachines = 0, stateSlots = 0, boundedIterations = 0, shortCircuitFolds = 0;
   const emit = (...bytes) => code.push(...bytes);
   const allocate = type => { locals.push(type); return kernel.abi.length + locals.length - 1; };
   const get = local => emit(0x20, ...uleb(local));
@@ -107,7 +116,7 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     const deps=new Set();dependencyCache.set(node.id,deps);
     if(node.op==='index' || node.op==='acc' || node.op==='cell')deps.add(node.id);
     for(const child of scalarChildren(node))for(const id of dependencies(child))deps.add(id);
-    if(node.op==='reduce' || node.op==='reduce_group') {
+    if(node.op==='reduce' || node.op==='reduce_group' || node.op==='reduce_until') {
       for(const i of node.stream.indices)deps.delete(i.id);
       for(const a of Array.isArray(node.acc)?node.acc:[node.acc])deps.delete(a.id);
       for(const m of node.stream.machines)for(const a of [...m.acc,...m.cells])deps.delete(a.id);
@@ -118,9 +127,9 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
   const machineRoots = stream => stream.machines.flatMap(m=>[...m.initial,...m.body,...m.outputs,m.emission,...(m.gate?[m.gate]:[])]);
   function scalarChildren(node) {
     if(node.op==='iterate_group')return [...node.initial,...node.body,node.done,node.limit];
-    if(node.op==='reduce' || node.op==='reduce_group') {
+    if(node.op==='reduce' || node.op==='reduce_group' || node.op==='reduce_until') {
       return [...node.args,node.stream.extent,...node.stream.guards,...(node.stream.mask?[node.stream.mask]:[]),
-        ...[node.initial,node.body].flat(),...machineRoots(node.stream)];
+        ...[node.initial,node.body].flat(),...(node.op==='reduce_until'?[node.done]:[]),...machineRoots(node.stream)];
     }
     return node.args;
   }
@@ -136,9 +145,9 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     const available=new Set([...parent.indices.keys(),...parent.accumulators.keys()]), seen=new Set();
     function visit(node) {
       if(seen.has(node.id))return;seen.add(node.id);
-      if(['reduce','reduce_group','iterate_group'].includes(node.op) && !body.lazy.has(node.id) &&
+      if(['reduce','reduce_group','reduce_until','iterate_group'].includes(node.op) && !body.lazy.has(node.id) &&
           !parent.cache.has(node.id) && !parent.groups.has(node.id) && [...dependencies(node)].every(id=>available.has(id))) {
-        const flag=allocate('I32'), targets=[...(node.op==='reduce'?[node.initial]:node.initial).map(n=>n.type),...(node.op==='iterate_group'?['Num','Bool']:[])].map(allocate);
+        const flag=allocate('I32'), targets=[...(node.op==='reduce'?[node.initial]:node.initial).map(n=>n.type),...(['iterate_group','reduce_until'].includes(node.op)?['Num','Bool']:[])].map(allocate);
         i32(0);set(flag);body.lazy.set(node.id,{flag,targets});memoizedReductions++;
         // This reduction's nested computations are planned by its own loop.
         return;
@@ -308,10 +317,45 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     const steps=allocate('Num');get(count);emit(0xb8);set(steps);
     const result=[...targets,steps,done];ctx.groups.set(node.id,result);return result;
   }
+  // Stop at the first accepted event whose transition returns done=true.
+  // This sink is deliberately excluded from reduction cohorts: sharing a full
+  // traversal would execute causal transitions in a suffix it must not demand.
+  function evaluateUntil(node, ctx) {
+    const stream = node.stream, targets = node.initial.map(n => allocate(n.type));
+    for (const guard of stream.guards) { load(guard, ctx); trapUnless(); noteGuard(guard); }
+    const extent = evaluate(stream.extent, ctx);
+    node.initial.forEach((n, i) => { load(n, ctx); set(targets[i]); });
+    const index = allocate('I32'), count = allocate('I32'), done = allocate('Bool');
+    i32(0); set(index); i32(0); set(count); i32(0); set(done);
+    const body = copyContext(ctx); disableFusion(body);
+    invalidateBindings(body, [...stream.indices.map(n => n.id), ...node.acc.map(n => n.id)]);
+    for (const identity of stream.indices) body.indices.set(identity.id, index);
+    node.acc.forEach((n, i) => body.accumulators.set(n.id, targets[i]));
+    const machines = prepareMachines(stream, body);
+    planLoopMemo([stream.mask, ...node.body, node.done, ...machineRoots(stream)], ctx, body);
+    loops++; shortCircuitFolds++;
+    emit(0x02, 0x40, 0x03, 0x40);
+    get(index); get(extent); emit(0x4f, 0x0d, 0x01);
+    stepMachines(machines, body);
+    if (stream.mask) { load(stream.mask, body); emit(0x04, 0x40); }
+    const next = node.body.map(n => {
+      const temporary = allocate(n.type); load(n, body); set(temporary); return temporary;
+    });
+    load(node.done, body); set(done);
+    next.forEach((n, i) => { get(n); set(targets[i]); });
+    get(count); i32(1); emit(0x6a); set(count);
+    if (stream.mask) emit(0x0b);
+    get(done); emit(0x0d, 0x01);
+    get(index); i32(1); emit(0x6a); set(index);
+    emit(0x0c, 0x00, 0x0b, 0x0b);
+    const steps = allocate('Num'); get(count); emit(0xb8); set(steps);
+    const result = [...targets, steps, done]; ctx.groups.set(node.id, result); return result;
+  }
   function evaluateGroup(node,ctx) {
     knownNodes.set(node.id,node);
     if(ctx.groups.has(node.id)) return ctx.groups.get(node.id);
     if(ctx.lazy.has(node.id) && !ctx.bypass.has(node.id))return forceLazy(node,ctx,true);
+    if(node.op==='reduce_until') return evaluateUntil(node,ctx);
     if(ctx.cohorts.has(node.id)) { reduceCohort(node,ctx); return ctx.groups.get(node.id); }
     const targets=node.initial.map(n=>allocate(n.type)), stream=node.stream;
     for(const guard of stream.guards) {load(guard,ctx);trapUnless();noteGuard(guard);}
@@ -414,10 +458,16 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
   if(kernel.indirect) {writeResult(kernel.result,kernel.resultSchema,kernel.outputSlots[0]);get(cursor);}
   else loadRegion(kernel.result,root);
   emit(0x0b);
-  const declarations = vector(locals.map(type => [1, wasmType(type)]));
-  const body = [...declarations, ...code];
-  return { bytes: [...uleb(body.length), ...body], locals: locals.length,
-    localBytes: locals.reduce((n, t) => n + (t === 'Num' ? 8 : 4), 0), loops, runtimeChecks, zipChecks, stores, memoizedReductions, stateMachines, stateSlots, boundedIterations,
+  const runs = [];
+  for (const type of locals) {
+    const previous = runs.at(-1);
+    if (previous?.type === type) previous.count++;
+    else runs.push({ type, count: 1 });
+  }
+  const declarations = vector(runs.map(({ type, count }) => [...uleb(count), wasmType(type)]));
+  const body = concatenate([declarations, code]);
+  return { bytes: concatenate([uleb(body.length), body]), locals: locals.length, localGroups: runs.length,
+    localBytes: locals.reduce((n, t) => n + (t === 'Num' ? 8 : 4), 0), loops, runtimeChecks, zipChecks, stores, memoizedReductions, stateMachines, stateSlots, boundedIterations, shortCircuitFolds,
     reductionFusion: { enabled: experimentalReductionFusion, groups: fusionGroups,
       eliminatedLoops: fusionGroups.reduce((n, g) => n + g.reductions.length - 1, 0) } };
 }
@@ -440,10 +490,10 @@ export function emitModule(staged, options = {}) {
     section(3,vector(kernels.map((_,i)=>uleb(i+hosts.length)))),
     section(7,vector(kernels.map((k,i)=>[...text(k.name),0,...uleb(i+hosts.length)]))),
     section(10,vector(bodies.map(b=>b.bytes))),
-    section(0,[...text('asslang.abi'),...new TextEncoder().encode(JSON.stringify(contract))]),
+    section(0,concatenate([text('asslang.abi'),encoder.encode(JSON.stringify(contract))])),
   ];
-  return {bytes:Uint8Array.from(pieces.flat()),needsMemory,contract,abiMetadataBytes:pieces.at(-1).length,
-    functions:kernels.map((k,i)=>({name:k.name,loops:bodies[i].loops,wasmLocals:bodies[i].locals,
+  return {bytes:concatenate(pieces),needsMemory,contract,abiMetadataBytes:pieces.at(-1).length,
+    functions:kernels.map((k,i)=>({name:k.name,loops:bodies[i].loops,wasmLocals:bodies[i].locals,wasmLocalDeclarationGroups:bodies[i].localGroups,
       wasmLocalValueBytes:bodies[i].localBytes,runtimeZipChecks:bodies[i].zipChecks,runtimeStreamChecks:bodies[i].runtimeChecks,
-      outputStoreSites:bodies[i].stores,hostCallSites:k.effects.length,memoizedReductions:bodies[i].memoizedReductions,stateMachines:bodies[i].stateMachines,stateSlots:bodies[i].stateSlots,boundedIterations:bodies[i].boundedIterations,reductionFusion:bodies[i].reductionFusion}))};
+      outputStoreSites:bodies[i].stores,hostCallSites:k.effects.length,memoizedReductions:bodies[i].memoizedReductions,stateMachines:bodies[i].stateMachines,stateSlots:bodies[i].stateSlots,boundedIterations:bodies[i].boundedIterations,shortCircuitFolds:bodies[i].shortCircuitFolds,reductionFusion:bodies[i].reductionFusion}))};
 }

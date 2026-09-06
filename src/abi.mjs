@@ -9,6 +9,9 @@ const bad = (message, code) => { throw new ABIError(message, code); };
 const integer = (n, max = 0x7fffffff) => Number.isSafeInteger(n) && n >= 0 && n <= max;
 const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 const encoder = new TextEncoder();
+// Wasm is little-endian; bulk f64 copying is valid only on matching hosts.
+const littleEndian = new Uint8Array(new Uint16Array([1]).buffer)[0] === 1;
+const typedArrayLength = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(Float64Array.prototype), 'length').get;
 
 function checkSchema(schema, depth = 0, budget = { count: 0 }) {
   if (!schema || typeof schema !== 'object' || depth > 24 || ++budget.count > 4096) bad('Invalid or excessive ABI schema', 'E_ABI_SCHEMA');
@@ -119,16 +122,26 @@ export function lowerValue(arena, schema, value) {
     new Uint8Array(arena.memory.buffer,pointer,value.length).set(value); return [pointer,value.length];
   }
   const element = schema.element.kind, stride = element === 'Num' ? 8 : 4;
-  if (!(Array.isArray(value) || element === 'Num' && value instanceof Float64Array)) bad('Expected an Array, or Float64Array for [Num]');
-  const pointer = arena.allocate(value.length * stride, stride), view = arena.view;
-  for (let i=0;i<value.length;i++) {
-    // Array getters are rejected; typed-array indexed access is intrinsic.
-    const v = Array.isArray(value) ? Object.getOwnPropertyDescriptor(value,String(i)) : { value:value[i] };
+  const array = Array.isArray(value);
+  const typed = element === 'Num' && value instanceof Float64Array && ArrayBuffer.isView(value);
+  if (!array && !typed) bad('Expected an Array, or Float64Array for [Num]');
+  const length = typed ? typedArrayLength.call(value) : value.length;
+  const pointer = arena.allocate(length * stride, stride);
+  if (typed && littleEndian) {
+    // Intrinsic typed-array copying never calls a user iterator or element
+    // getter. set also gives memmove semantics for overlapping low-level spans.
+    new Float64Array(arena.memory.buffer, pointer, length).set(value);
+    return [pointer, length];
+  }
+  const view = arena.view;
+  for (let i=0;i<length;i++) {
+    // Ordinary arrays retain their dense-data-property validation.
+    const v = array ? Object.getOwnPropertyDescriptor(value,String(i)) : { value:value[i] };
     if(!v || !('value' in v)) bad('Arrays must be dense data properties (no getters)');
     const wire = scalarToWire(schema.element,v.value);
     if(element === 'Num') view.setFloat64(pointer+i*stride,wire,true); else view.setUint32(pointer+i*stride,wire,true);
   }
-  return [pointer,value.length];
+  return [pointer,length];
 }
 export function checkedSpan(memory,pointer,length,stride=1) {
   if(!integer(pointer,0xffffffff) || !integer(length) || pointer%stride || pointer+length*stride>memory.buffer.byteLength) bad('Span is outside memory or misaligned','E_ABI_BOUNDS');
@@ -142,6 +155,7 @@ function decodeSpan(memory,schema,pointer,length) {
   if(schema.kind==='Bytes') return new Uint8Array(memory.buffer,pointer,length).slice();
   const view=new DataView(memory.buffer);
   if(schema.element.kind==='Num') {
+    if(littleEndian) return new Float64Array(memory.buffer,pointer,length).slice();
     const result=new Float64Array(length);
     for(let i=0;i<length;i++)result[i]=view.getFloat64(pointer+i*8,true);
     return result;
@@ -225,7 +239,7 @@ export function createCapability(definitions,{maxCalls=0}={}) {
 export async function createRuntime(compiledOrBytes,{pages=1}={}) {
   if(!integer(pages,32767))bad('pages must be between 0 and 32767');
   const bytes=compiledOrBytes?.bytes ?? compiledOrBytes;
-  const module=await WebAssembly.compile(bytes),abi=readABI(module);
+  const module=compiledOrBytes instanceof WebAssembly.Module ? compiledOrBytes : await WebAssembly.compile(bytes),abi=readABI(module);
   const memory=new WebAssembly.Memory({initial:pages,maximum:pages}),arena=new Arena(memory);
   const hostMap=new Map(abi.hosts.map(h=>[h.name,h])),exports=new Map(abi.exports.map(f=>[f.name,f]));
   let active=null,busy=false,preparedLease=null,leaseGeneration=0;

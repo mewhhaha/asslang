@@ -1,0 +1,13 @@
+// An explicit terminal event flushes the last run without a heap buffer.
+// Consecutive numeric values compare with == (NaN starts a new run).
+export fn run_lengths(xs: [Num]) = range(count(xs) + 1)
+  |> transduce({ seen: false, last: 0, size: 0 }, (s, i) => {
+    let end = i == count(xs);
+    let x = if end then 0 else at(xs, i);
+    let changed = end || x != s.last;
+    {
+      state: { seen: true, last: x, size: if changed then 1 else s.size + 1 },
+      emit: s.seen && changed,
+      value: s.size,
+    }
+  });

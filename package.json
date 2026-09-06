@@ -19,6 +19,9 @@
     "example:host": "node examples/interop/host.mjs",
     "test:causal": "node --test test/causal.test.mjs test/leases.test.mjs",
     "bench:fusion": "node scripts/bench-fusion.mjs",
-    "test:fusion": "node --test test/fusion*.test.mjs"
+    "test:fusion": "node --test test/fusion*.test.mjs",
+    "test:composability": "node --test test/fold-until.test.mjs test/reducers.test.mjs test/ergonomics.test.mjs",
+    "example:reducers": "node examples/interop/reducers.mjs",
+    "bench:improvements": "node scripts/bench-improvements.mjs"
   }
 }

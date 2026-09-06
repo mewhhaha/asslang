@@ -4,17 +4,22 @@ import { emitModule } from './wasm.mjs';
 export { CompileError } from './frontend.mjs';
 export { verifyCertificate } from './jte.mjs';
 
+function validateOptions(options) {
+  if (!options || typeof options !== 'object' || Array.isArray(options)) throw new TypeError('Compiler options must be an object');
+  if (options.maxExpansion !== undefined && (!Number.isSafeInteger(options.maxExpansion) || options.maxExpansion < 1)) {
+    throw new TypeError('maxExpansion must be a positive safe integer');
+  }
+  if (options.memoizeReductions !== undefined && typeof options.memoizeReductions !== 'boolean') throw new TypeError('memoizeReductions must be a boolean');
+  if (options.experimentalReductionFusion !== undefined && typeof options.experimentalReductionFusion !== 'boolean') throw new TypeError('experimentalReductionFusion must be a boolean');
+}
+
 /** Compile source to a standalone Wasm kernel module and an erased JTE ledger.
  * The compiler itself is JavaScript and is NOT allocation-free.
  * @param {string} source
  * @param {{maxExpansion?: number, memoizeReductions?: boolean, experimentalReductionFusion?: boolean}} options
  */
 export function compile(source, options = {}) {
-  if (options.maxExpansion !== undefined && (!Number.isSafeInteger(options.maxExpansion) || options.maxExpansion < 1)) {
-    throw new TypeError('maxExpansion must be a positive safe integer');
-  }
-  if (options.memoizeReductions !== undefined && typeof options.memoizeReductions !== 'boolean') throw new TypeError('memoizeReductions must be a boolean');
-  if (options.experimentalReductionFusion !== undefined && typeof options.experimentalReductionFusion !== 'boolean') throw new TypeError('experimentalReductionFusion must be a boolean');
+  validateOptions(options);
   const now = () => globalThis.performance.now();
   const start = now();
   try {
@@ -65,4 +70,101 @@ export async function instantiate(compiled, { memory } = {}) {
   const imports = compiled.stats.needsMemory ? { env: { memory } } : {};
   const { instance } = await WebAssembly.instantiate(compiled.bytes, imports);
   return instance;
+}
+
+
+// Source composition is static linking in one checked global namespace, not a
+// filesystem loader or a new module runtime. No implicit I/O or host authority.
+function sourceBundle(files) {
+  if (!Array.isArray(files) || files.length === 0 || files.length > 128)
+    throw new TypeError('Expected between 1 and 128 named source files');
+  const names = new Set(), manifest = [], fragments = [];
+  let offset = 0;
+  for (const file of files) {
+    if (!file || typeof file.name !== 'string' || !file.name || file.name.length > 4096 || /[\0\r\n]/.test(file.name))
+      throw new TypeError('Each source needs a nonempty, single-line name');
+    if (names.has(file.name)) throw new TypeError(`Duplicate source name '${file.name}'`);
+    if (typeof file.source !== 'string') throw new TypeError(`Source '${file.name}' must be a string`);
+    names.add(file.name);
+    manifest.push({ name: file.name, start: offset, end: offset + file.source.length });
+    fragments.push(file.source);
+    offset += file.source.length + 1;
+  }
+  if (offset - 1 > 1_000_000) throw new CompileError('Combined source limit is 1,000,000 characters', 0, 'E_LIMIT');
+  return { source: fragments.join('\n'), manifest };
+}
+function compileBundle(files, options, compiler) {
+  const { source, manifest } = sourceBundle(files);
+  try {
+    return { ...compiler(source, options), sourceFiles: manifest };
+  } catch (error) {
+    if (error instanceof CompileError) {
+      const file = manifest.find(f => error.offset >= f.start && error.offset <= f.end) ?? manifest.at(-1);
+      error.absoluteOffset = error.offset;
+      error.offset = Math.max(0, error.offset - file.start);
+      error.sourceName = file.name;
+    }
+    throw error;
+  }
+}
+
+/** Compile named source fragments together, retaining file-local diagnostics.
+ * Helpers and exported definitions share one global namespace. File order need
+ * not be dependency order. Duplicate definitions are errors, not overrides.
+ * @param {{name: string, source: string}[]} files
+ * @param {Parameters<typeof compile>[1]} options
+ */
+export function compileSources(files, options = {}) {
+  return compileBundle(files, options, compile);
+}
+
+/** An explicit, bounded LRU for repeated builds of exactly the same source.
+ * This is NOT per-definition incremental compilation. Every returned artifact
+ * is an independent snapshot; modifying bytes, ABI or proofs cannot poison the
+ * cache. retainedBytes accounts for source, binary and serialized metadata, not
+ * JavaScript object overhead. No global cache keeps user source alive.
+ */
+export function createCompiler({ maxEntries = 16, maxBytes = 8 * 1024 * 1024 } = {}) {
+  if (!Number.isSafeInteger(maxEntries) || maxEntries < 1 || maxEntries > 1024)
+    throw new TypeError('maxEntries must be an integer between 1 and 1024');
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 0)
+    throw new TypeError('maxBytes must be a nonnegative safe integer');
+  const entries = new Map();
+  let hits = 0, misses = 0, retainedBytes = 0;
+  function cachedCompile(source, options = {}) {
+    validateOptions(options);
+    if (typeof source !== 'string') throw new TypeError('Source must be a string');
+    const started = performance.now();
+    const normalized = {
+      maxExpansion: options.maxExpansion ?? 100_000,
+      memoizeReductions: options.memoizeReductions ?? true,
+      experimentalReductionFusion: options.experimentalReductionFusion ?? false,
+    };
+    const key = JSON.stringify(normalized) + '\n' + source;
+    if (entries.has(key)) {
+      const entry = entries.get(key);
+      entries.delete(key); entries.set(key, entry); hits++;
+      const result = structuredClone(entry.result);
+      return { ...result, cache: { hit: true, stored: true, elapsedMilliseconds: performance.now() - started } };
+    }
+    misses++;
+    const result = compile(source, normalized);
+    const { bytes, ...metadata } = result;
+    const size = key.length * 2 + bytes.byteLength + JSON.stringify(metadata).length * 2;
+    const stored = size <= maxBytes;
+    if (stored) {
+      while (entries.size >= maxEntries || retainedBytes + size > maxBytes) {
+        const oldest = entries.keys().next().value;
+        retainedBytes -= entries.get(oldest).size; entries.delete(oldest);
+      }
+      entries.set(key, { result: structuredClone(result), size }); retainedBytes += size;
+    }
+    return { ...result, cache: { hit: false, stored, elapsedMilliseconds: performance.now() - started } };
+  }
+  return Object.freeze({
+    compile: cachedCompile,
+    compileSources(files, options = {}) { return compileBundle(files, options, cachedCompile); },
+    clear() { const count = entries.size; entries.clear(); retainedBytes = 0; hits = 0; misses = 0; return count; },
+    get stats() { return Object.freeze({ hits, misses, entries: entries.size, retainedBytes }); },
+  });
 }

@@ -1,3 +1,8 @@
+> **Composable stopping kernels:** explicit `fold_until`, staged reducer libraries,
+> multi-source builds, qualified pipes, bounded compiler sessions, and faster
+> binary emission/Float64 transfers. Start with [the guide](docs/COMPOSABILITY.md)
+> and [current validation](docs/COMPOSABILITY-VALIDATION.md).
+
 > **Integration update:** reduction cohorts from PR #1 are reconciled with causal
 > machines. Enable `experimentalReductionFusion: true`, the CLI flag
 > `--experimental-reduction-fusion`, or the playground checkbox. Default compilation
@@ -24,6 +29,8 @@ npm test
 npm run test:causal
 npm run test:browser
 npm run example:host
+npm run example:reducers
+npm run test:composability
 npm run bench -- --output /tmp/asslang-node.json
 npm run bench:browser -- --output /tmp/asslang-chrome.json
 npm run demo
@@ -163,11 +170,14 @@ example and [threat model](docs/EFFECTS.md) specify this boundary.
 
 ## Corpus, compilation and limits
 
-There are **35 accepted exports across 33 source files and 3 rejected files**.
+There are **48 accepted exports across 45 source files and 3 rejected files**.
 Every example/export is registered in one corpus used for correctness and runtime
 benchmarks. New examples include segmented scans, running z-scores, rolling means,
 a streaming unsigned-integer lexer, machine products and Newton iteration.
-Pathological repeated prefixes and separate-consumer replay remain visible.
+The new examples add early search, causal threshold detection, hysteresis, run-length
+flushes, first peaks, compensated summation, running RMS, and exhaustive/terminal
+reducer products. Helpers in `lib/reducers.ass` are explicitly linked source, not
+builtins. Pathological repeated prefixes and separate-consumer replay remain visible.
 
 Ordinary pure expressions form a demand graph. Causal transitions introduce an
 explicit strict scheduling boundary when traversed; empty/dead streams do not
@@ -177,7 +187,8 @@ compiled generic ABI. There is no unrestricted multi-sink fusion, SIMD,
 array-valued state, arrays of records, variants, general recursion, escaping
 closures, async effects, or general ownership inference yet.
 
-The current results are **168 Node tests and 596 Chromium checks**. Benchmarks
+The current results are **215 Node tests and 639 Chromium checks**. See the
+[new validation and before/after measurements](docs/COMPOSABILITY-VALIDATION.md). Benchmarks
 separate compiler work, Wasm instantiation, raw reused-buffer kernels, independent
 JS algorithms, copying adapter calls and prepared calls. Compilation excludes V8
 machine-code generation; p95 is over batch averages, not individual-call latency.

@@ -1,0 +1,8 @@
+// node src/cli.mjs examples/concepts/reducer_toolkit.ass --lib lib/reducers.ass --run summarize --args '[[1,-2,3]]'
+// Product state performs both reductions in one loop without opt-in fusion.
+export fn summarize(xs: [Num]) = {
+  let energy = reducer_map_input(sum_reducer(), x => x * x);
+  let positive = reducer_filter(count_reducer(), x => x > 0);
+  let result = reduce_with(xs, reducer_product(energy, positive));
+  { energy: result.left, positive: result.right }
+};

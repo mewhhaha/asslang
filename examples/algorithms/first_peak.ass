@@ -1,0 +1,8 @@
+// A transducer recognizes turning points; the sink stops at the first one.
+export fn first_peak(xs: [Num]) = xs
+  |> transduce({ seen: false, rising: false, previous: 0 }, (s, x) => {
+    state: { seen: true, rising: s.seen && x > s.previous, previous: x },
+    emit: s.seen && s.rising && x <= s.previous,
+    value: s.previous,
+  })
+  |> fold_until(0, (s, peak) => { state: peak, done: true });

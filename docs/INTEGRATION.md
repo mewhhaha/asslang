@@ -1,3 +1,6 @@
+> Subsequent stopping-kernel and source-composition changes are documented in
+> [COMPOSABILITY.md](COMPOSABILITY.md), with [current validation](COMPOSABILITY-VALIDATION.md).
+
 # PR #2 integration: causal streams and reduction cohorts
 
 ## Reconciled histories

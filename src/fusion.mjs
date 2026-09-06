@@ -9,7 +9,7 @@ export function planReductionFusion(root, steps, cached) {
     if (!node || cached.has(node.id) || visited.has(node.id)) return;
     visited.add(node.id);
     if (reductions.has(node.op)) { candidates.push(node); return; }
-    if (['if', '&&', '||', 'guard', 'host_call', 'iterate_group'].includes(node.op)) return;
+    if (['if', '&&', '||', 'guard', 'host_call', 'iterate_group', 'reduce_until'].includes(node.op)) return;
     for (const arg of node.args) visit(arg);
   }
   for (const node of Array.isArray(root) ? root : [root]) visit(node);
@@ -18,7 +18,7 @@ export function planReductionFusion(root, steps, cached) {
   function blocked(node) {
     if (!node) return false;
     if (inspected.has(node.id)) return inspected.get(node.id);
-    const result = reductions.has(node.op) || node.op === 'iterate_group' ||
+    const result = reductions.has(node.op) || node.op === 'iterate_group' || node.op === 'reduce_until' ||
       node.op === 'host_call' || node.args.some(blocked);
     inspected.set(node.id, result);
     return result;
