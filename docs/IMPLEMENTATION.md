@@ -2,7 +2,7 @@
 
 This document maps the current kernel prototype to its implementation. It is not
 a promise of general-purpose language features. See [SYNTAX.md](SYNTAX.md) for the
-canonical surface and its planned/implemented lowering, and the feature documents
+canonical surface and its lowering, and the feature documents
 linked from [the index](README.md) for detailed rules and historical evidence.
 
 ## One checked pipeline
@@ -13,7 +13,8 @@ namespace and remaps errors to file-local offsets; it is not an implicit loader.
 Compiler sessions cache complete, independent artifact snapshots, not mutable
 per-definition inference state.
 
-`src/frontend.mjs` tokenizes with source offsets, parses expressions, and infers
+`src/unary.mjs` parses the canonical surface and lowers it to the shared AST.
+`src/frontend.mjs` tokenizes with source offsets, retains the legacy grammar, and infers
 Hindley–Milner-style types with record rows. Generalization excludes variables
 free in the local environment. The occurs check rejects infinite types. Recursive
 definition dependencies are rejected rather than silently unrolled. Export

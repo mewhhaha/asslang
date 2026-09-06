@@ -81,10 +81,11 @@ Pipes retain the existing stream-first convention: `xs |> map f |> sum` lowers t
 any written arguments. Qualified members and grouped functions are ordinary
 callees. This is syntax sugar, not a distinct runtime operation.
 
-## Parsing and lowering plan
+## Parsing and lowering
 
 Tokenize `->` as one token and retain offsets and token boundaries. Build a
-balanced-delimiter index once, with a nesting budget. A possible arrow binder is
+balanced-delimiter index once, with a nesting budget, lazily when the first
+canonical declaration is encountered. Legacy-only files do not pay for this index. A possible arrow binder is
 then recognized by an identifier followed by `->`, or a matched parenthesized /
 record pattern followed by `->`. No speculative parse or repeated scan through a
 large binder is needed. Precedence climbing consumes each application iteratively.
@@ -117,7 +118,7 @@ Translate `fn f(x,y)=...` to `fn f = x -> y -> ...`, `(x,y)=>...` to
 `x -> y -> ...`, and a block `{let x=...; result}` to `do {let x=...; result}`.
 Preserve intentionally tuple-taking functions as `(x,y) -> ...`.
 
-## Validation plan
+## Validation
 
 Cover left/right associativity, grouped functions, argument gaps, precedence,
 scalar/tuple/record/unit binders, nested patterns, singleton puns, annotations,
@@ -125,4 +126,4 @@ polymorphic partials, higher-order builtins, linked legacy libraries, effects,
 JTE invariants, and malformed/oversized inputs. Execute representative programs
 with default and optional fusion lowering. Retain the existing full Node and
 browser suites; add parser microbenchmarks without wall-clock pass thresholds.
-Implementation results and any limitations belong in a separate validation report.
+See [the executed checks and limitations](SYNTAX-VALIDATION.md).

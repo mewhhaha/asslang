@@ -13,6 +13,8 @@ Design changes begin here, before code. The repository-wide workflow is in
   linked sources, compiler sessions, and optional reduction fusion.
 - [ASABI 1](ABI.md), [effects](EFFECTS.md), and [leases](LEASES.md): representation,
   host authority, and input lifetime.
+- [Syntax validation](SYNTAX-VALIDATION.md): executed unary-language checks and
+  parser measurements, including limitations.
 - [Validation](VALIDATION.md), [composability validation](COMPOSABILITY-VALIDATION.md),
   and [provenance](PROVENANCE.md): dated evidence and its limitations.
 

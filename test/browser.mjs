@@ -1,3 +1,4 @@
+import { unaryCases } from './unary-cases.mjs';
 import { createRuntime, createCapability } from '../src/abi.mjs';
 import { corpus, exampleSource } from '../examples/corpus.mjs';
 import { compile, compileSources, createCompiler, instantiate } from '../src/compiler.mjs';
@@ -162,6 +163,16 @@ try {
   copyRuntime.call('main',[Float64Array.of(9)]);
   assert(Object.is(special[0],-0)&&special.length===4,'Bulk results own storage after arena reuse');
   report.cases.push({name:'composable-stopping-kernels',cases:17});
+  for (const entry of unaryCases) for (const experimentalReductionFusion of [false,true]) {
+    const compiled=compile(entry.source,{experimentalReductionFusion});
+    const runtime=await createRuntime(compiled);
+    assert(close(runtime.call('main',entry.args),entry.expected),'Unary '+entry.name);
+  }
+  const unaryHost=await createRuntime(compile('host fn add: Num -> Num -> Num; export fn main = (x:Num) -> effect {let y=perform add x 2; y+y};'));
+  let unaryHostCalls=0;
+  const unaryCapability=createCapability({add:{parameters:['Num','Num'],result:'Num',call:(a,b)=>(unaryHostCalls++,a+b)}},{maxCalls:1});
+  assert(unaryHost.call('main',[3],{capability:unaryCapability})===10&&unaryHostCalls===1,'Unary host calls retain capability sequencing');
+  report.cases.push({name:'unary-syntax',cases:unaryCases.length*2+1});
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {

@@ -1,0 +1,122 @@
+{
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "arch": "x64",
+    "cpu": "AMD EPYC 9V74 80-Core Processor"
+  },
+  "method": {
+    "warmup": 20,
+    "samples": 15,
+    "batch": 12,
+    "scope": "tokenization + parse + syntax lowering; not inference, emission, or execution",
+    "caveat": "Sequential local batch measurements; p95 is of batch averages. Canonical and legacy source sizes differ. No universal speedup claim."
+  },
+  "measurements": [
+    {
+      "name": "legacy-400-helpers",
+      "sourceCharacters": 9489,
+      "tokens": 4800,
+      "syntaxNodes": 1600,
+      "sha256": "a2eb43f75a251debec2fab2d64fa3e9f1c5366a88db4a77456dd46b1f3b925d4",
+      "current": {
+        "p50": 0.7962499166666674,
+        "p95": 1.0361149166666668,
+        "unit": "ms/parse",
+        "samples": 15,
+        "batch": 12
+      },
+      "baseline": {
+        "p50": 0.7864187500000005,
+        "p95": 0.959071999999999,
+        "unit": "ms/parse",
+        "samples": 15,
+        "batch": 12
+      }
+    },
+    {
+      "name": "unary-400-helpers",
+      "sourceCharacters": 12289,
+      "tokens": 4400,
+      "syntaxNodes": 2400,
+      "sha256": "19e8dc76cf571764883032212d5e0d7ccb5f7f61f7e06618f4ccbf3c1b6d4377",
+      "current": {
+        "p50": 1.5257045000000033,
+        "p95": 1.7520871666666646,
+        "unit": "ms/parse",
+        "samples": 15,
+        "batch": 12
+      }
+    },
+    {
+      "name": "unary-tuple-pattern-64",
+      "sourceCharacters": 264,
+      "tokens": 135,
+      "syntaxNodes": 132,
+      "sha256": "412844cee414bcc1a39bdeb095dda8f57a4378ca01ca36b9553e9da15d33ffba",
+      "current": {
+        "p50": 0.07499900000000063,
+        "p95": 0.12929925000000253,
+        "unit": "ms/parse",
+        "samples": 15,
+        "batch": 12
+      }
+    },
+    {
+      "name": "unary-tuple-pattern-256",
+      "sourceCharacters": 1188,
+      "tokens": 519,
+      "syntaxNodes": 516,
+      "sha256": "5b618f1af9279321f06a5eb7e492abeac9302ca503166b876a9931e3d9fcddfb",
+      "current": {
+        "p50": 0.20601425000000026,
+        "p95": 0.2709409166666698,
+        "unit": "ms/parse",
+        "samples": 15,
+        "batch": 12
+      }
+    },
+    {
+      "name": "unary-tuple-pattern-1000",
+      "sourceCharacters": 4908,
+      "tokens": 2007,
+      "syntaxNodes": 2004,
+      "sha256": "7df304f57fa83e42620b5c0b7b0b2480893f428453017960fec9f68981b25356",
+      "current": {
+        "p50": 0.808052333333336,
+        "p95": 0.8374374166666693,
+        "unit": "ms/parse",
+        "samples": 15,
+        "batch": 12
+      }
+    },
+    {
+      "name": "unary-1000-record-puns",
+      "sourceCharacters": 8909,
+      "tokens": 2007,
+      "syntaxNodes": 1003,
+      "sha256": "7b01e14f771a56b703f729dcf8d4497508bf06f854864d810a45a5d428b588dc",
+      "current": {
+        "p50": 0.411231333333338,
+        "p95": 0.5411039999999995,
+        "unit": "ms/parse",
+        "samples": 15,
+        "batch": 12
+      }
+    },
+    {
+      "name": "unary-200-groupings",
+      "sourceCharacters": 420,
+      "tokens": 407,
+      "syntaxNodes": 3,
+      "sha256": "f6598946a0ffd0a1183b3d8184c004fe4e9aef256df1e9e58fd5044f70b54a06",
+      "current": {
+        "p50": 0.09627883333333405,
+        "p95": 0.23787283333333184,
+        "unit": "ms/parse",
+        "samples": 15,
+        "batch": 12
+      }
+    }
+  ]
+}
