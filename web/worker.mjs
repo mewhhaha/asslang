@@ -1,4 +1,4 @@
-import { compile, CompileError } from '../src/compiler.mjs';
+import { compile, check, CompileError, formatDiagnostic } from '../src/compiler.mjs';
 import { createRuntime, createCapability } from '../src/abi.mjs';
 // JSON cannot represent typed arrays; the playground converts Bytes explicitly.
 function fromJSON(schema,value) {
@@ -11,6 +11,15 @@ function fromJSON(schema,value) {
 }
 self.onmessage = async ({data}) => {
   try {
+    if (!data || typeof data !== 'object') throw new Error('Worker request must be an object');
+    if (data.mode !== undefined && !['check', 'run'].includes(data.mode)) throw new Error('Unknown worker mode');
+    if (data.mode === 'check') {
+      // Return before arguments, runtimes, or capabilities are touched.
+      const report = check(data.source, { experimentalReductionFusion: data.experimentalReductionFusion ?? false });
+      self.postMessage({ mode: 'check', ...report,
+        ...(report.ok ? {} : { error: report.diagnostics.map(formatDiagnostic).join('\n\n') }) });
+      return;
+    }
     const {source}=data,name=data.name??'main',args=data.args??[data.n];
     const compiled=compile(source,{experimentalReductionFusion:data.experimentalReductionFusion??false}),entry=compiled.abi.exports.find(e=>e.name===name);
     if(!entry)throw new Error(`No export named '${name}'`);
@@ -27,6 +36,9 @@ self.onmessage = async ({data}) => {
     self.postMessage({value,events,abi:compiled.abi,stats:compiled.stats,signatures:compiled.signatures,observations:compiled.observations,certificate:compiled.certificate,
       memoryBytes:runtime.memoryBytes,instantiateMilliseconds:ready-before,runMilliseconds:end-ready});
   } catch(error) {
-    self.postMessage({error:error instanceof CompileError?error.format(data.source):`${error.code??error.name}: ${error.message}`});
+    if (error instanceof CompileError) {
+      const diagnostic = error.toDiagnostic(data?.source);
+      self.postMessage({ error: formatDiagnostic(diagnostic), diagnostics: [diagnostic] });
+    } else self.postMessage({ error: `${error.code ?? error.name}: ${error.message}` });
   }
 };

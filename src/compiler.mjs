@@ -2,6 +2,7 @@ import { CompileError, parse, infer } from './frontend.mjs';
 import { stage } from './jte.mjs';
 import { emitModule } from './wasm.mjs';
 export { CompileError } from './frontend.mjs';
+export { formatDiagnostic } from './diagnostics.mjs';
 export { verifyCertificate } from './jte.mjs';
 
 function validateOptions(options) {
@@ -22,11 +23,16 @@ export function compile(source, options = {}) {
   validateOptions(options);
   const now = () => globalThis.performance.now();
   const start = now();
+  let phase = 'parse';
   try {
     const program = parse(source); const parsed = now();
+    phase = 'infer';
     const inferred = infer(program); const checked = now();
+    phase = 'stage';
     const staged = stage(program, inferred, options); const normalized = now();
+    phase = 'emit';
     const module = emitModule(staged, options); const emitted = now();
+    phase = 'validate';
     if (!WebAssembly.validate(module.bytes)) throw new Error('Compiler bug: generated invalid WebAssembly');
     const validated = now();
     return {
@@ -51,8 +57,9 @@ export function compile(source, options = {}) {
     };
   } catch (error) {
     if (error instanceof RangeError) {
-      throw new CompileError('Compiler resource limit exceeded (nesting, expansion, or binary size)', 0, 'E_LIMIT');
+      error = new CompileError('Compiler resource limit exceeded (nesting, expansion, or binary size)', 0, 'E_LIMIT');
     }
+    if (error instanceof CompileError) error.phase ??= phase;
     throw error;
   }
 }
@@ -90,7 +97,11 @@ function sourceBundle(files) {
     fragments.push(file.source);
     offset += file.source.length + 1;
   }
-  if (offset - 1 > 1_000_000) throw new CompileError('Combined source limit is 1,000,000 characters', 0, 'E_LIMIT');
+  if (offset - 1 > 1_000_000) {
+    const error = new CompileError('Combined source limit is 1,000,000 characters', 0, 'E_LIMIT');
+    error.phase = 'source';
+    throw error;
+  }
   return { source: fragments.join('\n'), manifest };
 }
 function compileBundle(files, options, compiler) {
@@ -116,6 +127,28 @@ function compileBundle(files, options, compiler) {
  */
 export function compileSources(files, options = {}) {
   return compileBundle(files, options, compile);
+}
+
+// Expected language failures are data; invalid API usage and compiler bugs still
+// throw. Success proves the same full pipeline as compile, but executes nothing.
+function checked(build, sourceForError) {
+  try {
+    const { signatures, exports } = build();
+    return { schemaVersion: 1, ok: true, diagnostics: [], signatures, exports };
+  } catch (error) {
+    if (!(error instanceof CompileError)) throw error;
+    return { schemaVersion: 1, ok: false, diagnostics: [error.toDiagnostic(sourceForError(error))] };
+  }
+}
+
+/** Check through Wasm validation without instantiating or running an export. */
+export function check(source, options = {}) {
+  return checked(() => compile(source, options), () => source);
+}
+
+/** Named-source checking; bundle-level failures do not invent a source location. */
+export function checkSources(files, options = {}) {
+  return checked(() => compileSources(files, options), error => files.find(file => file.name === error.sourceName)?.source);
 }
 
 /** An explicit, bounded LRU for repeated builds of exactly the same source.
@@ -163,6 +196,10 @@ export function createCompiler({ maxEntries = 16, maxBytes = 8 * 1024 * 1024 } =
   }
   return Object.freeze({
     compile: cachedCompile,
+    check(source, options = {}) { return checked(() => cachedCompile(source, options), () => source); },
+    checkSources(files, options = {}) {
+      return checked(() => compileBundle(files, options, cachedCompile), error => files.find(file => file.name === error.sourceName)?.source);
+    },
     compileSources(files, options = {}) { return compileBundle(files, options, cachedCompile); },
     clear() { const count = entries.size; entries.clear(); retainedBytes = 0; hits = 0; misses = 0; return count; },
     get stats() { return Object.freeze({ hits, misses, entries: entries.size, retainedBytes }); },

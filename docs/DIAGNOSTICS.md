@@ -2,14 +2,14 @@
 
 ## Problem and contract
 
-The compiler currently throws an error with a stable code and a source offset.
-Its compact formatter and playground worker reduce that information to a string.
-Callers must parse human text to locate a problem, and checking an effectful export
-in the playground currently attempts execution. The next developer-facing layer
+Before this change, the compiler exposed an error code and a source offset, but
+the compact formatter and playground worker reduced them to a string. Callers
+had to parse human text to locate a problem, and checking an effectful export
+in the playground attempted execution. The next developer-facing layer
 must preserve compiler facts without changing which programs compile or which
 capabilities authorize execution.
 
-The implementation planned here adds `CompileError.toDiagnostic(source)`,
+The implementation adds `CompileError.toDiagnostic(source)`,
 `formatDiagnostic(diagnostic)`, `check(source, options)` and
 `checkSources(files, options)`. Compiler sessions expose the same check methods.
 Existing `compile`, `compileSources`, exception codes, compact `error.format`,
@@ -84,6 +84,48 @@ caller inputs are not mutated by presentation. Check compilation may allocate
 normally and is not a time sandbox; worker termination is still the playground's
 execution deadline. Check mode creates no runtime and accepts no capabilities.
 
+## Usage and report fields
+
+```js
+import { checkSources, formatDiagnostic } from './src/compiler.mjs';
+
+const report = checkSources([
+  { name: 'helpers.ass', source: 'fn twice = x -> x * 2;' },
+  { name: 'app.ass', source: 'export fn main = (x: Num) -> twice x;' },
+]);
+if (report.ok) console.log(report.signatures);
+else for (const diagnostic of report.diagnostics)
+  console.error(formatDiagnostic(diagnostic));
+```
+
+```sh
+node src/cli.mjs examples/concepts/reducer_toolkit.ass \
+  --lib lib/reducers.ass --check --diagnostics=json
+npm run test:diagnostics
+```
+
+Reports have `schemaVersion: 1`. A success contains `ok: true`, an empty
+`diagnostics` array, `signatures` (the inferred signature map) and `exports`
+(the compiler's export descriptions). Failure contains `ok: false` and one
+entry in `diagnostics`, without success-only fields. The compiler's existing
+`RangeError`-to-`E_LIMIT` normalization is retained; other unexpected errors throw.
+
+A diagnostic's `range.start` and `range.end` each contain `offset`, `line` and
+`column`; they are independent point objects. `absoluteOffset`, when present,
+addresses the linked bundle. `frame` contains `line`, bounded `text`, a UTF-16
+`markerOffset` into that text, and `truncatedStart` / `truncatedEnd` flags.
+`messageTruncated` distinguishes bounded messages from complete ones. `phase`
+is `source`, `parse`, `infer`, `stage`, `emit`, `validate`, or null when unknown.
+CLI failures outside the compiler use `driver`, with codes such as `E_OPTIONS`
+and the filesystem's `ENOENT`; they are not attributed to an arbitrary source.
+
+`CompileError.toDiagnostic(source)` can also be used with existing throwing APIs.
+Omitting source leaves location unavailable. `formatDiagnostic` accepts a report's
+diagnostic or a JSON round-trip of one. Source frames cover a single line, not a
+whole expression. Columns count raw UTF-16 including tabs; rendered tabs expand
+at four-column stops. A point between CR and LF remains before the completed
+line break. There are no inferred hints, semantic spans, or automatic edits.
+
 ## Validation plan
 
 Run the baseline and full Node suite, both host/reducer examples, and Chromium
@@ -95,3 +137,5 @@ the real worker handler and source navigation with changed-editor protection.
 Run HTTP browser checks when permitted and distinguish them from in-memory engine
 checks. Record actual results and any limitations in a new validation report;
 do not rewrite historical benchmark evidence.
+
+See [executed validation and limitations](DIAGNOSTICS-VALIDATION.md).

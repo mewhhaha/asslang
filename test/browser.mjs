@@ -1,11 +1,38 @@
+import { diagnosticCases } from './diagnostic-cases.mjs';
+import { selectDiagnostic } from '../web/diagnostic-navigation.mjs';
 import { unaryCases } from './unary-cases.mjs';
 import { createRuntime, createCapability } from '../src/abi.mjs';
 import { corpus, exampleSource } from '../examples/corpus.mjs';
-import { compile, compileSources, createCompiler, instantiate } from '../src/compiler.mjs';
+import { compile, compileSources, check, checkSources, formatDiagnostic, createCompiler, instantiate } from '../src/compiler.mjs';
 import { reference } from './reference.mjs';
 const report = { browser: navigator.userAgent, checks: 0, cases: [] };
 const assert = (condition,message) => { if (!condition) throw new Error(message); report.checks++; };
 try {
+  for (const experimentalReductionFusion of [false, true]) {
+    for (const entry of diagnosticCases) {
+      const checked = check(entry.source, { ...entry.options, experimentalReductionFusion });
+      assert(!checked.ok && checked.diagnostics.length === 1, 'Check failure: ' + entry.name);
+      const diagnostic = checked.diagnostics[0];
+      assert(diagnostic.code === entry.code && diagnostic.phase === entry.phase, 'Diagnostic phase/code: ' + entry.name);
+      assert(diagnostic.range.start.offset === diagnostic.range.end.offset, 'Point range: ' + entry.name);
+      assert(formatDiagnostic(diagnostic).includes('^'), 'Source frame: ' + entry.name);
+    }
+    const effect = check('host fn tick: Num -> Num; export fn main = (x: Num) -> effect { perform tick x; x };', { experimentalReductionFusion });
+    assert(effect.ok && effect.exports[0].name === 'main', 'Effect checking requires no capability');
+  }
+  const diagnosticSource = '// 🦊\nexport fn main = (x: Num) -> missing x;';
+  const checkedFiles = checkSources([{ name: 'helper.ass', source: 'fn id = x -> x;' }, { name: 'app.ass', source: diagnosticSource }]);
+  const diagnostic = checkedFiles.diagnostics[0];
+  assert(diagnostic.sourceName === 'app.ass' && diagnostic.range.start.line === 2, 'File-local diagnostic');
+  assert(diagnostic.range.start.offset === diagnosticSource.indexOf('missing'), 'UTF-16 source offset');
+  const textarea = document.createElement('textarea'); textarea.value = diagnosticSource;
+  document.body.append(textarea);
+  assert(selectDiagnostic(textarea, diagnosticSource, diagnostic), 'Navigate actual textarea');
+  assert(textarea.selectionStart === diagnosticSource.indexOf('missing') && textarea.selectionEnd === textarea.selectionStart, 'Textarea UTF-16 caret');
+  textarea.value += ' ';
+  assert(!selectDiagnostic(textarea, diagnosticSource, diagnostic), 'Refuse stale editor offsets');
+  textarea.remove();
+  report.cases.push({ name: 'structured-diagnostics', failureCases: diagnosticCases.length * 2, navigation: 'real textarea' });
   const source = `export fn main(n) = {
     let xs=range(n) |> filter(x=>x>2);
     zip(map(xs,x=>x*2),map(xs,x=>x+1),(x,y)=>x*y) |> sum
@@ -48,6 +75,22 @@ try {
   });
   worker.terminate();
   assert(workerResult.value===45,'Worker compilation and execution');
+  const checkWorker = new Worker('../web/worker.mjs', {type:'module'});
+  try {
+    const checked = await new Promise((resolve,reject) => {
+      checkWorker.onmessage = event => resolve(event.data);
+      checkWorker.onerror = event => reject(new Error(event.message));
+      checkWorker.postMessage({mode:'check', source:'host fn tick: Num -> Num; export fn main = (x: Num) -> effect { perform tick x; x };', args:'invalid JSON arguments', allowDemoEffects:true});
+    });
+    assert(checked.mode==='check' && checked.ok, 'HTTP worker non-executing effect check');
+    assert(checked.events===undefined && checked.memoryBytes===undefined, 'HTTP check has no runtime or effects');
+    const failed = await new Promise((resolve,reject) => {
+      checkWorker.onmessage = event => resolve(event.data);
+      checkWorker.onerror = event => reject(new Error(event.message));
+      checkWorker.postMessage({mode:'check', source:diagnosticSource});
+    });
+    assert(!failed.ok && failed.diagnostics[0].range.start.offset===diagnosticSource.indexOf('missing'), 'HTTP worker structured error');
+  } finally { checkWorker.terminate(); }
   } else {
     report.notTested=['HTTP module loading','playground worker loading'];
   }

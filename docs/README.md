@@ -6,7 +6,8 @@ Design changes begin here, before code. The repository-wide workflow is in
 - [Implementation theory](IMPLEMENTATION.md): phases, representations, invariants,
   and the boundary between static abstractions and runtime kernels.
 - [Structured diagnostics](DIAGNOSTICS.md): source-local error data, full-pipeline
-  non-executing checks, JSON CLI output, and playground navigation.
+  non-executing checks, JSON CLI output, and playground navigation. See the
+  [executed diagnostics validation](DIAGNOSTICS-VALIDATION.md).
 - [Canonical syntax](SYNTAX.md): unary arrows, whitespace calls, products, explicit
   blocks, deterministic parsing, and migration from the legacy surface.
 - [Causal streams](CAUSAL.md), [JTE](JTE.md), and [concepts](CONCEPTS.md): event
