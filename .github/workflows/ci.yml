@@ -1,0 +1,40 @@
+name: Kernel correctness
+
+on:
+  push:
+    branches: [main, feat/composable-kernels-performance]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: correctness-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test language, ABI, effects, causal streams and fusion
+        run: npm test | tee node-tests.tap
+      - name: Snapshot the tested source
+        if: always()
+        run: git archive --format=tar -o validation-source.tar HEAD
+      - name: Retain reproducible validation bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: asslang-validation-${{ github.sha }}
+          path: |
+            node-tests.tap
+            validation-source.tar
+          retention-days: 7
