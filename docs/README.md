@@ -3,6 +3,8 @@
 Design changes begin here, before code. The repository-wide workflow is in
 [AGENTS.md](../AGENTS.md).
 
+- [Finite callable choices](STAGED-CALLABLES.md): demand-preserving branch
+  specialization of higher-order policies without guest closures.
 - [Expanded examples and ordered SIMD](EXAMPLES-SIMD.md): corpus categories,
   extensibility, default reduction cohorts, SIMD eligibility, and app case studies.
 - [Implementation theory](IMPLEMENTATION.md): phases, representations, invariants,

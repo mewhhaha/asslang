@@ -4,6 +4,7 @@ export { unsupportedCorpus } from './unsupported-corpus.mjs';
 // Baselines are ordinary hand-written JS algorithms, not translations of the IR.
 export const corpus = [
   ...expandedCorpus,
+  {id:'finite-strategies',path:'concepts/finite_strategies.ass',name:'strategy_totals',args:[false,[2,3,4]],expected:[2,6,24]},
   {id:'first-index',path:'algorithms/find_first.ass',name:'first_index',args:[[1,4,2,4],4],expected:{index:1,found:true,visited:2},baseline:'firstIndex',size:8192},
   {id:'any-negative',path:'algorithms/any_all.ass',name:'has_negative',args:[[2,3,-1,9]],expected:true,baseline:'hasNegative',size:8192},
   {id:'all-finite',path:'algorithms/any_all.ass',name:'all_finite',args:[[1,2,3]],expected:true,baseline:'allFinite',size:8192},
