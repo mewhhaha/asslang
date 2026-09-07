@@ -1,0 +1,11 @@
+// Data selects code, but the finite strategies disappear before Wasm emission.
+fn accumulator = additive -> do {
+  let policies=if additive
+    then {initial:0,step:s -> x -> s+x}
+    else {initial:1,step:s -> x -> s*x};
+  policies
+};
+export fn strategy_totals = (additive:Bool) -> (xs:[Num]) -> do {
+  let policy=accumulator additive;
+  scan xs policy.initial policy.step
+};

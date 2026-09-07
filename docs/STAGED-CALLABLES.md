@@ -76,4 +76,18 @@ below before submission.
 
 ## Executed validation
 
-Pending implementation and execution; the plan above is not a passing result.
+Executed 2026-09-07 with Node v22.16.0 and the installed Chromium engine:
+
+- `npm test`: 468 tests passed, zero failures (baseline 445).
+- `npm run example:host`, `npm run example:reducers`, and
+  `npm run example:case-studies`: all exited successfully.
+- `npm run test:browser -- --output <report>`: PASS, including the eight added
+  shared callable cases and the registered strategy example. HTTP module loading
+  and playground worker loading were not exercised by this engine-only run.
+- The new deterministic demand test performs 128 inputs in each of eight
+  SIMD/fusion/memoization configurations. The 1,024 results or expected traps
+  matched independent JavaScript; no throughput benchmark was run.
+
+The implementation adds only staging values and delegates all runtime selection
+to the existing lowering. State-stream choice, host authority, and ASABI escape
+rejections remain intentional limits, not silently unsupported runtime paths.

@@ -1,5 +1,14 @@
 // Shared Node/Chromium cases; expected values are independent of compiler IR.
 export const unaryCases = [
+  {name:'finite callable choice true',source:'export fn main = (b:Bool) -> (x:Num) -> (if b then abs else sqrt) x;',args:[true,-9],expected:9},
+  {name:'finite callable choice false',source:'export fn main = (b:Bool) -> (x:Num) -> (if b then abs else sqrt) x;',args:[false,9],expected:3},
+  {name:'chosen partially applied builtins',source:'export fn main = (b:Bool) -> (x:Num) -> (if b then min 4 else max 8) x;',args:[false,6],expected:8},
+  {name:'chosen curried lexical captures',source:'fn f = b -> k -> if b then (x -> y -> k+x*y) else (x -> y -> k-x-y); export fn main = () -> f true 10 2 3;',args:[{}],expected:16},
+  {name:'chosen strategy dictionaries',source:'export fn main = (b:Bool) -> (x:Num) -> do {let p=if b then {f:y -> y+2} else {f:y -> y*3}; p.f x};',args:[false,5],expected:15},
+  {name:'guarded function result',source:'export fn main = (b:Bool) -> (x:Num) -> (require b (y -> y+1)) x;',args:[true,4],expected:5},
+  {name:'chosen transition policy',source:'export fn main = (b:Bool) -> (xs:[Num]) -> scan xs 1 (if b then (s -> x -> s+x) else (s -> x -> s*x));',args:[false,[2,3,4]],expected:[2,6,24]},
+  {name:'empty chosen policy does not demand its body',source:'export fn main = (b:Bool) -> (xs:[Num]) -> map xs (if b then (x -> require false x) else abs);',args:[true,[]],expected:[]},
+
   { name: 'stream-valued export with filtering', source:
     'export fn main = (xs:[Num]) -> xs |> filter (x -> x>0) |> map (x -> x*2);', args: [[1,-2,3]], expected: [2,6] },
   { name: 'tuple state in a curried reduction', source:

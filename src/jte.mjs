@@ -115,7 +115,9 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     if (value.kind==='record') return {kind:'record',fields:new Map(fields(value).map(([k,v])=>[k,shape(v,transform)]))};
     return transform(value);
   }
+  const callable = value => ['closure','builtin','callable_choice','guarded_callable'].includes(value.kind);
   function choose(condition,yes,no,at) {
+    if (callable(yes) && callable(no)) return {kind:'callable_choice',condition,yes,no};
     if(yes.kind==='blob' && no.kind==='blob')return {kind:'blob',type:yes.type,
       pointer:scalar('if','I32',[condition,yes.pointer,no.pointer]),extent:scalar('if','I32',[condition,yes.extent,no.extent])};
     if(yes.kind==='stream' && no.kind==='stream' && (yes.machines.length || no.machines.length))
@@ -129,6 +131,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     return scalar('if',requireScalar(yes,at).type,[condition,yes,requireScalar(no,at)]);
   }
   function guardValue(condition,value,at) {
+    if (callable(value)) return {kind:'guarded_callable',condition,value};
     if(value.kind==='stream') return {...value,guards:union(value.guards,[condition])};
     if(value.kind==='record') return shape(value,v=>guardValue(condition,v,at));
     if(value.kind==='blob') return {...value,pointer:scalar('guard','I32',[condition,value.pointer]),extent:scalar('guard','I32',[condition,value.extent])};
@@ -180,6 +183,12 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
   }
   function invoke(callee, args, at) {
     if (++work > maxExpansion) fail('Staging expansion limit exceeded; recursive/expansive abstraction is not supported', at, 'E_LIMIT');
+    if (callee.kind === 'callable_choice') {
+      return choose(callee.condition,invoke(callee.yes,args,at),invoke(callee.no,args,at),at);
+    }
+    if (callee.kind === 'guarded_callable') {
+      return guardValue(callee.condition,invoke(callee.value,args,at),at);
+    }
     if (callee.kind === 'closure') {
       // Legacy f() and canonical f () both apply the unit value.
       if (callee.params.length && !args.length) args = [{ kind: 'record', fields: new Map() }];

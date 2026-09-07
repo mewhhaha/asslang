@@ -48,7 +48,7 @@ child.once('exit',code=>abort(new Error(`Chrome exited (${code})\n${stderr}`)));
 function call(method,params={},sessionId) {
   return new Promise((resolve,reject)=>{
     const id=++nextId;
-    const timer=setTimeout(()=>{pending.delete(id);reject(new Error(`Chrome timed out: ${method}\n${stderr}`));},benchmark?60000:10000);
+    const timer=setTimeout(()=>{pending.delete(id);reject(new Error(`Chrome timed out: ${method}\n${stderr}`));},benchmark || method==='Target.createTarget' || method==='Target.attachToTarget' || method==='Runtime.evaluate' ? 60000 : 10000);
     pending.set(id,{resolve,reject,timer});
     child.stdio[3].write(JSON.stringify({id,method,params,...(sessionId?{sessionId}:{})})+'\0');
   });
