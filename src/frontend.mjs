@@ -1,3 +1,4 @@
+import { intrinsicArities, inferIntrinsic } from './intrinsics.mjs';
 import { createUnaryParser } from './unary.mjs';
 import { diagnosticFromError } from './diagnostics.mjs';
 // The front end is deliberately independent of WebAssembly and the JTE ledger.
@@ -265,7 +266,7 @@ export function showType(type, curried = false) {
   return show(type);
 }
 
-export const builtinArities = Object.freeze({ range: 1, map: 2, filter: 2, scan: 3,
+export const builtinArities = Object.freeze({ ...intrinsicArities, range: 1, map: 2, filter: 2, scan: 3,
   transduce: 3, iterate: 3, zip: 3, zip_checked: 3, sum: 1, count: 1, fold: 3,
   fold_until: 3, sqrt: 1, abs: 1, min: 2, max: 2, floor: 1, at: 2,
   byte_length: 1, utf8: 1, byte_values: 1, require: 2 });
@@ -370,7 +371,7 @@ export function infer(program) {
       case 'byte_values': return fn([{tag:'Bytes'}],stream(Num));
       case 'require': return fn([Bool,a],a);
       case 'min': case 'max': return fn([Num, Num], Num);
-      default: return null;
+      default: return inferIntrinsic(name,{a,b,c,Num,Bool,fn,stream});
     }
   };
   function annotationType(t) {

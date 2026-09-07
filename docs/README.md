@@ -3,6 +3,8 @@
 Design changes begin here, before code. The repository-wide workflow is in
 [AGENTS.md](../AGENTS.md).
 
+- [Differential staging](DIFFERENTIAL-STAGING.md): perturbation-scoped forward
+  differentiation, demand preservation, and atomic performed-result boundaries.
 - [Finite callable choices](STAGED-CALLABLES.md): demand-preserving branch
   specialization of higher-order policies without guest closures.
 - [Expanded examples and ordered SIMD](EXAMPLES-SIMD.md): corpus categories,
