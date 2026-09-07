@@ -67,3 +67,16 @@ preconditions, stop-gradient, invalid shapes, source coordinates and resource
 bounds. Seeded polynomial checks in all optimization modes; selected finite
 finite-difference comparisons away from discontinuities. Full Node tests, all
 example drivers, and Chromium engine tests. Record executed outcomes separately.
+
+## Performed-result boundary refinement (theory before implementation)
+
+A performed scalar value is an already-issued effect result, not a pure expression
+that substitution may clone. Treat `host_call` nodes as atomic in substitution;
+their original ordered effect binding must be reused exactly once. Differentiation
+may regard such an independent captured result as a constant, but never creates,
+differentiates, or replays a host invocation. Reject an active host invocation if
+one is ever presented to the transform. A one-call capability regression must
+exercise both differentiated input values and captured performed results,
+including stop-gradient, in every optimization configuration. The audit that
+motivated this refinement observed `E_EFFECT_TOKEN` from a cloned node; the broker
+correctly prevented the replay, but the compiler must not generate it.
