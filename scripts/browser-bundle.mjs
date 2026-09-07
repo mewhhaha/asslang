@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { corpus, unsupportedCorpus } from '../examples/corpus.mjs';
 // A fixed test-only bundler, not a general JS module transformer. It permits
 // engine-level validation even in environments whose policy blocks local HTTP.
@@ -11,8 +11,10 @@ export async function browserBundle({ benchmark = false } = {}) {
     ['navigation','web/diagnostic-navigation.mjs','','selectDiagnostic'],
     ['diagnosticCases','test/diagnostic-cases.mjs','','diagnosticCases'],
     ['unary','src/unary.mjs','','createUnaryParser'],
-    ['frontend','src/frontend.mjs','const {createUnaryParser}=modules.unary;const {diagnosticFromError}=modules.diagnostics;','CompileError,fail,tokenize,parse,prune,showType,builtinNames,builtinArities,infer'],
-    ['jte','src/jte.mjs','const {fail,prune,showType,builtinArities}=modules.frontend;const {flatTypes,isScalarSchema}=modules.abiSchema;','verifyCertificate,schemaOfType,stage'],
+    ['differential','src/differential.mjs','','forwardLinearize,stopGradient'],
+    ['intrinsics','src/intrinsics.mjs','const {forwardLinearize,stopGradient}=modules.differential;','intrinsicArities,inferIntrinsic,stageIntrinsic'],
+    ['frontend','src/frontend.mjs','const {intrinsicArities,inferIntrinsic}=modules.intrinsics;const {createUnaryParser}=modules.unary;const {diagnosticFromError}=modules.diagnostics;','CompileError,fail,tokenize,parse,prune,showType,builtinNames,builtinArities,infer'],
+    ['jte','src/jte.mjs','const {intrinsicArities,stageIntrinsic}=modules.intrinsics;const {fail,prune,showType,builtinArities}=modules.frontend;const {flatTypes,isScalarSchema}=modules.abiSchema;','verifyCertificate,schemaOfType,stage'],
     ['fusion','src/fusion.mjs','','planReductionFusion'],
     ['simd','src/simd.mjs','','SIMD_OPS,planSIMD,supportsSIMD'],
     ['expandedCorpus','examples/expanded-corpus.mjs','','expandedCorpus'],
@@ -34,7 +36,11 @@ export async function browserBundle({ benchmark = false } = {}) {
   } else {
     code+='const {unaryCases}=modules.unaryCases;const {compile,compileSources,check,checkSources,formatDiagnostic,createCompiler,instantiate,supportsSIMD}=modules.compiler;const {diagnosticCases}=modules.diagnosticCases;const {selectDiagnostic}=modules.navigation;const {createRuntime,createCapability}=modules.abi;const {reference}=modules.reference;const {corpus,unsupportedCorpus,exampleSource}=modules.corpus;\n';
     code+='document.body.innerHTML="<pre id=report></pre>";document.body.dataset.result="pending";globalThis.asslangEngineOnly=true;\n';
-    code+=await read('test/browser.mjs');code+='\nreturn report;';
+    code+=await read('test/browser.mjs');
+    const experiments=(await readdir(new URL('../test/experiments/',import.meta.url))).filter(n=>n.endsWith('.mjs')).sort();
+    code+='\n'+await read('test/experiment-runner.mjs')+'\nconst experimentalCases=[];\n';
+    for(const name of experiments)code+=`experimentalCases.push(...(()=>{${await read('test/experiments/'+name)};return cases;})());\n`;
+    code+='report.experiments=await runExperimentCases(experimentalCases,compile,createRuntime);return report;';
   }
   return `(async()=>{${code}})()`;
 }

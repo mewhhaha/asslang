@@ -1,3 +1,4 @@
+import { intrinsicArities, stageIntrinsic } from './intrinsics.mjs';
 import { flatTypes, isScalarSchema } from './abi-schema.mjs';
 import { fail, prune, showType, builtinArities } from './frontend.mjs';
 
@@ -146,8 +147,11 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
         outputs:m.outputs.map(visit),emission:visit(m.emission),gate:m.gate&&visit(m.gate)}))});
     function visit(n) {
       if(replacements.has(n.id)) return replacements.get(n.id);
+      if(n.data?.differentialSeed!==undefined && replacements.has(n.data.differentialSeed))
+        return replacements.get(n.data.differentialSeed);
       if(cache.has(n.id)) return cache.get(n.id);
-      if(['wire','index','acc','cell','const'].includes(n.op)) return n;
+      // An issued effect result is an atomic binding, never a replayable graph.
+      if(['wire','index','acc','cell','const','host_call'].includes(n.op)) return n;
       const r=scalar(n.op,n.type,n.args.map(visit),n.data,['reduce','reduce_group','reduce_until','iterate_group'].includes(n.op)); cache.set(n.id,r);
       if(n.op==='reduce') Object.assign(r,{stream:visitPlan(n.stream),initial:visit(n.initial),acc:n.acc,body:visit(n.body)});
       if(n.op==='reduce_group' || n.op==='reduce_until') {
@@ -205,6 +209,11 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     args = [...(callee.args ?? []), ...args];
     if (args.length < arity) return { ...callee, args };
     if (args.length > arity) return invoke(invoke({ kind: 'builtin', name }, args.slice(0, arity), at), args.slice(arity), at);
+    if (Object.hasOwn(intrinsicArities,name)) return stageIntrinsic(name,args,{
+      scalar,num,int,boolean,shape,leaves,fields,choose,guardValue,substitute,
+      invoke,iteration,source,record,scopedPlan,requireScalar,requireStream,steps,fail,maxExpansion,
+      machineId:()=>nextMachine++,
+    },at);
     if (name === 'range') {
       const index = scalar('index', 'I32', [], null, true);
       const extent = scalar('extent', 'I32', [requireScalar(args[0], at)]);

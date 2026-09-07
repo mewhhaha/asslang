@@ -64,11 +64,35 @@ not add runtime source imports or filesystem access to compiled kernels.
 Analytic polynomial/rational derivatives, record seeds, lexical aliases, nested
 second/third derivatives, pathwise conventions, inactive traps, tangent-only
 preconditions, stop-gradient, invalid shapes, source coordinates and resource
-bounds. Seeded polynomial checks in all optimization modes; selected finite
-finite-difference comparisons away from discontinuities. Full Node tests, all
+bounds. Seeded polynomial checks in all optimization modes; selected finite-difference comparisons away from discontinuities. Full Node tests, all
 example drivers, and Chromium engine tests. Record executed outcomes separately.
 
-## Performed-result boundary refinement (theory before implementation)
+
+## Executed validation and representation refinement
+
+Executed 2026-09-07 with Node v22.16.0 and Chromium 144.0.7559.96:
+The initial `npm test` run passed all 495 tests. Host, reducer and case-study drivers all passed.
+The Chromium engine report passed its existing 1,096 checks and 20 additional
+experimental checks (10 cases in two modes). HTTP modules and playground worker
+loading were not tested. Analytic and finite-difference checks covered 800
+seeded polynomial inputs across eight SIMD/fusion/memoization configurations.
+Separate assertions check signed zero of the actual generated expression; an
+algebraically factored real derivative need not have the same zero sign.
+
+A nested-capture test initially found an incorrect second derivative: generic
+substitution cloned an enclosing seed node, losing identity. Seeds now carry a
+stable `differentialSeed` tag. Derivative lookup and seed erasure recognize this
+tag after cloning. The regression, nested third derivatives, capture aliases,
+stop-gradient, and tangent-only demand cases pass. These temporary tags use the
+existing identity-guard representation and do not add a guest ABI field.
+
+At the original handoff, publication was separate from validation: the GitHub
+connector refused the theory-tree write twice with an indeterminate safety-status
+error. That handoff was locally validated but had no differential PR or merge.
+The subsequent publication retry is recorded below; historical local results must
+not be read as GitHub CI evidence.
+
+### Performed-result boundary refinement (theory before repair)
 
 A performed scalar value is an already-issued effect result, not a pure expression
 that substitution may clone. Treat `host_call` nodes as atomic in substitution;
@@ -80,3 +104,40 @@ exercise both differentiated input values and captured performed results,
 including stop-gradient, in every optimization configuration. The audit that
 motivated this refinement observed `E_EFFECT_TOKEN` from a cloned node; the broker
 correctly prevented the replay, but the compiler must not generate it.
+
+
+### Executed performed-result regression
+
+After the atomic-result repair, the complete suite was rerun on 2026-09-07:
+`npm test` passed **496 tests**, zero failures and zero skips. All three example
+drivers passed again, and the Chromium engine suite passed its existing 1,096
+checks plus 20 experimental checks. The new regression makes 24 invocations
+(three programs in eight optimization configurations), each with a one-call
+capability. Each returns the analytic derivative, calls the host exactly once,
+and exhausts exactly one capability allowance. The source and validation logs
+are retained in the original unpublished patch handoff. These are local results,
+not GitHub validation for this differential extension.
+
+
+## Publication retry and fresh validation
+
+On 2026-09-07, the unchanged initial theory document was accepted through the
+same GitHub `create_tree` connector action, producing tree
+`c5667b77ef0539343e82199574b00e2847849360`. The retry made no permission, workflow,
+or sandbox changes. The earlier safety-status failure did not expose a detailed
+reason in its message; successful publication does not establish its root cause.
+
+The handoff checksums and original final tree
+`847120c4258c4ed1519336bc1495904637518ba2` were verified. Reversing and replaying
+all four patches reproduced the exact base and final trees. For publication,
+the initial design and the atomic-effect boundary refinement precede the combined
+implementation. The implementation, tests, and tooling are unchanged from that
+verified final tree; only this document updates the publication history.
+
+Fresh checks with Node v22.16.0 and Chromium 144.0.7559.96 on 2026-09-07:
+`npm test` passed all 496 tests, zero failures or skips. `npm run example:host`,
+`npm run example:reducers`, and `npm run example:case-studies` all passed.
+`npm run test:browser -- --output <report>` passed 1,096 existing checks plus
+20 experimental checks. HTTP module loading and playground worker loading were
+not exercised. These fresh results are local; the PR's GitHub Actions checks
+are separate evidence and must be inspected independently.
