@@ -6,6 +6,7 @@ export async function browserBundle({ benchmark = false } = {}) {
   const read=async path=>(await readFile(new URL('../'+path,import.meta.url),'utf8'))
     .replace(/^import .*?;\n/gm,'').replace(/^export \{.*?;\n/gm,'').replace(/^export /gm,'');
   const specs=[
+    ['recordKeys','src/record-keys.mjs','','symbolKey,isSymbolKey,displayRecordKey'],
     ['abiSchema','src/abi-schema.mjs','','ABI_VERSION,alignTo,layout,flatTypes,isScalarSchema'],
     ['diagnostics','src/diagnostics.mjs','','diagnosticFromError,formatDiagnostic'],
     ['navigation','web/diagnostic-navigation.mjs','','selectDiagnostic'],
@@ -14,8 +15,8 @@ export async function browserBundle({ benchmark = false } = {}) {
     ['differential','src/differential.mjs','','numericLeaves,prepareDifferential,forwardLinearize,reusableLinearize,valueAndGradient,stopGradient'],
     ['reverse','src/reverse.mjs','const {numericLeaves,prepareDifferential}=modules.differential;','reverseVJP,reusablePullback'],
     ['intrinsics','src/intrinsics.mjs','const {reverseVJP,reusablePullback}=modules.reverse;const {forwardLinearize,reusableLinearize,valueAndGradient,stopGradient}=modules.differential;','intrinsicArities,inferIntrinsic,stageIntrinsic'],
-    ['frontend','src/frontend.mjs','const {intrinsicArities,inferIntrinsic}=modules.intrinsics;const {createUnaryParser}=modules.unary;const {diagnosticFromError}=modules.diagnostics;','CompileError,fail,tokenize,parse,prune,showType,builtinNames,builtinArities,infer'],
-    ['jte','src/jte.mjs','const {intrinsicArities,stageIntrinsic}=modules.intrinsics;const {fail,prune,showType,builtinArities}=modules.frontend;const {flatTypes,isScalarSchema}=modules.abiSchema;','verifyCertificate,schemaOfType,stage'],
+    ['frontend','src/frontend.mjs','const {symbolKey,displayRecordKey}=modules.recordKeys;const {intrinsicArities,inferIntrinsic}=modules.intrinsics;const {createUnaryParser}=modules.unary;const {diagnosticFromError}=modules.diagnostics;','CompileError,fail,tokenize,parse,prune,showType,builtinNames,builtinArities,infer'],
+    ['jte','src/jte.mjs','const {isSymbolKey,displayRecordKey}=modules.recordKeys;const {intrinsicArities,stageIntrinsic}=modules.intrinsics;const {fail,prune,showType,builtinArities}=modules.frontend;const {flatTypes,isScalarSchema}=modules.abiSchema;','verifyCertificate,schemaOfType,stage'],
     ['fusion','src/fusion.mjs','','planReductionFusion'],
     ['simd','src/simd.mjs','','SIMD_OPS,planSIMD,supportsSIMD'],
     ['expandedCorpus','examples/expanded-corpus.mjs','','expandedCorpus'],

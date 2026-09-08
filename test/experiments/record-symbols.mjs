@@ -1,0 +1,23 @@
+// Independent analytic expectations shared by Node and Chromium.
+export const cases=[
+  {name:'symbol key differs from ordinary field',source:'symbol k; export fn main = () -> do {let r={k:2,[k]:3}; {plain:r.k,symbol:r[k]}};',args:[{}],expected:{plain:2,symbol:3}},
+  {name:'symbol protocol dictionary',source:'symbol data; symbol apply; fn invoke = r -> r[apply] r[data]; export fn main = (x:Num) -> invoke {[data]:x,[apply]:y -> y*y+1};',args:[3],expected:10},
+  {name:'symbol forward declaration',source:'export fn main = () -> {[k]:7}[k]; symbol k;',args:[{}],expected:7},
+  {name:'symbol record pattern',source:'symbol pair; fn add = {[pair]:(x,y)} -> x+y; export fn main = () -> add {[pair]:(2,3),extra:false};',args:[{}],expected:5},
+  {name:'symbol record annotation',source:'symbol k; fn get = (r:{[k]:Num}) -> r[k]; export fn main = () -> get {[k]:7};',args:[{}],expected:7},
+  {name:'symbol method pipe',source:'symbol call; export fn main = () -> do {let r={[call]:x -> y -> x+y}; 3 |> r[call] 4};',args:[{}],expected:7},
+  {name:'symbol selected callable',source:'symbol call; export fn main = (flag:Bool) -> do {let r=if flag then {[call]:x -> x*x} else {[call]:x -> 3*x}; r[call] 4};',args:[false],expected:12},
+  {name:'symbol polymorphic helper',source:'symbol value; fn get = r -> r[value]; export fn main = () -> {a:get {[value]:3},b:get {[value]:true}};',args:[{}],expected:{a:3,b:true}},
+  {name:'symbol unused guarded field',source:'symbol hidden; export fn main = () -> {[hidden]:require false 1,visible:7}.visible;',args:[{}],expected:7},
+  {name:'symbol guarded method demand',source:'symbol call; export fn main = () -> (require false {[call]:x -> x})[call] 1;',args:[{}],trap:true},
+  {name:'symbol scalar causal state',source:'symbol total; export fn main = (xs:[Num]) -> map (scan xs {[total]:0} (s -> x -> {[total]:s[total]+x})) (r -> r[total]);',args:[[1,2,3]],expected:[1,3,6]},
+  {name:'symbol explicit stream projection',source:'symbol data; export fn main = (xs:[Num]) -> {[data]:xs}[data];',args:[[1,2,3]],expected:[1,2,3]},
+  {name:'symbol gradient projection',source:'symbol x; export fn main = (x:Num) -> (grad (p -> p[x]*p[x]) {[x]:x})[x];',args:[3],expected:6},
+  {name:'symbol saved reverse method',source:'symbol reverse; export fn main = (x:Num) -> { [reverse]:(pullback (y -> y*y) x).pullback }[reverse] 2;',args:[3],expected:12},
+  {name:'symbol key declaration required',source:'export fn main = () -> {[missing]:3};',code:'E_SYMBOL'},
+  {name:'symbol keys cannot be computed',source:'symbol k; export fn main = () -> {[k+1]:3};',code:'E_SYMBOL'},
+  {name:'symbol key not satisfied by ordinary field',source:'symbol k; fn get = r -> r[k]; export fn main = () -> get {k:3};',code:'E_TYPE'},
+  {name:'symbol keys cannot escape nested ABI records',source:'symbol k; export fn main = () -> {nested:{[k]:3}};',code:'E_ABI'},
+  {name:'symbol wrappers do not make scans seekable',source:'symbol data; export fn main = (xs:[Num]) -> at {[data]:scan xs 0 (s -> x -> s+x)}[data] 1;',code:'E_CAUSAL_ACCESS'},
+  {name:'symbol wrappers do not align independent streams',source:'symbol data; export fn main = (a:[Num]) -> (b:[Num]) -> zip {[data]:a}[data] {[data]:b}[data] (x -> y -> x+y);',code:'E_DOMAIN'},
+];

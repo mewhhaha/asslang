@@ -1,3 +1,8 @@
+> **Static record protocols:** declare `symbol key;`, construct `{ [key]: value }`,
+> and select `record[key]`. Keys are checked at compile time, protocols are ordinary
+> functions, and symbol records must be explicitly projected before crossing ASABI.
+> See the [abstraction and memory contract](docs/RECORD-SYMBOLS.md).
+
 > **Reusable reverse pullbacks:** `pullback f point` returns `{value, pullback}`.
 > Reuse one staged objective and checked reverse plan across output-weight sets,
 > without guest closures or tapes. See the
@@ -259,9 +264,10 @@ ordered additive reductions. There is still no unrestricted multi-sink fusion,
 array-valued state, arrays of records, variants, general recursion, escaping
 closures, async effects, or general ownership inference yet.
 
-Current local validation is **736 Node tests and 1,292 Chromium checks**. See
-[pullback validation](docs/PULLBACK-VALIDATION.md) for these checks and the
+Current local validation is **783 Node tests and 1,332 Chromium checks**. See
+[record-symbol validation](docs/RECORD-SYMBOLS-VALIDATION.md) for these checks and the
 unexercised HTTP/worker-loading paths,
+[pullback validation](docs/PULLBACK-VALIDATION.md) for the preceding baseline,
 [reverse-mode validation](docs/VJP-VALIDATION.md) for the preceding baseline,
 [linearization validation](docs/LINEARIZE-VALIDATION.md) for the preceding baseline,
 [gradient validation](docs/GRADIENTS-VALIDATION.md) for the preceding AD baseline,

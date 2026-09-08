@@ -1,6 +1,6 @@
 // Canonical surface grammar. It lowers to the existing checked core AST.
 // See docs/SYNTAX.md before changing parsing or product representation.
-export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, node, fail }) {
+export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, node, fail, readSymbolKey }) {
   const reserved = new Set(['fn', 'export', 'host', 'let', 'if', 'then', 'else',
     'true', 'false', 'do', 'effect', 'perform']);
   const isName = text => /^[A-Za-z_]\w*$/.test(text) && !reserved.has(text);
@@ -57,7 +57,7 @@ export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, n
     if (eat('{')) {
       const fields = new Map();
       if (!at('}')) do {
-        const name = identifier(); need(':');
+        const name = at('[') ? readSymbolKey() : identifier(); need(':');
         if (fields.has(name.text)) fail('Duplicate record field', name, 'E_NAME');
         fields.set(name.text, annotation());
       } while (eat(',') && !at('}'));
@@ -99,10 +99,11 @@ export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, n
       if (eat('{')) {
         const fields = new Map(), leaves = [];
         if (!at('}')) do {
-          const field = identifier();
+          const field = at('[') ? readSymbolKey() : identifier();
           if (fields.has(field.text)) fail('Duplicate record field', field, 'E_NAME');
           let value;
-          if (eat(':')) value = pattern(names, [...path, field.text]);
+          if (field.symbol) { need(':'); value = pattern(names, [...path, field.text]); }
+          else if (eat(':')) value = pattern(names, [...path, field.text]);
           else {
             if (names.has(field.text)) fail('Duplicate pattern binding', field, 'E_NAME');
             names.add(field.text);
@@ -162,10 +163,10 @@ export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, n
     if (eat('{')) {
       const fields = [], names = new Set();
       if (!at('}')) do {
-        const name = identifier();
+        const name = at('[') ? readSymbolKey() : identifier();
         if (names.has(name.text)) fail('Duplicate record field', name, 'E_NAME');
         names.add(name.text);
-        fields.push({ name: name.text, value: eat(':') ? expression() : nameNode(name) });
+        fields.push({ name: name.text, value: name.symbol ? (need(':'), expression()) : eat(':') ? expression() : nameNode(name) });
       } while (eat(',') && !at('}'));
       need('}'); return node('record', token.pos, { fields });
     }
@@ -190,6 +191,7 @@ export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, n
       let left = prefix(minimum);
       while (true) {
         if (eat('.')) { const field = identifier(); left = node('field', field.pos, { value: left, name: field.text }); continue; }
+        if (at('[')) { const field = readSymbolKey(); left = node('field', field.pos, { value: left, name: field.text }); continue; }
         if (minimum <= 9 && startsAtom() && separated()) {
           left = call(left, expression(10)); continue;
         }
