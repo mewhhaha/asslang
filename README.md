@@ -1,3 +1,8 @@
+> **Reusable reverse pullbacks:** `pullback f point` returns `{value, pullback}`.
+> Reuse one staged objective and checked reverse plan across output-weight sets,
+> without guest closures or tapes. See the
+> [contract and runnable example](docs/PULLBACK.md).
+
 > **Reverse-mode sensitivities:** `vjp f point weights` returns `{value, cotangent}`
 > using one branch-gated reverse sweep, without input-coordinate enumeration or
 > guest tapes. Existing forward-mode APIs are unchanged. See the
@@ -254,9 +259,10 @@ ordered additive reductions. There is still no unrestricted multi-sink fusion,
 array-valued state, arrays of records, variants, general recursion, escaping
 closures, async effects, or general ownership inference yet.
 
-Current local validation is **673 Node tests and 1,244 Chromium checks**. See
-[reverse-mode validation](docs/VJP-VALIDATION.md) for these checks and the
+Current local validation is **736 Node tests and 1,292 Chromium checks**. See
+[pullback validation](docs/PULLBACK-VALIDATION.md) for these checks and the
 unexercised HTTP/worker-loading paths,
+[reverse-mode validation](docs/VJP-VALIDATION.md) for the preceding baseline,
 [linearization validation](docs/LINEARIZE-VALIDATION.md) for the preceding baseline,
 [gradient validation](docs/GRADIENTS-VALIDATION.md) for the preceding AD baseline,
 [examples and SIMD validation](docs/EXAMPLES-SIMD-VALIDATION.md) for the corpus baseline,
