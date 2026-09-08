@@ -1,3 +1,8 @@
+> **Product gradients:** `grad f point` and `value_and_grad f point` extend
+> `jvp` to scalar objectives over finite numeric records and tuples. Coordinate
+> derivatives are staged without runtime dual objects; inputs are bounded to 64
+> numeric leaves. See [semantics and a runnable example](docs/GRADIENTS.md).
+
 > **Corpus and backend update:** 91 runnable exports, 18 explicit unsupported
 > feature fixtures, six [app-like case studies](examples/case-studies/README.md),
 > and opt-in [ordered f64x2 SIMD](examples/simd/README.md). Demand-scoped reduction
@@ -217,7 +222,7 @@ example and [threat model](docs/EFFECTS.md) specify this boundary.
 
 ## Corpus, compilation and limits
 
-There are **91 runnable exports, 18 unsupported-feature fixtures and 3 intentionally
+There are **92 runnable exports, 18 unsupported-feature fixtures and 3 intentionally
 rejected files**. The expansion adds 43 runnable exports, including six app-like
 case studies; unsupported fixtures assert their current diagnostics rather than
 being silently skipped. See [the corpus guide](examples/README.md).
@@ -239,9 +244,10 @@ ordered additive reductions. There is still no unrestricted multi-sink fusion,
 array-valued state, arrays of records, variants, general recursion, escaping
 closures, async effects, or general ownership inference yet.
 
-The current results are **445 Node tests and 1,076 Chromium checks**. See
-[examples and SIMD validation](docs/EXAMPLES-SIMD-VALIDATION.md) for the latest checks
-and the blocked HTTP-loading check,
+Current local validation is **546 Node tests and 1,156 Chromium checks**. See
+[gradient validation](docs/GRADIENTS-VALIDATION.md) for these checks and the
+unexercised HTTP/worker-loading paths,
+[examples and SIMD validation](docs/EXAMPLES-SIMD-VALIDATION.md) for the corpus baseline,
 [diagnostics validation](docs/DIAGNOSTICS-VALIDATION.md) for the diagnostics baseline,
 [syntax validation](docs/SYNTAX-VALIDATION.md) for the new language tests and
 [composability validation](docs/COMPOSABILITY-VALIDATION.md) for the prior baseline. Benchmarks

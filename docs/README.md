@@ -3,6 +3,9 @@
 Design changes begin here, before code. The repository-wide workflow is in
 [AGENTS.md](../AGENTS.md).
 
+- [Finite product gradients](GRADIENTS.md): scalar objectives, product-shaped
+  forward gradients, nested derivatives, and bounded basis expansion. See the
+  [executed gradient validation](GRADIENTS-VALIDATION.md).
 - [Differential staging](DIFFERENTIAL-STAGING.md): perturbation-scoped forward
   differentiation, demand preservation, and atomic performed-result boundaries.
 - [Finite callable choices](STAGED-CALLABLES.md): demand-preserving branch

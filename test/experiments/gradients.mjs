@@ -1,0 +1,23 @@
+// Shared engine cases; analytic constants are independent of the compiler.
+export const cases=[
+  {name:'grad scalar polynomial',source:'export fn main = (x:Num) -> grad (y -> y*y*y+2*y) x;',args:[3],expected:29},
+  {name:'value and product gradient',source:'export fn main = () -> value_and_grad (p -> p.x*p.x+3*p.x*p.y) {x:2,y:4};',args:[{}],expected:{value:28,gradient:{x:16,y:6}}},
+  {name:'grad tuple shape',source:'export fn main = (p:(Num,Num)) -> grad ((x,y) -> x*x+y*y) p;',args:[{_0:3,_1:4}],expected:{_0:6,_1:8}},
+  {name:'grad aliased input coordinates',source:'export fn main = (x:Num) -> grad (p -> p.a*p.b) {a:x,b:x};',args:[3],expected:{a:3,b:3}},
+  {name:'grad capture isolation',source:'export fn main = (x:Num) -> grad (y -> x*y) x;',args:[3],expected:3},
+  {name:'grad nested capture identity',source:'export fn main = (x:Num) -> grad (y -> grad (z -> y*z) y) x;',args:[3],expected:1},
+  {name:'grad third derivative',source:'export fn main = (x:Num) -> grad (grad (grad (y -> y*y*y*y))) x;',args:[3],expected:72},
+  {name:'grad Hessian vector product',source:'export fn main = () -> jvp (grad (p -> p.x*p.x*p.x+p.x*p.y)) {x:2,y:3} {x:4,y:5};',args:[{}],expected:{value:{x:15,y:2},tangent:{x:53,y:4}}},
+  {name:'grad partial selected objective',source:'export fn main = (b:Bool) -> (x:Num) -> do {let g=grad (if b then (y -> y*y) else (y -> 3*y));g x};',args:[false,3],expected:3},
+  {name:'grad stop-gradient across levels',source:'export fn main = (x:Num) -> grad (grad (y -> y*stop_gradient y)) x;',args:[3],expected:0},
+  {name:'grad inactive branch',source:'export fn main = (x:Num) -> grad (y -> if y>0 then y*y else require false y) x;',args:[3],expected:6},
+  {name:'grad unused coordinate retains primal guard',source:'export fn main = () -> (grad (p -> require false p.x) {x:2,y:3}).y;',args:[{}],trap:true},
+  {name:'grad unused binding stays lazy',source:'export fn main = () -> do {let unused=grad (x -> require false x) 2; 7};',args:[{}],expected:7},
+  {name:'grad causal transition',source:'export fn main = (xs:[Num]) -> scan xs 0 (s -> x -> grad (y -> s*y+y*y) x);',args:[[1,2,3]],expected:[2,6,12]},
+  {name:'grad rejects nonnumeric input',source:'export fn main = () -> grad (x -> 1) true;',code:'E_DIFF_TYPE'},
+  {name:'grad rejects empty input',source:'export fn main = () -> grad (x -> 1) ();',code:'E_DIFF_TYPE'},
+  {name:'grad rejects product objective',source:'export fn main = () -> value_and_grad (x -> {x}) 1;',code:'E_TYPE'},
+  {name:'grad rejects dynamic reductions',source:'export fn main = (x:Num) -> grad (y -> sum (map (range 3) (i -> i*y))) x;',code:'E_DIFF_UNSUPPORTED'},
+  {name:'grad rejects active memory addresses',source:'export fn main = (xs:[Num]) -> (x:Num) -> grad (y -> at xs y) x;',code:'E_DIFF_CONTROL'},
+  {name:'grad enforces dimension bound',source:`export fn main = () -> grad (p -> p.f0) {${Array.from({length:65},(_,i)=>`f${i}:1`).join(',')}};`,code:'E_LIMIT'},
+];
