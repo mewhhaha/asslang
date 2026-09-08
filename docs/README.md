@@ -5,6 +5,7 @@ Design changes begin here, before code. The repository-wide workflow is in
 
 - [Reusable linearization](LINEARIZE.md): prepare a forward derivative once and
   reuse its statically staged pushforward across directions and numeric products.
+  See the [executed validation](LINEARIZE-VALIDATION.md).
 - [Finite product gradients](GRADIENTS.md): scalar objectives, product-shaped
   forward gradients, nested derivatives, and bounded basis expansion. See the
   [executed gradient validation](GRADIENTS-VALIDATION.md).

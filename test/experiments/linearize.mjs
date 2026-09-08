@@ -1,0 +1,23 @@
+// Analytic expectations shared by Node and the engine-only Chromium bundle.
+export const cases=[
+  {name:'linearize multiple scalar directions',source:'export fn main = (x:Num) -> do {let l=linearize (y -> y*y*y) x; {value:l.value,a:l.pushforward 1,b:l.pushforward 2}};',args:[3],expected:{value:27,a:27,b:54}},
+  {name:'linearize numeric product outputs',source:'export fn main = () -> do {let l=linearize (p -> {energy:p.x*p.x+3*p.x*p.y,balance:p.x-p.y}) {x:2,y:4}; {value:l.value,x:l.pushforward {x:1,y:0},y:l.pushforward {x:0,y:1}}};',args:[{}],expected:{value:{energy:28,balance:-2},x:{energy:16,balance:1},y:{energy:6,balance:-1}}},
+  {name:'linearize aliases and tuples',source:'export fn main = (x:Num) -> do {let l=linearize ((a,b) -> a*b) (x,x); {a:l.pushforward (1,0),b:l.pushforward (0,1)}};',args:[3],expected:{a:3,b:3}},
+  {name:'linearize returned callable composition',source:'fn slope = f -> x -> (linearize f x).pushforward; export fn main = (x:Num) -> do {let d=slope (y -> y*y) x; d (d 1)};',args:[3],expected:36},
+  {name:'linearize selected objective',source:'export fn main = (flag:Bool) -> (x:Num) -> do {let l=linearize (if flag then (y -> y*y) else (y -> 3*y)) x; l.pushforward 2};',args:[false,4],expected:6},
+  {name:'linearize selected complete records',source:'export fn main = (flag:Bool) -> (x:Num) -> do {let l=if flag then linearize (y -> y*y) x else linearize (y -> 3*y) x; {value:l.value,tangent:l.pushforward 2}};',args:[true,4],expected:{value:16,tangent:16}},
+  {name:'linearize nested capture identities',source:'export fn main = (x:Num) -> (linearize (y -> (linearize (z -> y*z) y).pushforward 1) x).pushforward 1;',args:[3],expected:1},
+  {name:'linearize direction sensitivity',source:'export fn main = (x:Num) -> do {let l=linearize (y -> y*y) x; grad l.pushforward x};',args:[3],expected:6},
+  {name:'linearize Hessian vector action',source:'export fn main = () -> do {let l=linearize (grad (p -> p.x*p.x*p.x+p.x*p.y)) {x:2,y:3}; {gradient:l.value,hv:l.pushforward {x:4,y:5}}};',args:[{}],expected:{gradient:{x:15,y:2},hv:{x:53,y:4}}},
+  {name:'linearize mapped directions',source:'export fn main = (xs:[Num]) -> do {let l=linearize (x -> x*x) 4; map xs l.pushforward};',args:[[1,2,3]],expected:[8,16,24]},
+  {name:'linearize causal capture',source:'export fn main = (xs:[Num]) -> scan xs 0 (s -> x -> do {let l=linearize (y -> s*y+y*y) x; l.pushforward 1});',args:[[1,2,3]],expected:[2,6,12]},
+  {name:'linearize derivative retains primal guard',source:'export fn main = () -> (linearize (x -> require false 7) 2).pushforward 0;',args:[{}],trap:true},
+  {name:'linearize guarded pushforward',source:'export fn main = () -> (require false (linearize (x -> x*x) 3).pushforward) 1;',args:[{}],trap:true},
+  {name:'linearize independent output demand',source:'export fn main = () -> ((linearize (x -> {safe:x*x,bad:require false x}) 3).pushforward 1).safe;',args:[{}],expected:6},
+  {name:'linearize inactive callable alternative',source:'export fn main = () -> do {let a=linearize (x -> x*x) 3; let b=linearize (x -> require false x) 3; (if true then a.pushforward else b.pushforward) 1};',args:[{}],expected:6},
+  {name:'linearize value-only reduction',source:'export fn main = () -> (linearize (x -> sum (map (range 3) (i -> i*x))) 4).value;',args:[{}],expected:12},
+  {name:'linearize rejects nonnumeric output',source:'export fn main = () -> (linearize (x -> true) 1).value;',code:'E_DIFF_TYPE'},
+  {name:'linearize rejects direction shape mismatch',source:'export fn main = () -> (linearize (x -> x.a) {a:1}).pushforward {b:1};',code:'E_TYPE'},
+  {name:'linearize prevents callable ABI escape',source:'export fn main = (x:Num) -> linearize (y -> y*y) x;',code:'E_ABI'},
+  {name:'linearize rejects applied reduction derivative',source:'export fn main = (x:Num) -> do {let l=linearize (y -> sum (range y)) x; l.pushforward 1};',code:'E_DIFF_UNSUPPORTED'},
+];

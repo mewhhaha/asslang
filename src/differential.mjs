@@ -20,7 +20,7 @@ function prepareLinearization(f, point, api, at) {
     replacements.set(root.id,value);roots.push(root);return root;
   });
   const value=invoke(f,[symbolic],at);numericLeaves(value,api,at);
-  function pushforward(seeds) {
+  function pushforward(seeds, callAt=at) {
     const tangents=new Map(roots.map((root,i)=>[root.id,seeds[i]]));
     const cache=new Map(), dependencies=new Map();
     const depends=n=>{
@@ -39,7 +39,7 @@ function prepareLinearization(f, point, api, at) {
       else switch(n.op) {
         case 'const':case 'wire':case 'index':case 'acc':case 'cell':result=num(0);break;
         case 'host_call':
-          if(depends(n))fail('Cannot differentiate a host invocation',at,'E_DIFF_EFFECT');
+          if(depends(n))fail('Cannot differentiate a host invocation',callAt,'E_DIFF_EFFECT');
           result=num(0);break;
         case '+':case '-':result=op(n.op,derivative(a),derivative(b));break;
         case '*':result=op('+',op('*',derivative(a),b),op('*',a,derivative(b)));break;
@@ -53,9 +53,9 @@ function prepareLinearization(f, point, api, at) {
         case 'if':result=select(a,derivative(b),derivative(n.args[2]));break;
         case 'guard':result=scalar('guard','Num',[a,derivative(b)]);break;
         case 'load':case 'bool_load':case 'byte_load':case 'to_num':
-          if(depends(n))fail('Cannot differentiate a memory address, index, or extent',at,'E_DIFF_CONTROL');
+          if(depends(n))fail('Cannot differentiate a memory address, index, or extent',callAt,'E_DIFF_CONTROL');
           result=num(0);break;
-        default:fail(`Differentiation does not yet support '${n.op}'`,at,'E_DIFF_UNSUPPORTED');
+        default:fail(`Differentiation does not yet support '${n.op}'`,callAt,'E_DIFF_UNSUPPORTED');
       }
       cache.set(n.id,result);return result;
     }
@@ -77,6 +77,22 @@ export function forwardLinearize(f, point, direction, api, at) {
   const linear=prepareLinearization(f,point,api,at);
   return {kind:'record',fields:new Map([
     ['value',linear.value],['tangent',linear.pushforward(seeds)],
+  ])};
+}
+
+export function reusableLinearize(f, point, api, at) {
+  const inputs=numericLeaves(point,api,at);
+  const linear=prepareLinearization(f,point,api,at);
+  // This callable exists only during staging. Applying it walks the saved graph;
+  // it never invokes the source objective again or exports a guest closure.
+  const pushforward={kind:'linearized_callable',apply(direction,callAt) {
+    const seeds=numericLeaves(direction,api,callAt);
+    if(inputs.length!==seeds.length)
+      api.fail('Differentiation seed shape mismatch',callAt,'E_DIFF_TYPE');
+    return linear.pushforward(seeds,callAt);
+  }};
+  return {kind:'record',fields:new Map([
+    ['value',linear.value],['pushforward',pushforward],
   ])};
 }
 

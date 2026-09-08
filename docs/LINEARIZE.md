@@ -47,7 +47,8 @@ direction is an output-shaped tangent, not a row of a new matrix ABI.
 Preparation invokes the source objective once during staging on fresh tagged
 symbolic roots. Each later pushforward call walks this saved objective graph
 with a new seed map and a per-call derivative cache. It does not invoke the
-objective again. Calling a helper that constructs a new linearization is a new
+objective again. Finite selected objectives still stage both alternatives during
+preparation, as ordinary callable selection does. Calling a helper that constructs a new linearization is a new
 preparation, not global caching. Pure runtime expressions remain subject to the
 existing emitter's demand and sharing rules; this is not a guarantee of exactly
 one runtime evaluation of all common subexpressions.

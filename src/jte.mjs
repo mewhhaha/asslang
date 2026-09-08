@@ -116,7 +116,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     if (value.kind==='record') return {kind:'record',fields:new Map(fields(value).map(([k,v])=>[k,shape(v,transform)]))};
     return transform(value);
   }
-  const callable = value => ['closure','builtin','callable_choice','guarded_callable'].includes(value.kind);
+  const callable = value => ['closure','builtin','callable_choice','guarded_callable','linearized_callable'].includes(value.kind);
   function choose(condition,yes,no,at) {
     if (callable(yes) && callable(no)) return {kind:'callable_choice',condition,yes,no};
     if(yes.kind==='blob' && no.kind==='blob')return {kind:'blob',type:yes.type,
@@ -192,6 +192,11 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     }
     if (callee.kind === 'guarded_callable') {
       return guardValue(callee.condition,invoke(callee.value,args,at),at);
+    }
+    if (callee.kind === 'linearized_callable') {
+      const direction=args[0]??{kind:'record',fields:new Map()};
+      const result=callee.apply(direction,at);
+      return args.length>1?invoke(result,args.slice(1),at):result;
     }
     if (callee.kind === 'closure') {
       // Legacy f() and canonical f () both apply the unit value.
