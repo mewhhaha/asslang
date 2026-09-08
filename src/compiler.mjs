@@ -6,6 +6,7 @@ export { CompileError } from './frontend.mjs';
 export { formatDiagnostic } from './diagnostics.mjs';
 export { verifyCertificate } from './jte.mjs';
 export { supportsSIMD } from './simd.mjs';
+export { planReconstruction, reconstructionSource } from './reconstruction.mjs';
 
 function validateOptions(options) {
   if (!options || typeof options !== 'object' || Array.isArray(options)) throw new TypeError('Compiler options must be an object');

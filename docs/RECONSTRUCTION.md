@@ -22,7 +22,7 @@ an inference-variable equivalence relation, or permission to equate independent
 streams. Users explicitly supply the observation graph; the compiler does not
 infer categorical laws from arbitrary code.
 
-## Proposed API and semantics
+## API and semantics
 
 Expose two build-time JavaScript helpers through `src/compiler.mjs`:
 
@@ -81,7 +81,10 @@ fn observations = maps -> {
 };
 ```
 
-The actual generator uses fixed local names with numbered vertex slots. All user
+The actual generator uses fixed local names with numbered vertex slots. The
+checker binds each coordinate, used map, and equality predicate once, both to
+require the full coordinate record statically and to avoid repeated row-projection
+chains in inference. Even a single-edge check is constrained to return `Bool`. All user
 identifiers occur only in validated declaration/field positions; none is spliced
 in as an expression. An explicit exported wrapper supplies concrete ABI types.
 The generated function has no special language status or implicit registration.
@@ -124,7 +127,10 @@ else, and cannot be distinguished by the observations. This also realizes a
 pair differing exactly on `S`. Any nonempty disagreement set is predecessor-closed
 and therefore contains a source SCC. Its minimum possible size is exactly
 `minimumDistance`. Actual numerical maps can admit fewer records, larger distance,
-or no records at all.
+or no records at all. Graph analysis deliberately ignores implementations and
+map-key aliasing: one dictionary field used for several arrows can impose extra
+equations. An incomplete structural cover may suffice for particular maps; the
+planner conservatively declines to exploit those additional facts.
 
 These are finite graph proofs of the relevant special case of the category-of-
 elements argument. This feature does not implement general cosieve classifiers,
@@ -155,7 +161,7 @@ storage and dispatch), and full path-law inference (not justified by the existin
 type system). Explicit source generation keeps the choice of arrows and equality
 visible and compiles through the same checked pipeline as handwritten code.
 
-## Planned validation
+## Validation
 
 Before implementation, the unchanged baseline passed `npm test`: 783 tests,
 zero failures, on Node v22.16.0, using upstream main `46296dd10de6fb80c79844dec02fc2a6298c0e88`.
@@ -169,5 +175,6 @@ byte with handwritten code across lowering options. Test source-local failures,
 ABI rejection, demand, host effects, stream provenance and causal restrictions.
 Exercise the new entry point in the browser test bundle as well as native modules.
 
-Run `npm test`, `npm run example:host`, `npm run example:reducers`, and
-`npm run test:browser`, with exact results and limitations recorded before review.
+Run the example with `npm run example:reconstruction`. See
+[executed checks and limitations](RECONSTRUCTION-VALIDATION.md) for the complete
+validation results. The original theory-first commit precedes implementation.
