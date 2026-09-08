@@ -3,6 +3,8 @@
 Design changes begin here, before code. The repository-wide workflow is in
 [AGENTS.md](../AGENTS.md).
 
+- [Reconstruction bases](RECONSTRUCTION.md): finite observation graphs, exact
+  source-component covers, and staged restoration with explicit coherence checks.
 - [Static record symbols](RECORD-SYMBOLS.md): explicit typed protocol keys,
   staged dictionaries, and call-frame/ABI memory boundaries. See the
   [executed validation](RECORD-SYMBOLS-VALIDATION.md).
