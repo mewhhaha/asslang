@@ -1,3 +1,8 @@
+> **Reusable linearization:** `linearize f point` returns `{value, pushforward}`.
+> Reuse the statically staged pushforward across directions, numeric product
+> outputs, and higher derivatives without guest closures. See the
+> [contract and runnable example](docs/LINEARIZE.md).
+
 > **Product gradients:** `grad f point` and `value_and_grad f point` extend
 > `jvp` to scalar objectives over finite numeric records and tuples. Coordinate
 > derivatives are staged without runtime dual objects; inputs are bounded to 64
@@ -244,9 +249,10 @@ ordered additive reductions. There is still no unrestricted multi-sink fusion,
 array-valued state, arrays of records, variants, general recursion, escaping
 closures, async effects, or general ownership inference yet.
 
-Current local validation is **546 Node tests and 1,156 Chromium checks**. See
-[gradient validation](docs/GRADIENTS-VALIDATION.md) for these checks and the
+Current local validation is **604 Node tests and 1,196 Chromium checks**. See
+[linearization validation](docs/LINEARIZE-VALIDATION.md) for these checks and the
 unexercised HTTP/worker-loading paths,
+[gradient validation](docs/GRADIENTS-VALIDATION.md) for the preceding AD baseline,
 [examples and SIMD validation](docs/EXAMPLES-SIMD-VALIDATION.md) for the corpus baseline,
 [diagnostics validation](docs/DIAGNOSTICS-VALIDATION.md) for the diagnostics baseline,
 [syntax validation](docs/SYNTAX-VALIDATION.md) for the new language tests and
