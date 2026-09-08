@@ -4,7 +4,8 @@ Design changes begin here, before code. The repository-wide workflow is in
 [AGENTS.md](../AGENTS.md).
 
 - [Reverse-mode vector-Jacobian products](VJP.md): output-weighted sensitivities
-  with branch-gated reverse accumulation and product-shaped cotangents.
+  with branch-gated reverse accumulation and product-shaped cotangents. See the
+  [executed validation](VJP-VALIDATION.md).
 - [Reusable linearization](LINEARIZE.md): prepare a forward derivative once and
   reuse its statically staged pushforward across directions and numeric products.
   See the [executed validation](LINEARIZE-VALIDATION.md).
