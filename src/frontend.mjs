@@ -1,3 +1,4 @@
+import { symbolKey, displayRecordKey } from './record-keys.mjs';
 import { intrinsicArities, inferIntrinsic } from './intrinsics.mjs';
 import { createUnaryParser } from './unary.mjs';
 import { diagnosticFromError } from './diagnostics.mjs';
@@ -59,15 +60,28 @@ export function parse(source) {
     if (++nodes > 50_000) fail('Syntax node limit exceeded', { pos }, 'E_LIMIT');
     return { kind, pos, ...rest };
   };
+  const symbols = new Map(), symbolReferences = [];
+  const symbolIdentifier = () => {
+    const name = identifier();
+    if (name.text === 'do') fail('Expected a symbol identifier', name, 'E_PARSE');
+    return name;
+  };
+  const readSymbolKey = () => {
+    need('['); const name = symbolIdentifier();
+    if (!at(']')) fail('Symbol keys require one declared name, not a computed expression', peek(), 'E_SYMBOL');
+    need(']');
+    symbolReferences.push(node('symbol_key', name.pos, { name: name.text }));
+    return { ...name, text: symbolKey(name.text), symbol: true };
+  };
   let unary;
-  const canonical = () => unary ??= createUnaryParser({ tokens, cursor: () => cursor, peek, at, take, eat, need, node, fail });
+  const canonical = () => unary ??= createUnaryParser({ tokens, cursor: () => cursor, peek, at, take, eat, need, node, fail, readSymbolKey });
   const precedence = { '|>': 1, '||': 2, '&&': 3, '==': 4, '!=': 4,
     '<': 5, '<=': 5, '>': 5, '>=': 5, '+': 6, '-': 6, '*': 7, '/': 7 };
   function annotation() {
     if (eat('[')) { const element = annotation(); need(']'); return { tag: 'Stream', element }; }
     if (eat('{')) {
       const fields = new Map();
-      if (!at('}')) do { const n = identifier(); need(':');
+      if (!at('}')) do { const n = at('[') ? readSymbolKey() : identifier(); need(':');
         if (fields.has(n.text)) fail('Duplicate record field', n, 'E_NAME');
         fields.set(n.text, annotation());
       } while (eat(',') && !at('}'));
@@ -124,13 +138,13 @@ export function parse(source) {
       return node('effect', t.pos, { bindings, result });
     }
     if (eat('{')) {
-      if (at('}') || /^[A-Za-z_]\w*$/.test(peek().text) && [':', ','].includes(tokens[cursor + 1]?.text)) {
+      if (at('}') || at('[') || /^[A-Za-z_]\w*$/.test(peek().text) && [':', ','].includes(tokens[cursor + 1]?.text)) {
         const fields = [], names = new Set();
         if (!at('}')) do {
-          const name = identifier();
+          const name = at('[') ? readSymbolKey() : identifier();
           if (names.has(name.text)) fail('Duplicate record field', name, 'E_NAME');
           names.add(name.text);
-          const value = eat(':') ? expression() : node('name', name.pos, { name: name.text });
+          const value = name.symbol ? (need(':'), expression()) : eat(':') ? expression() : node('name', name.pos, { name: name.text });
           fields.push({ name: name.text, value });
         } while (eat(',') && !at('}'));
         need('}'); return node('record', t.pos, { fields });
@@ -172,6 +186,7 @@ export function parse(source) {
     let left = prefix();
     while (true) {
       if (eat('.')) { const field = identifier(); left = node('field', field.pos, { value: left, name: field.text }); continue; }
+      if (at('[')) { const field = readSymbolKey(); left = node('field', field.pos, { value: left, name: field.text }); continue; }
       if (at('(')) {
         left = node('call', left.pos, { callee: left, args: argumentsList() }); continue;
       }
@@ -184,8 +199,9 @@ export function parse(source) {
         let callee;
         if (eat('(')) { callee = expression(); need(')'); }
         else { const name = identifier(); callee = node('name', name.pos, { name: name.text }); }
-        while (eat('.')) {
-          const field = identifier(); callee = node('field', field.pos, { value: callee, name: field.text });
+        while (at('.') || at('[')) {
+          const field = eat('.') ? identifier() : readSymbolKey();
+          callee = node('field', field.pos, { value: callee, name: field.text });
         }
         const args = at('(') ? argumentsList() : [];
         left = node('call', op.pos, { callee, args: [left, ...args] });
@@ -197,6 +213,13 @@ export function parse(source) {
   }
   const definitions = [], hosts = [], definitionNames = new Set(), hostNames = new Set();
   while (!at('<eof>')) {
+    if (eat('symbol')) {
+      const name = symbolIdentifier(); need(';');
+      if (symbols.has(name.text)) fail(`Duplicate symbol '${name.text}'`, name, 'E_NAME');
+      if (symbols.size >= 256) fail('Programs are limited to 256 symbol declarations', name, 'E_LIMIT');
+      symbols.set(name.text, node('symbol', name.pos, { name: name.text, key: symbolKey(name.text) }));
+      continue;
+    }
     if (eat('host')) {
       need('fn'); const name = identifier();
       if (eat(':')) {
@@ -225,7 +248,9 @@ export function parse(source) {
     definitions.push(node('definition', name.pos, { name: name.text, params: names, annotations, resultAnnotation, body, exported }));
   }
   if (!definitions.length) fail('Program contains no functions', null, 'E_PARSE');
-  return { definitions, hosts, nodeCount: nodes };
+  for (const reference of symbolReferences) if (!symbols.has(reference.name))
+    fail(`Unknown record symbol '${reference.name}'; declare it with symbol ${reference.name};`, reference, 'E_SYMBOL');
+  return { definitions, hosts, symbols: [...symbols.values()], nodeCount: nodes };
 }
 
 const Num = { tag: 'Num' }, Bool = { tag: 'Bool' };
@@ -254,7 +279,7 @@ export function showType(type, curried = false) {
     if (t.tag === 'Record') {
       const fields = new Map(t.fields); let tail = t.tail && prune(t.tail);
       while (tail?.tag === 'Record') { for (const [k,v] of tail.fields) fields.set(k,v); tail = tail.tail && prune(tail.tail); }
-      return `{ ${[...fields].sort(([a],[b]) => a < b ? -1 : a > b ? 1 : 0).map(([k,v]) => `${k}: ${show(v)}`).concat(tail ? ['..'+show(tail)] : []).join(', ')} }`;
+      return `{ ${[...fields].sort(([a],[b]) => a < b ? -1 : a > b ? 1 : 0).map(([k,v]) => `${displayRecordKey(k)}: ${show(v)}`).concat(tail ? ['..'+show(tail)] : []).join(', ')} }`;
     }
     if (t.tag === 'Fn') {
       if (!curried) return `(${t.args.map(show).join(', ')}) -> ${show(t.result)}`;

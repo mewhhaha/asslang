@@ -1,0 +1,65 @@
+{
+  "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+  "checks": 1096,
+  "cases": [
+    {
+      "name": "structured-diagnostics",
+      "failureCases": 22,
+      "navigation": "real textarea"
+    },
+    {
+      "name": "fused-range",
+      "wasmBytes": 523
+    },
+    {
+      "name": "borrowed-dot",
+      "wasmBytes": 700
+    },
+    {
+      "name": "seeded-differential",
+      "cases": 100
+    },
+    {
+      "name": "asabi-algorithm-corpus",
+      "cases": 92
+    },
+    {
+      "name": "causal-differential",
+      "cases": 100
+    },
+    {
+      "name": "experimental-reduction-fusion",
+      "cases": 100,
+      "wasmBytes": 608
+    },
+    {
+      "name": "causal-reduction-fusion",
+      "cases": 100
+    },
+    {
+      "name": "composable-stopping-kernels",
+      "cases": 17
+    },
+    {
+      "name": "unary-syntax",
+      "cases": 69
+    },
+    {
+      "name": "ordered-simd-corpus",
+      "exports": 91,
+      "modes": 2,
+      "vectorizedLoops": 38,
+      "unsupported": 18
+    }
+  ],
+  "notTested": [
+    "HTTP module loading",
+    "playground worker loading"
+  ],
+  "status": "PASS",
+  "experiments": {
+    "status": "PASS",
+    "checks": 236,
+    "cases": 118
+  }
+}

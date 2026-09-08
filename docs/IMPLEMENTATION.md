@@ -48,6 +48,13 @@ must preserve floating-point order, guard obligations, and empty-stream behavior
 Functions used by folds and zips must behave identically whether written as a
 curried chain or through the legacy multi-parameter surface.
 
+Static [record symbols](RECORD-SYMBOLS.md) resolve to a compiler-only field
+namespace in the shared record/field AST and row types. Keys, protocol dictionaries,
+and function fields require no guest property table. `src/record-keys.mjs` defines
+this namespace and diagnostic display; `schemaOfType` rejects symbol-keyed fields
+at every ABI record boundary. The frontend checks declarations per compilation,
+without a global registry or runtime key generation.
+
 ## Binary and authority boundaries
 
 `src/wasm.mjs` emits scalar locals, loops, bounds checks, and ASABI 1 metadata.

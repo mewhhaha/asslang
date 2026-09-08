@@ -4,7 +4,8 @@ Design changes begin here, before code. The repository-wide workflow is in
 [AGENTS.md](../AGENTS.md).
 
 - [Static record symbols](RECORD-SYMBOLS.md): explicit typed protocol keys,
-  staged dictionaries, and call-frame/ABI memory boundaries.
+  staged dictionaries, and call-frame/ABI memory boundaries. See the
+  [executed validation](RECORD-SYMBOLS-VALIDATION.md).
 - [Reusable reverse pullbacks](PULLBACK.md): prepare an objective and reverse
   analysis once, then apply independent output weights with staged callables.
   See the [executed validation](PULLBACK-VALIDATION.md).

@@ -1,3 +1,4 @@
+import { isSymbolKey, displayRecordKey } from './record-keys.mjs';
 import { intrinsicArities, stageIntrinsic } from './intrinsics.mjs';
 import { flatTypes, isScalarSchema } from './abi-schema.mjs';
 import { fail, prune, showType, builtinArities } from './frontend.mjs';
@@ -57,6 +58,8 @@ export function schemaOfType(type, at, depth=0, budget={count:0}) {
   if (t.tag === 'Record') {
     const fields=new Map(t.fields); let tail=t.tail && prune(t.tail);
     while (tail?.tag === 'Record') { for(const [k,v] of tail.fields) fields.set(k,v); tail=tail.tail && prune(tail.tail); }
+    for (const key of fields.keys()) if (isSymbolKey(key))
+      fail(`Symbol field ${displayRecordKey(key)} cannot cross ASABI; explicitly project ordinary data fields`,at,'E_ABI');
     if (tail) fail('Exported record rows must be closed with an annotation',at,'E_ABI');
     if(fields.size>128)fail('ABI records are limited to 128 fields per level',at,'E_ABI');
     return {kind:'Record',fields:[...fields].sort(([a],[b])=>a<b?-1:a>b?1:0).map(([name,type])=>({name,schema:schemaOfType(type,at,depth+1,budget)}))};

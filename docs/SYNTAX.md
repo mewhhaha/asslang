@@ -127,3 +127,13 @@ JTE invariants, and malformed/oversized inputs. Execute representative programs
 with default and optional fusion lowering. Retain the existing full Node and
 browser suites; add parser microbenchmarks without wall-clock pass thresholds.
 See [the executed checks and limitations](SYNTAX-VALIDATION.md).
+
+## Static record symbol keys
+
+`symbol name;` declares a compilation-local record key. Use `{ [name]: value }`,
+`record[name]`, `{ [name]: Type }`, and `{ [name]: local } -> body` for construction,
+selection, annotations, and patterns. Brackets contain a declared key name, not a
+computed expression. Symbol and ordinary fields are distinct; `record.name` is
+not `record[name]`. Symbols are not values and cannot cross ASABI. See
+[record symbols and their memory contract](RECORD-SYMBOLS.md) for scope, protocol
+abstraction, demand, and explicit boundary projection.
