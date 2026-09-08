@@ -1,3 +1,8 @@
+> **Reverse-mode sensitivities:** `vjp f point weights` returns `{value, cotangent}`
+> using one branch-gated reverse sweep, without input-coordinate enumeration or
+> guest tapes. Existing forward-mode APIs are unchanged. See the
+> [contract and runnable example](docs/VJP.md).
+
 > **Reusable linearization:** `linearize f point` returns `{value, pushforward}`.
 > Reuse the statically staged pushforward across directions, numeric product
 > outputs, and higher derivatives without guest closures. See the
@@ -249,9 +254,10 @@ ordered additive reductions. There is still no unrestricted multi-sink fusion,
 array-valued state, arrays of records, variants, general recursion, escaping
 closures, async effects, or general ownership inference yet.
 
-Current local validation is **604 Node tests and 1,196 Chromium checks**. See
-[linearization validation](docs/LINEARIZE-VALIDATION.md) for these checks and the
+Current local validation is **673 Node tests and 1,244 Chromium checks**. See
+[reverse-mode validation](docs/VJP-VALIDATION.md) for these checks and the
 unexercised HTTP/worker-loading paths,
+[linearization validation](docs/LINEARIZE-VALIDATION.md) for the preceding baseline,
 [gradient validation](docs/GRADIENTS-VALIDATION.md) for the preceding AD baseline,
 [examples and SIMD validation](docs/EXAMPLES-SIMD-VALIDATION.md) for the corpus baseline,
 [diagnostics validation](docs/DIAGNOSTICS-VALIDATION.md) for the diagnostics baseline,

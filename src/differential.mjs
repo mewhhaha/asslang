@@ -1,17 +1,17 @@
 // Compiler-side forward AD. This module has no ambient host capabilities.
 const MAX_GRADIENT_LEAVES = 64;
 
-function numericLeaves(value, api, at) {
+export function numericLeaves(value, api, at) {
   const out = api.leaves(value, at);
   if (out.some(n => n.type !== 'Num'))
     api.fail('Differentiation requires Num leaves', at, 'E_DIFF_TYPE');
   return out;
 }
 
-// Stage the objective once. Each direction gets its own derivative cache, while
-// all directions share the original tagged roots and primal scalar graph.
-function prepareLinearization(f, point, api, at) {
-  const {scalar,num,boolean,shape,invoke,substitute,fail}=api;
+// Shared preparation for forward and reverse transforms. Callers validate the
+// numeric input shape before introducing these private perturbation identities.
+export function prepareDifferential(f, point, api, at) {
+  const {scalar,boolean,shape,invoke}=api;
   const replacements=new Map(), roots=[];
   const symbolic=shape(point,value=>{
     const root=scalar('guard','Num',[boolean(true),value],undefined,true);
@@ -20,6 +20,13 @@ function prepareLinearization(f, point, api, at) {
     replacements.set(root.id,value);roots.push(root);return root;
   });
   const value=invoke(f,[symbolic],at);numericLeaves(value,api,at);
+  return {value,roots,replacements};
+}
+
+// Each direction gets its own cache, sharing the original tagged primal graph.
+function prepareLinearization(f, point, api, at) {
+  const {scalar,num,shape,substitute,fail}=api;
+  const {value,roots,replacements}=prepareDifferential(f,point,api,at);
   function pushforward(seeds, callAt=at) {
     const tangents=new Map(roots.map((root,i)=>[root.id,seeds[i]]));
     const cache=new Map(), dependencies=new Map();
