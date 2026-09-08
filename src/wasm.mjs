@@ -32,7 +32,7 @@ const f64bytes = value => {
   const view = new DataView(new ArrayBuffer(8)); view.setFloat64(0, value, true); return [...new Uint8Array(view.buffer)];
 };
 
-function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFusion = true, simd = false } = {}, steps = []) {
+function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFusion = true, simd = false, maxLoopIterations } = {}, steps = []) {
   const fusionGroups = [];
   let vectorizedLoops = 0, vectorInstructions = 0;
   const code = [], locals = []; let loops = 0, runtimeChecks = 0, zipChecks = 0, stores = 0, memoizedReductions = 0, stateMachines = 0, stateSlots = 0, boundedIterations = 0, shortCircuitFolds = 0;
@@ -43,6 +43,18 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
   const i32 = value => emit(0x41, ...sleb(value));
   const f64 = value => emit(0x44, ...f64bytes(value));
   const trapUnless = () => emit(0x45, 0x04, 0x40, 0x00, 0x0b);
+  // A private invocation-local allowance: no source value, memory slot, or import.
+  const remaining = maxLoopIterations === undefined ? null : allocate('I32');
+  if (remaining !== null) { i32(maxLoopIterations); set(remaining); }
+  function loopHeader(exitTest, cost = 1) {
+    loops++; emit(0x02, 0x40, 0x03, 0x40);
+    exitTest(); emit(0x0d, 0x01);
+    if (remaining !== null) {
+      // Reserve the whole step (two scalar iterations for SIMD) before its body.
+      get(remaining); i32(cost); emit(0x4f); trapUnless();
+      get(remaining); i32(cost); emit(0x6b); set(remaining);
+    }
+  }
   const noteGuard = guard => {
     runtimeChecks++;
     const containsZip=n=>n.op==='same_extent'||n.args.some(containsZip);
@@ -90,8 +102,7 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     for (const identity of stream.indices) body.indices.set(identity.id, index);
     for (const f of frames) f.acc.forEach((n, i) => body.accumulators.set(n.id, f.targets[i]));
     const machines = prepareMachines(stream, body);
-    loops++; emit(0x02, 0x40, 0x03, 0x40);
-    get(index); get(extent); emit(0x4f, 0x0d, 0x01);
+    loopHeader(() => { get(index); get(extent); emit(0x4f); });
     stepMachines(machines, body);
     if (stream.mask) { load(stream.mask, body); emit(0x04, 0x40); }
     // Snapshot every component before changing any accumulator, including
@@ -185,10 +196,9 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     const local = allocate('V128'); set(local); memo.set(node.id, local); get(local);
   }
   function vectorLoop(index, extent, body) {
-    loops++; vectorizedLoops++;
-    emit(0x02, 0x40, 0x03, 0x40);
+    vectorizedLoops++;
     // i is <= extent and extents are <= INT32_MAX: i+1 cannot wrap.
-    get(index); i32(1); emit(0x6a); get(extent); emit(0x4f, 0x0d, 1);
+    loopHeader(() => { get(index); i32(1); emit(0x6a); get(extent); emit(0x4f); }, 2);
     body();
     get(index); i32(2); emit(0x6a); set(index);
     emit(0x0c, 0, 0x0b, 0x0b);
@@ -284,9 +294,7 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
           }
         });
       }
-      loops++;
-      emit(0x02, 0x40, 0x03, 0x40); // block(exit) { loop(next) {
-      get(index); get(extent); emit(0x4f, 0x0d, 0x01); // br_if exit when i >= length
+      loopHeader(() => { get(index); get(extent); emit(0x4f); });
       stepMachines(machines,bodyContext);
       if (stream.mask) { load(stream.mask, bodyContext); emit(0x04, 0x40); }
       load(node.body, bodyContext); set(target);
@@ -348,8 +356,8 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     const body=copyContext(ctx);disableFusion(body);invalidateBindings(body,node.acc.map(a=>a.id));
     node.acc.forEach((a,i)=>body.accumulators.set(a.id,targets[i]));
     planLoopMemo([...node.body,node.done],ctx,body);
-    loops++;boundedIterations++;emit(0x02,0x40,0x03,0x40);
-    get(count);get(limit);emit(0x4f);get(done);emit(0x72,0x0d,0x01);
+    boundedIterations++;
+    loopHeader(() => { get(count); get(limit); emit(0x4f); get(done); emit(0x72); });
     const next=node.body.map(n=>{const t=allocate(n.type);load(n,body);set(t);return t;});
     load(node.done,body);set(done);
     next.forEach((v,i)=>{get(v);set(targets[i]);});
@@ -373,9 +381,8 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     node.acc.forEach((n, i) => body.accumulators.set(n.id, targets[i]));
     const machines = prepareMachines(stream, body);
     planLoopMemo([stream.mask, ...node.body, node.done, ...machineRoots(stream)], ctx, body);
-    loops++; shortCircuitFolds++;
-    emit(0x02, 0x40, 0x03, 0x40);
-    get(index); get(extent); emit(0x4f, 0x0d, 0x01);
+    shortCircuitFolds++;
+    loopHeader(() => { get(index); get(extent); emit(0x4f); });
     stepMachines(machines, body);
     if (stream.mask) { load(stream.mask, body); emit(0x04, 0x40); }
     const next = node.body.map(n => {
@@ -408,8 +415,7 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     node.acc.forEach((a,i)=>bodyContext.accumulators.set(a.id,targets[i]));
     const machines=prepareMachines(stream,bodyContext);
     planLoopMemo([stream.mask,...node.body,...machineRoots(stream)],ctx,bodyContext);
-    loops++; emit(0x02,0x40,0x03,0x40);
-    get(index);get(extent);emit(0x4f,0x0d,0x01);
+    loopHeader(() => { get(index); get(extent); emit(0x4f); });
     stepMachines(machines,bodyContext);
     if(stream.mask) {load(stream.mask,bodyContext);emit(0x04,0x40);}
     // Snapshot ALL next-state components before changing any accumulator local.
@@ -494,8 +500,7 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
         get(count); i32(2); emit(0x6a); set(count);
       });
     }
-    loops++;emit(0x02,0x40,0x03,0x40);
-    get(index);get(extent);emit(0x4f,0x0d,1);
+    loopHeader(() => { get(index); get(extent); emit(0x4f); });
     stepMachines(machines,ctx);
     if(stream.mask){load(stream.mask,ctx);emit(0x04,0x40);}
     get(end);get(cursor);emit(0x6b);i32(stride);emit(0x4f);trapUnless();
@@ -518,6 +523,7 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
   const body = concatenate([declarations, code]);
   return { bytes: concatenate([uleb(body.length), body]), locals: locals.length, localGroups: runs.length,
     localBytes: locals.reduce((n, t) => n + (t === 'V128' ? 16 : t === 'Num' ? 8 : 4), 0), loops, runtimeChecks, zipChecks, stores, memoizedReductions, stateMachines, stateSlots, boundedIterations, shortCircuitFolds,
+    ...(remaining === null ? {} : { loopBudget: { limit: maxLoopIterations + 0, sites: loops } }),
     simd: { enabled: simd, lanes: 2, vectorizedLoops, vectorInstructions },
     reductionFusion: { enabled: experimentalReductionFusion, groups: fusionGroups,
       eliminatedLoops: fusionGroups.reduce((n, g) => n + g.reductions.length - 1, 0) } };
@@ -535,16 +541,23 @@ export function emitModule(staged, options = {}) {
     exports:kernels.map(k=>({name:k.name,parameters:k.parameters,result:{schema:k.resultSchema,
       mode:k.indirect?'indirect':'scalar',slots:k.outputSlots,layout:layout(k.resultSchema)},
       effects:k.effects.map((e,sequence)=>({sequence,name:hosts[e.data].name}))}))};
+  const abiSection = section(0, concatenate([text('asslang.abi'), encoder.encode(JSON.stringify(contract))]));
+  const executionLimits = options.maxLoopIterations === undefined ? null : {
+    version: 1, maxLoopIterations: options.maxLoopIterations + 0, unit: 'scalar-loop-iterations',
+  };
   const pieces=[
     [0,0x61,0x73,0x6d,1,0,0,0],section(1,vector(types)),
     ...(imports.length?[section(2,vector(imports))]:[]),
     section(3,vector(kernels.map((_,i)=>uleb(i+hosts.length)))),
     section(7,vector(kernels.map((k,i)=>[...text(k.name),0,...uleb(i+hosts.length)]))),
     section(10,vector(bodies.map(b=>b.bytes))),
-    section(0,concatenate([text('asslang.abi'),encoder.encode(JSON.stringify(contract))])),
+    abiSection,
+    ...(executionLimits ? [section(0, concatenate([text('asslang.limits'), encoder.encode(JSON.stringify(executionLimits))]))] : []),
   ];
-  return {bytes:concatenate(pieces),needsMemory,contract,abiMetadataBytes:pieces.at(-1).length,
-    functions:kernels.map((k,i)=>({name:k.name,loops:bodies[i].loops,wasmLocals:bodies[i].locals,wasmLocalDeclarationGroups:bodies[i].localGroups,
+  return {bytes:concatenate(pieces),needsMemory,contract,abiMetadataBytes:abiSection.length,
+    ...(executionLimits ? { executionLimits } : {}),
+    functions:kernels.map((k,i)=>({name:k.name,
+      ...(bodies[i].loopBudget ? { loopBudget: bodies[i].loopBudget } : {}),loops:bodies[i].loops,wasmLocals:bodies[i].locals,wasmLocalDeclarationGroups:bodies[i].localGroups,
       wasmLocalValueBytes:bodies[i].localBytes,runtimeZipChecks:bodies[i].zipChecks,runtimeStreamChecks:bodies[i].runtimeChecks,
       outputStoreSites:bodies[i].stores,hostCallSites:k.effects.length,memoizedReductions:bodies[i].memoizedReductions,stateMachines:bodies[i].stateMachines,stateSlots:bodies[i].stateSlots,boundedIterations:bodies[i].boundedIterations,shortCircuitFolds:bodies[i].shortCircuitFolds,simd:bodies[i].simd,reductionFusion:bodies[i].reductionFusion}))};
 }

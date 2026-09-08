@@ -12,6 +12,8 @@ function validateOptions(options) {
   if (options.maxExpansion !== undefined && (!Number.isSafeInteger(options.maxExpansion) || options.maxExpansion < 1)) {
     throw new TypeError('maxExpansion must be a positive safe integer');
   }
+  if (options.maxLoopIterations !== undefined && (!Number.isInteger(options.maxLoopIterations) || options.maxLoopIterations < 0 || options.maxLoopIterations > 2147483647))
+    throw new TypeError('maxLoopIterations must be an integer between 0 and 2147483647');
   if (options.memoizeReductions !== undefined && typeof options.memoizeReductions !== 'boolean') throw new TypeError('memoizeReductions must be a boolean');
   if (options.simd !== undefined && typeof options.simd !== 'boolean') throw new TypeError('simd must be a boolean');
   if (options.reductionFusion !== undefined && typeof options.reductionFusion !== 'boolean') throw new TypeError('reductionFusion must be a boolean');
@@ -22,7 +24,7 @@ function validateOptions(options) {
 /** Compile source to a standalone Wasm kernel module and an erased JTE ledger.
  * The compiler itself is JavaScript and is NOT allocation-free.
  * @param {string} source
- * @param {{maxExpansion?: number, memoizeReductions?: boolean, experimentalReductionFusion?: boolean, reductionFusion?: boolean, simd?: boolean}} options
+ * @param {{maxExpansion?: number, memoizeReductions?: boolean, experimentalReductionFusion?: boolean, reductionFusion?: boolean, simd?: boolean, maxLoopIterations?: number}} options
  */
 export function compile(source, options = {}) {
   validateOptions(options);
@@ -45,6 +47,7 @@ export function compile(source, options = {}) {
     return {
       bytes: module.bytes,
       abi: module.contract,
+      ...(module.executionLimits ? { executionLimits: module.executionLimits } : {}),
       signatures: inferred.signatures,
       observations: staged.observations,
       exports: staged.kernels.map(k => ({ name: k.name, parameters: k.parameters, result: k.resultSchema.kind })),
@@ -180,6 +183,7 @@ export function createCompiler({ maxEntries = 16, maxBytes = 8 * 1024 * 1024 } =
       memoizeReductions: options.memoizeReductions ?? true,
       reductionFusion: options.reductionFusion ?? options.experimentalReductionFusion ?? true,
       simd: options.simd ?? false,
+      maxLoopIterations: options.maxLoopIterations,
     };
     const key = JSON.stringify(normalized) + '\n' + source;
     if (entries.has(key)) {

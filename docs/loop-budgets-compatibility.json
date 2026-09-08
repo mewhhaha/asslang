@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "cases": 118,
+  "unmeteredBinaries": 184,
+  "unchangedDiagnostics": 52,
+  "instrumented": {
+    "limit": 100000,
+    "status": "PASS",
+    "checks": 236,
+    "cases": 118
+  }
+}

@@ -32,6 +32,7 @@
     "test:linearize": "node --test test/linearize.test.mjs test/differential.test.mjs test/gradients.test.mjs test/experiments.test.mjs",
     "test:pullback": "node --test test/pullback.test.mjs test/vjp.test.mjs test/linearize.test.mjs test/gradients.test.mjs test/differential.test.mjs test/experiments.test.mjs",
     "test:vjp": "node --test test/vjp.test.mjs test/differential.test.mjs test/gradients.test.mjs test/linearize.test.mjs test/experiments.test.mjs",
-    "test:record-symbols": "node --test test/record-symbols.test.mjs test/experiments.test.mjs"
+    "test:record-symbols": "node --test test/record-symbols.test.mjs test/experiments.test.mjs",
+    "test:loop-budgets": "node --test test/loop-budgets.test.mjs test/loop-budgets-cli.test.mjs test/experiments.test.mjs"
   }
 }

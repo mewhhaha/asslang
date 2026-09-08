@@ -19,13 +19,19 @@ const source = `
 const compiled = compile(source, { maxLoopIterations: 1000 });
 const runtime = await createRuntime(compiled);
 runtime.call('energy', [10]);   // 285; ten iterations
-runtime.call('energy', [1001]); // throws WebAssembly.RuntimeError
+try {
+  runtime.call('energy', [1001]);
+} catch (error) {
+  if (!(error instanceof WebAssembly.RuntimeError)) throw error;
+  // No partial result; this API does not distinguish budget and other Wasm traps.
+}
 runtime.call('energy', [10]);   // 285; independent fresh allowance
 ```
 
 The option accepts integers from 0 through 2,147,483,647. Omission keeps the
 existing unlimited behavior and binary format. Invalid API values throw
 `TypeError`, as other invalid compiler options do; they are not source errors.
+API negative zero is accepted as zero and normalized in policy metadata.
 `compileSources`, `check`, `checkSources`, and compiler-session caches retain the
 policy. Checking compiles and validates instrumentation without running a loop.
 The CLI accepts `--max-loop-iterations N` for build, check, and run modes, with a
@@ -85,8 +91,8 @@ A later budget trap cannot roll back an earlier external effect. Host-call
 capability checks and reentrancy rules remain independent.
 
 Normal `createRuntime.call` retains its existing finally-based frame cleanup;
-prepared calls retain their input snapshot and clear the output region before
-lifting a subsequent result. No partial result is returned after a trap. Raw
+prepared calls retain their input snapshot and clear the output region in their
+existing finally block after success or failure. No partial result is returned after a trap. Raw
 ABI users must discard potentially partial output themselves. No lifetime,
 borrowing, JTE event-domain, causal-access, or ASABI 1 layout rule changes.
 

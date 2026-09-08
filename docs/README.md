@@ -5,6 +5,7 @@ Design changes begin here, before code. The repository-wide workflow is in
 
 - [Per-invocation loop budgets](LOOP-BUDGETS.md): optional aggregate runtime
   traversal ceilings embedded in Wasm, with no extra imports or ABI arguments.
+  See the [executed validation](LOOP-BUDGETS-VALIDATION.md).
 - [Static record symbols](RECORD-SYMBOLS.md): explicit typed protocol keys,
   staged dictionaries, and call-frame/ABI memory boundaries. See the
   [executed validation](RECORD-SYMBOLS-VALIDATION.md).
