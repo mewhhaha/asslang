@@ -3,6 +3,8 @@
 Design changes begin here, before code. The repository-wide workflow is in
 [AGENTS.md](../AGENTS.md).
 
+- [Reusable reverse pullbacks](PULLBACK.md): prepare an objective and reverse
+  analysis once, then apply independent output weights with staged callables.
 - [Reverse-mode vector-Jacobian products](VJP.md): output-weighted sensitivities
   with branch-gated reverse accumulation and product-shaped cotangents. See the
   [executed validation](VJP-VALIDATION.md).
