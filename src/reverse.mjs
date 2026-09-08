@@ -1,25 +1,11 @@
 import { numericLeaves, prepareDifferential } from './differential.mjs';
 
-// A static reverse sweep, not a coordinate-basis expansion or a runtime tape.
-export function reverseVJP(f, point, weights, api, at) {
-  numericLeaves(point,api,at);
-  const seeds=numericLeaves(weights,api,at);
-  const {value,roots,replacements}=prepareDifferential(f,point,api,at);
-  const outputs=numericLeaves(value,api,at);
-  if(outputs.length!==seeds.length)
-    api.fail('Differentiation seed shape mismatch',at,'E_DIFF_TYPE');
-  const {scalar,num,boolean,fail}=api;
+// The checked topology contains no weights or adjoints and is safe to reuse.
+function analyzeReverse(roots, outputs, api, at) {
+  const {fail}=api;
   const rootMap=new Map(roots.map(n=>[n.id,n]));
   // Substitution inside nested transforms can clone a tagged input boundary.
   const canonical=n=>rootMap.get(n.data?.differentialSeed??n.id)??n;
-  const op=(name,...args)=>scalar(name,'Num',args);
-  const bool=(name,...args)=>scalar(name,'Bool',args);
-  const zero=num(0),yes=boolean(true);
-  const select=(condition,a,b)=>op('if',condition,a,b);
-  // Canonical unconditional activity avoids deeply nested, redundant branches.
-  // These are compiler activity identities, not floating-point simplifications.
-  const either=(a,b)=>a===yes||b===yes?yes:a===b?a:bool('||',a,b);
-  const both=(a,b)=>a===yes?b:b===yes||a===b?a:bool('&&',a,b);
 
   // Address/effect dependence includes control operands, unlike the numeric
   // reverse edges below. An explicit stack bounds compiler call-stack usage.
@@ -69,6 +55,22 @@ export function reverseVJP(f, point, weights, api, at) {
       for(let i=edges.length-1;i>=0;i--)pending.push([edges[i],false]);
     }
   }
+
+  return {canonical,rootMap,order,info};
+}
+
+// Every application owns its accumulation state; only the topology is shared.
+function accumulateReverse(point, seeds, roots, outputs, plan, api) {
+  const {canonical,rootMap,order,info}=plan;
+  const {scalar,num,boolean}=api;
+  const op=(name,...args)=>scalar(name,'Num',args);
+  const bool=(name,...args)=>scalar(name,'Bool',args);
+  const zero=num(0),yes=boolean(true);
+  const select=(condition,a,b)=>op('if',condition,a,b);
+  // Canonical unconditional activity avoids deeply nested, redundant branches.
+  // These are compiler activity identities, not floating-point simplifications.
+  const either=(a,b)=>a===yes||b===yes?yes:a===b?a:bool('||',a,b);
+  const both=(a,b)=>a===yes?b:b===yes||a===b?a:bool('&&',a,b);
 
   const adjoints=new Map();
   function add(node,term,activity) {
@@ -120,7 +122,41 @@ export function reverseVJP(f, point, weights, api, at) {
     const d=adjoints.get(roots[coordinate++].id)?.term??zero;
     return select(demand,d,d);
   });
+  return cotangent;
+}
+
+// VJP retains its eager validation order, including for value-only projections.
+export function reverseVJP(f, point, weights, api, at) {
+  numericLeaves(point,api,at);
+  const seeds=numericLeaves(weights,api,at);
+  const {value,roots,replacements}=prepareDifferential(f,point,api,at);
+  const outputs=numericLeaves(value,api,at);
+  if(outputs.length!==seeds.length)
+    api.fail('Differentiation seed shape mismatch',at,'E_DIFF_TYPE');
+  const plan=analyzeReverse(roots,outputs,api,at);
+  const cotangent=accumulateReverse(point,seeds,roots,outputs,plan,api);
   return api.substitute({kind:'record',fields:new Map([
     ['value',value],['cotangent',cotangent],
   ])},replacements);
+}
+
+export function reusablePullback(f, point, api, at) {
+  numericLeaves(point,api,at);
+  const {value,roots,replacements}=prepareDifferential(f,point,api,at);
+  const outputs=numericLeaves(value,api,at);
+  let plan;
+  // This unary callable remains compiler data, just like a saved pushforward.
+  const pullback={kind:'linearized_callable',apply(weights,callAt) {
+    const seeds=numericLeaves(weights,api,callAt);
+    if(outputs.length!==seeds.length)
+      api.fail('Differentiation seed shape mismatch',callAt,'E_DIFF_TYPE');
+    // Value-only uses never analyze derivative edges. The first application
+    // reports graph errors at its own source location; later calls reuse facts.
+    plan??=analyzeReverse(roots,outputs,api,callAt);
+    const cotangent=accumulateReverse(point,seeds,roots,outputs,plan,api);
+    return api.substitute(cotangent,replacements);
+  }};
+  return {kind:'record',fields:new Map([
+    ['value',api.substitute(value,replacements)],['pullback',pullback],
+  ])};
 }

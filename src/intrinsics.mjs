@@ -1,8 +1,10 @@
-import { reverseVJP } from './reverse.mjs';
+import { reverseVJP, reusablePullback } from './reverse.mjs';
 import { forwardLinearize, reusableLinearize, valueAndGradient, stopGradient } from './differential.mjs';
 // Closed compiler registry: source programs cannot install handlers or gain I/O.
-export const intrinsicArities=Object.freeze({jvp:3,vjp:3,linearize:2,grad:2,value_and_grad:2,stop_gradient:1});
+export const intrinsicArities=Object.freeze({jvp:3,vjp:3,pullback:2,linearize:2,grad:2,value_and_grad:2,stop_gradient:1});
 export function inferIntrinsic(name,{a,b,Num,fn}) {
+  if(name==='pullback')return fn([fn([a],b),a],{tag:'Record',tail:null,
+    fields:new Map([['value',b],['pullback',fn([b],a)]])});
   if(name==='vjp')return fn([fn([a],b),a,b],{tag:'Record',tail:null,
     fields:new Map([['value',b],['cotangent',a]])});
   if(name==='jvp')return fn([fn([a],b),a,a],{tag:'Record',tail:null,
@@ -16,6 +18,7 @@ export function inferIntrinsic(name,{a,b,Num,fn}) {
   return null;
 }
 export function stageIntrinsic(name,args,api,at) {
+  if(name==='pullback')return reusablePullback(...args,api,at);
   if(name==='vjp')return reverseVJP(...args,api,at);
   if(name==='jvp')return forwardLinearize(...args,api,at);
   if(name==='linearize')return reusableLinearize(...args,api,at);
