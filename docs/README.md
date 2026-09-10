@@ -3,6 +3,10 @@
 Design changes begin here, before code. The repository-wide workflow is in
 [AGENTS.md](../AGENTS.md).
 
+- [Per-invocation loop budgets](LOOP-BUDGETS.md): optional aggregate runtime
+  traversal ceilings embedded in Wasm, with no extra imports or ABI arguments.
+  See the [original validation](LOOP-BUDGETS-VALIDATION.md) and
+  [reconstruction integration](LOOP-BUDGETS-INTEGRATION.md).
 - [Reconstruction bases](RECONSTRUCTION.md): finite observation graphs, exact
   source-component covers, and staged restoration with explicit coherence checks.
   See the [executed validation](RECONSTRUCTION-VALIDATION.md).

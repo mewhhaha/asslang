@@ -77,6 +77,16 @@ requires a direct, fully applied declared host call in an exported effect body.
 Partial application must not hide, duplicate, or defer a host effect. Inference
 and staging retain this explicit boundary independently of call punctuation.
 
+## Optional runtime loop budgets
+
+`maxLoopIterations` adds one private i32 local per exported invocation and a
+checked debit after each emitted loop's exit test. Nested loops share the local;
+SIMD pairs debit two scalar iterations. The counter resets on each normal,
+prepared, or raw call, with no imported budget service or ASABI argument.
+`asslang.limits` describes the optional policy without changing `asslang.abi`.
+See [LOOP-BUDGETS.md](LOOP-BUDGETS.md) for optimization-dependent cost, traps,
+host-effect ordering, and the distinction from CPU-time or instruction limits.
+
 ## Resource bounds and evidence
 
 Tokenization is bounded by the source-size limit; parsing by node and nesting

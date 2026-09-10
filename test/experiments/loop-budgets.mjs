@@ -1,0 +1,23 @@
+// Fixed compiler policies; the runner retains its two independent lowering modes.
+export const cases=[
+  {name:'loop budget exact scalar reduction',source:'export fn main = (n:Num) -> sum (range n);',args:[4],options:{maxLoopIterations:4},expected:6},
+  {name:'loop budget scalar reduction exhaustion',source:'export fn main = (n:Num) -> sum (range n);',args:[4],options:{maxLoopIterations:3},trap:true},
+  {name:'loop budget empty traversal at zero',source:'export fn main = (xs:[Num]) -> map xs (x -> require false x);',args:[[]],options:{maxLoopIterations:0},expected:[]},
+  {name:'loop budget inactive branch at zero',source:'export fn main = (flag:Bool) -> if flag then sum (range 100) else 7;',args:[false],options:{maxLoopIterations:0},expected:7},
+  {name:'loop budget dense count does not traverse',source:'export fn main = (xs:[Num]) -> count xs;',args:[[1,2,3]],options:{maxLoopIterations:0},expected:3},
+  {name:'loop budget rejected filter events cost work',source:'export fn main = (xs:[Num]) -> sum (filter xs (x -> false));',args:[[1,2,3]],options:{maxLoopIterations:2},trap:true},
+  {name:'loop budget nonemitting transitions cost work',source:'export fn main = (xs:[Num]) -> transduce xs 0 (s -> x -> {state:s+x,emit:false,value:x});',args:[[1,2,3]],options:{maxLoopIterations:2},trap:true},
+  {name:'loop budget record fold',source:'export fn main = (xs:[Num]) -> fold xs {sum:0,count:0} (s -> x -> {sum:s.sum+x,count:s.count+1});',args:[[1,2,3]],options:{maxLoopIterations:3},expected:{sum:6,count:3}},
+  {name:'loop budget record fold exhaustion',source:'export fn main = (xs:[Num]) -> fold xs {sum:0,count:0} (s -> x -> {sum:s.sum+x,count:s.count+1});',args:[[1,2,3]],options:{maxLoopIterations:2},trap:true},
+  {name:'loop budget nested aggregate allowance',source:'export fn main = () -> sum (map (range 3) (i -> sum (map (range 4) (j -> i+j))));',args:[{}],options:{maxLoopIterations:15},expected:30},
+  {name:'loop budget nested allowance exhaustion',source:'export fn main = () -> sum (map (range 3) (i -> sum (map (range 4) (j -> i+j))));',args:[{}],options:{maxLoopIterations:14},trap:true},
+  {name:'loop budget early exit exact allowance',source:'export fn main = () -> fold_until (filter (range 10) (x -> x>0)) 0 (s -> x -> {state:s+x,done:x>=2});',args:[{}],options:{maxLoopIterations:3},expected:{state:3,steps:2,done:true}},
+  {name:'loop budget iterate exact allowance',source:'export fn main = () -> iterate 1 100 (s -> {state:2*s,done:s>=4});',args:[{}],options:{maxLoopIterations:3},expected:{state:8,steps:3,done:true}},
+  {name:'loop budget iterate exhausted',source:'export fn main = () -> iterate 1 100 (s -> {state:2*s,done:s>=4});',args:[{}],options:{maxLoopIterations:2},trap:true},
+  {name:'loop budget SIMD pairs and remainder',source:'export fn main = (xs:[Num]) -> map xs (x -> x*x);',args:[[1,2,3,4,5]],options:{maxLoopIterations:5},expected:[1,4,9,16,25]},
+  {name:'loop budget SIMD cannot evade exhaustion',source:'export fn main = (xs:[Num]) -> map xs (x -> x*x);',args:[[1,2,3,4,5]],options:{maxLoopIterations:4},trap:true},
+  {name:'loop budget independent output traversals',source:'export fn main = (xs:[Num]) -> {a:map xs (x -> x*x),b:map xs (x -> x+1)};',args:[[1,2,3]],options:{maxLoopIterations:5},trap:true},
+  {name:'loop budget scalar causal state',source:'export fn main = (xs:[Num]) -> scan xs 0 (s -> x -> s+x);',args:[[1,2,3]],options:{maxLoopIterations:3},expected:[1,3,6]},
+  {name:'loop budget causal exhaustion',source:'export fn main = (xs:[Num]) -> scan xs 0 (s -> x -> s+x);',args:[[1,2,3]],options:{maxLoopIterations:2},trap:true},
+  {name:'loop budget does not change source diagnostics',source:'export fn main = () -> missing 1;',options:{maxLoopIterations:0},code:'E_NAME'},
+];

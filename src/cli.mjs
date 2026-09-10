@@ -10,6 +10,7 @@ const usage = `Usage: node src/cli.mjs INPUT.ass [--lib HELPERS.ass ...] [-o OUT
   --diagnostics=text|json          Source frames (default), or JSON with --check
   --run EXPORT --args '[...]'      Run a pure export and print its JSON result
   --pages N                       Fixed runtime capacity in 64-KiB pages (default: 16)
+  --max-loop-iterations N          Aggregate per-export loop budget (0..2147483647)
   --explain                       Print ABI, types, observations, statistics and proof
   --simd                          Enable ordered f64x2 maps and sums
   --no-reduction-fusion            Disable default demand-scoped reduction cohorts
@@ -24,7 +25,7 @@ async function main() {
     if (jsonDiagnostics) throw new UsageError('--help cannot be combined with --diagnostics=json');
     console.log(usage); return;
   }
-  let input, output, run, jsonArgs, pages = 16, check = false, explain = false, experimentalReductionFusion, simd = false;
+  let input, output, run, jsonArgs, pages = 16, check = false, explain = false, experimentalReductionFusion, simd = false, maxLoopIterations;
   const libraries = [];
   let diagnosticFlags = 0;
   function value(index, flag) {
@@ -39,6 +40,13 @@ async function main() {
     else if (flag === '--run') run = value(i++, flag);
     else if (flag === '--args') jsonArgs = value(i++, flag);
     else if (flag === '--pages') pages = Number(value(i++, flag));
+    else if (flag === '--max-loop-iterations') {
+      if (maxLoopIterations !== undefined) throw new UsageError('--max-loop-iterations may be specified only once');
+      const limit = value(i++, flag);
+      if (!/^(0|[1-9][0-9]*)$/.test(limit) || Number(limit) > 2147483647)
+        throw new UsageError('--max-loop-iterations must be a decimal integer between 0 and 2147483647');
+      maxLoopIterations = Number(limit);
+    }
     else if (flag === '--check') check = true;
     else if (flag.startsWith('--diagnostics=')) {
       if (++diagnosticFlags > 1) throw new UsageError('--diagnostics may be specified only once');
@@ -67,12 +75,12 @@ async function main() {
   if (!Number.isInteger(pages) || pages < 0 || pages > 32767) throw new UsageError('--pages must be an integer between 0 and 32767');
   for (const name of [...libraries, input]) files.push({ name, source: await readFile(name, 'utf8') });
   if (jsonDiagnostics) {
-    const report = checkSources(files, { experimentalReductionFusion, simd });
+    const report = checkSources(files, { experimentalReductionFusion, simd, maxLoopIterations });
     console.log(JSON.stringify(report));
     process.exitCode = report.ok ? 0 : 1;
     return;
   }
-  const result = compileSources(files, { experimentalReductionFusion, simd });
+  const result = compileSources(files, { experimentalReductionFusion, simd, maxLoopIterations });
   if (run) {
     const values = JSON.parse(jsonArgs ?? '[]');
     if (!Array.isArray(values)) throw new UsageError('--args must be a JSON array of export arguments');
@@ -93,11 +101,11 @@ async function main() {
         throw new UsageError('Output must not overwrite source');
     }
     await writeFile(output, result.bytes);
-    await writeFile(output + '.json', JSON.stringify({ abi: result.abi, exports: result.exports, signatures: result.signatures,
+    await writeFile(output + '.json', JSON.stringify({ abi: result.abi, executionLimits: result.executionLimits, exports: result.exports, signatures: result.signatures,
       observations: result.observations, sourceFiles: result.sourceFiles, stats: result.stats }, null, 2) + '\n');
     console.log(`Wrote ${output}: ${result.bytes.length} bytes`);
   }
-  if (explain) console.log(JSON.stringify({ abi: result.abi, signatures: result.signatures, observations: result.observations,
+  if (explain) console.log(JSON.stringify({ abi: result.abi, executionLimits: result.executionLimits, signatures: result.signatures, observations: result.observations,
     sourceFiles: result.sourceFiles, stats: result.stats, certificate: result.certificate }, null, 2));
 }
 try {

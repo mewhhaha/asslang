@@ -260,6 +260,28 @@ try {
     assert(compiled.stats.kernelHeapAllocationSites===0,'No reconstruction guest allocator');
   }
   report.cases.push({name:'reconstruction-basis',modes:2,sourceComponents:1,minimumDistance:2});
+  const budgetedReconstruction = reconstructionSource('budgeted_observations', {
+    nodes:['n','first','second'],edges:[
+      {from:'n',to:'first',map:'sumRange'},
+      {from:'first',to:'second',map:'sumRange'}
+    ]
+  });
+  const budgetedSources = [budgetedReconstruction,{name:'budgeted.ass',source:`
+    export fn main = (n:Num) ->
+      ((budgeted_observations {sumRange:x -> sum (range x)}).restore {n}).second;
+  `}];
+  for(const simd of [false,true])for(const reductionFusion of [false,true]) {
+    // Four iterations produce six, then six more produce fifteen: ten units.
+    const c=compileSources(budgetedSources,{simd,reductionFusion,maxLoopIterations:10});
+    assert(c.executionLimits.maxLoopIterations===10,'Generated source retains loop policy');
+    assert((await createRuntime(c)).call('main',[4])===15,'Generated arrows share exact ten-unit allowance');
+    const r=await createRuntime(compileSources(budgetedSources,{simd,reductionFusion,maxLoopIterations:9}));
+    let exhausted=false;
+    try {r.call('main',[4]);} catch(e) {exhausted=e instanceof WebAssembly.RuntimeError;}
+    assert(exhausted,'Generated helper cannot reset a nine-unit allowance');
+    assert(r.call('main',[3])===3,'Generated protocol receives fresh allowance after a trap');
+  }
+  report.cases.push({name:'reconstruction-loop-budgets',modes:4,exactAllowance:10});
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {

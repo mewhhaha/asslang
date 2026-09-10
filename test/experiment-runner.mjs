@@ -7,7 +7,7 @@ export async function runExperimentCases(cases,compile,createRuntime) {
       &&Object.keys(b).every(k=>equal(a[k],b[k])):a===b;
   let checks=0;
   for(const c of cases)for(const enabled of [false,true]) {
-    const options={simd:enabled,reductionFusion:enabled,memoizeReductions:enabled};
+    const options={...c.options,simd:enabled,reductionFusion:enabled,memoizeReductions:enabled};
     if(c.code) {
       let error;try{compile(c.source,options);}catch(e){error=e;}
       if(error?.code!==c.code)throw new Error(`${c.name}: expected ${c.code}, got ${error?.code??'success'}`);
