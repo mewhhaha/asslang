@@ -23,9 +23,12 @@ export async function browserBundle({ benchmark = false } = {}) {
     ['unsupportedCorpus','examples/unsupported-corpus.mjs','','unsupportedCorpus'],
     ['wasm','src/wasm.mjs','const {ABI_VERSION,layout,flatTypes}=modules.abiSchema;const {planReductionFusion}=modules.fusion;const {planSIMD,SIMD_OPS}=modules.simd;','uleb,emitModule'],
     ['reconstruction','src/reconstruction.mjs','','planReconstruction,reconstructionSource'],
-    ['descent','src/descent.mjs','const {planReconstruction}=modules.reconstruction;','planDescent,verifyDescent,descentSource'],
+    ['descentCodegen','src/descent-codegen.mjs','','emitDescentSource'],
+    ['descent','src/descent.mjs','const {emitDescentSource}=modules.descentCodegen;const {planReconstruction}=modules.reconstruction;','planDescent,verifyDescent,descentSource'],
+    ['descentExtension','src/descent-extension.mjs','const {planDescent,verifyDescent}=modules.descent;const {planReconstruction}=modules.reconstruction;const {emitDescentSource}=modules.descentCodegen;','planDescentExtension,descentCountermodel,descentExtensionSource'],
+    ['extensionChecks','test/descent-extension-browser.mjs','','runDescentExtensionBrowserChecks'],
     ['descentChecks','test/descent-browser.mjs','','runDescentBrowserChecks'],
-    ['compiler','src/compiler.mjs','const {CompileError,parse,infer}=modules.frontend;const {stage,verifyCertificate}=modules.jte;const {emitModule}=modules.wasm;const {supportsSIMD}=modules.simd;const {formatDiagnostic}=modules.diagnostics;const {planReconstruction,reconstructionSource}=modules.reconstruction;const {planDescent,verifyDescent,descentSource}=modules.descent;','planDescent,verifyDescent,descentSource,planReconstruction,reconstructionSource,compile,compileSources,check,checkSources,formatDiagnostic,createCompiler,instantiate,CompileError,verifyCertificate,supportsSIMD'],
+    ['compiler','src/compiler.mjs','const {CompileError,parse,infer}=modules.frontend;const {stage,verifyCertificate}=modules.jte;const {emitModule}=modules.wasm;const {supportsSIMD}=modules.simd;const {formatDiagnostic}=modules.diagnostics;const {planReconstruction,reconstructionSource}=modules.reconstruction;const {planDescent,verifyDescent,descentSource}=modules.descent;const {planDescentExtension,descentCountermodel,descentExtensionSource}=modules.descentExtension;','planDescentExtension,descentCountermodel,descentExtensionSource,planDescent,verifyDescent,descentSource,planReconstruction,reconstructionSource,compile,compileSources,check,checkSources,formatDiagnostic,createCompiler,instantiate,CompileError,verifyCertificate,supportsSIMD'],
     ['abi','src/abi.mjs','const {ABI_VERSION,alignTo,layout,flatTypes,isScalarSchema}=modules.abiSchema;','ABIError,Arena,readABI,createRuntime,createCapability,prepareCall'],
     ['unaryCases','test/unary-cases.mjs','','unaryCases'],
     ['reference','test/reference.mjs','const {parse,builtinArities}=modules.frontend;','reference'],
@@ -39,7 +42,7 @@ export async function browserBundle({ benchmark = false } = {}) {
   if(benchmark) {
     code+=`const report=await modules.benchmark.runBenchmarks({loadSource:async path=>globalThis.asslangSources[path],compileSamples:15,samples:11});report.environment={engine:navigator.userAgent};return report;`;
   } else {
-    code+='const {unaryCases}=modules.unaryCases;const {compile,compileSources,check,checkSources,formatDiagnostic,createCompiler,instantiate,supportsSIMD,planReconstruction,reconstructionSource}=modules.compiler;const {diagnosticCases}=modules.diagnosticCases;const {selectDiagnostic}=modules.navigation;const {createRuntime,createCapability}=modules.abi;const {reference}=modules.reference;const {corpus,unsupportedCorpus,exampleSource}=modules.corpus;\n';
+    code+='const {unaryCases}=modules.unaryCases;const {compile,compileSources,check,checkSources,formatDiagnostic,createCompiler,instantiate,supportsSIMD,planReconstruction,reconstructionSource,planDescentExtension,descentCountermodel,descentExtensionSource}=modules.compiler;const {runDescentExtensionBrowserChecks}=modules.extensionChecks;const {diagnosticCases}=modules.diagnosticCases;const {selectDiagnostic}=modules.navigation;const {createRuntime,createCapability}=modules.abi;const {reference}=modules.reference;const {corpus,unsupportedCorpus,exampleSource}=modules.corpus;\n';
     code+='document.body.innerHTML="<pre id=report></pre>";document.body.dataset.result="pending";globalThis.asslangEngineOnly=true;\n';
     code+=await read('test/browser.mjs');
     code+='\nawait modules.descentChecks.runDescentBrowserChecks(modules.compiler,modules.abi.createRuntime,report);\ndocument.querySelector("#report").textContent=JSON.stringify(report,null,2);\n';
