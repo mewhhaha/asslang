@@ -23,7 +23,9 @@ export async function browserBundle({ benchmark = false } = {}) {
     ['unsupportedCorpus','examples/unsupported-corpus.mjs','','unsupportedCorpus'],
     ['wasm','src/wasm.mjs','const {ABI_VERSION,layout,flatTypes}=modules.abiSchema;const {planReductionFusion}=modules.fusion;const {planSIMD,SIMD_OPS}=modules.simd;','uleb,emitModule'],
     ['reconstruction','src/reconstruction.mjs','','planReconstruction,reconstructionSource'],
-    ['compiler','src/compiler.mjs','const {CompileError,parse,infer}=modules.frontend;const {stage,verifyCertificate}=modules.jte;const {emitModule}=modules.wasm;const {supportsSIMD}=modules.simd;const {formatDiagnostic}=modules.diagnostics;const {planReconstruction,reconstructionSource}=modules.reconstruction;','planReconstruction,reconstructionSource,compile,compileSources,check,checkSources,formatDiagnostic,createCompiler,instantiate,CompileError,verifyCertificate,supportsSIMD'],
+    ['descent','src/descent.mjs','const {planReconstruction}=modules.reconstruction;','planDescent,verifyDescent,descentSource'],
+    ['descentChecks','test/descent-browser.mjs','','runDescentBrowserChecks'],
+    ['compiler','src/compiler.mjs','const {CompileError,parse,infer}=modules.frontend;const {stage,verifyCertificate}=modules.jte;const {emitModule}=modules.wasm;const {supportsSIMD}=modules.simd;const {formatDiagnostic}=modules.diagnostics;const {planReconstruction,reconstructionSource}=modules.reconstruction;const {planDescent,verifyDescent,descentSource}=modules.descent;','planDescent,verifyDescent,descentSource,planReconstruction,reconstructionSource,compile,compileSources,check,checkSources,formatDiagnostic,createCompiler,instantiate,CompileError,verifyCertificate,supportsSIMD'],
     ['abi','src/abi.mjs','const {ABI_VERSION,alignTo,layout,flatTypes,isScalarSchema}=modules.abiSchema;','ABIError,Arena,readABI,createRuntime,createCapability,prepareCall'],
     ['unaryCases','test/unary-cases.mjs','','unaryCases'],
     ['reference','test/reference.mjs','const {parse,builtinArities}=modules.frontend;','reference'],
@@ -40,6 +42,7 @@ export async function browserBundle({ benchmark = false } = {}) {
     code+='const {unaryCases}=modules.unaryCases;const {compile,compileSources,check,checkSources,formatDiagnostic,createCompiler,instantiate,supportsSIMD,planReconstruction,reconstructionSource}=modules.compiler;const {diagnosticCases}=modules.diagnosticCases;const {selectDiagnostic}=modules.navigation;const {createRuntime,createCapability}=modules.abi;const {reference}=modules.reference;const {corpus,unsupportedCorpus,exampleSource}=modules.corpus;\n';
     code+='document.body.innerHTML="<pre id=report></pre>";document.body.dataset.result="pending";globalThis.asslangEngineOnly=true;\n';
     code+=await read('test/browser.mjs');
+    code+='\nawait modules.descentChecks.runDescentBrowserChecks(modules.compiler,modules.abi.createRuntime,report);\ndocument.querySelector("#report").textContent=JSON.stringify(report,null,2);\n';
     const experiments=(await readdir(new URL('../test/experiments/',import.meta.url))).filter(n=>n.endsWith('.mjs')).sort();
     code+='\n'+await read('test/experiment-runner.mjs')+'\nconst experimentalCases=[];\n';
     for(const name of experiments)code+=`experimentalCases.push(...(()=>{${await read('test/experiments/'+name)};return cases;})());\n`;

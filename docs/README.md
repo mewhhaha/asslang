@@ -3,6 +3,9 @@
 Design changes begin here, before code. The repository-wide workflow is in
 [AGENTS.md](../AGENTS.md).
 
+- [Optimal descent certificates](DESCENT.md): minimum-cost overlap checks for
+  coherent partial records, independently verified and staged into checked joins.
+  See the [executed validation](DESCENT-VALIDATION.md).
 - [Per-invocation loop budgets](LOOP-BUDGETS.md): optional aggregate runtime
   traversal ceilings embedded in Wasm, with no extra imports or ABI arguments.
   See the [original validation](LOOP-BUDGETS-VALIDATION.md) and
