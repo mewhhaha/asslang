@@ -36,6 +36,8 @@
     "test:record-symbols": "node --test test/record-symbols.test.mjs test/experiments.test.mjs",
     "test:loop-budgets": "node --test test/reconstruction-loop-budgets.test.mjs test/loop-budgets.test.mjs test/loop-budgets-cli.test.mjs test/experiments.test.mjs",
     "example:descent": "node examples/interop/descent.mjs",
-    "test:descent": "node --test test/descent.test.mjs test/descent-theory.test.mjs test/reconstruction.test.mjs test/reconstruction-loop-budgets.test.mjs"
+    "test:descent": "node --test test/descent.test.mjs test/descent-theory.test.mjs test/reconstruction.test.mjs test/reconstruction-loop-budgets.test.mjs",
+    "example:descent-extension": "node examples/interop/descent-extension.mjs",
+    "test:descent-extensions": "node --test test/descent-extension*.test.mjs test/descent.test.mjs test/descent-theory.test.mjs"
   }
 }

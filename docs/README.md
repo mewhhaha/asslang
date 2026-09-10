@@ -3,6 +3,9 @@
 Design changes begin here, before code. The repository-wide workflow is in
 [AGENTS.md](../AGENTS.md).
 
+- [Relative descent certificates](DESCENT-EXTENSIONS.md): minimum-cost extension
+  under retained facts and restricted comparisons, with executable obstructions.
+  See the [executed validation](DESCENT-EXTENSIONS-VALIDATION.md).
 - [Optimal descent certificates](DESCENT.md): minimum-cost overlap checks for
   coherent partial records, independently verified and staged into checked joins.
   See the [executed validation](DESCENT-VALIDATION.md).

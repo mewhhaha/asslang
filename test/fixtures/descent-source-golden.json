@@ -1,0 +1,125 @@
+[
+  {
+    "name": "empty",
+    "graph": {
+      "nodes": [],
+      "edges": []
+    },
+    "patches": [],
+    "options": {},
+    "sha256": "d7b7e0c550fe5210975ac5b1ce8cd13b8ef8be14f6a727bb4296cbc3f6ec4696"
+  },
+  {
+    "name": "model",
+    "graph": {
+      "nodes": [
+        "x",
+        "z"
+      ],
+      "edges": [
+        {
+          "from": "x",
+          "to": "z",
+          "map": "id"
+        }
+      ]
+    },
+    "patches": [
+      {
+        "name": "a",
+        "nodes": [
+          "x",
+          "z"
+        ]
+      },
+      {
+        "name": "b",
+        "nodes": [
+          "x",
+          "z"
+        ]
+      }
+    ],
+    "options": {},
+    "sha256": "ef7253f4135d4acbbeab62a3b8a5b386e2eff0b749d6bba447cb6a1c819bb7a3"
+  },
+  {
+    "name": "cycle",
+    "graph": {
+      "nodes": [
+        "x",
+        "z"
+      ],
+      "edges": [
+        {
+          "from": "x",
+          "to": "z",
+          "map": "id"
+        },
+        {
+          "from": "z",
+          "to": "x",
+          "map": "id"
+        }
+      ]
+    },
+    "patches": [
+      {
+        "name": "a",
+        "nodes": [
+          "x",
+          "z"
+        ]
+      },
+      {
+        "name": "b",
+        "nodes": [
+          "x",
+          "z"
+        ]
+      },
+      {
+        "name": "c",
+        "nodes": [
+          "x",
+          "z"
+        ]
+      }
+    ],
+    "options": {
+      "costs": [
+        {
+          "node": "z",
+          "cost": 0
+        }
+      ]
+    },
+    "sha256": "c3adf8afed5268c52272850bf32f0b5945c500443717e9c8ca1dbbd82637456f"
+  },
+  {
+    "name": "isolate",
+    "graph": {
+      "nodes": [
+        "x",
+        "z"
+      ],
+      "edges": []
+    },
+    "patches": [
+      {
+        "name": "a",
+        "nodes": [
+          "x"
+        ]
+      },
+      {
+        "name": "b",
+        "nodes": [
+          "z"
+        ]
+      }
+    ],
+    "options": {},
+    "sha256": "b165d99e877877bfdfc87a4a6b3e23faa3871ff432ab7ea53886613472a30426"
+  }
+]
