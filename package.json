@@ -26,6 +26,7 @@
     "test:fusion": "node --test test/fusion*.test.mjs",
     "test:composability": "node --test test/fold-until.test.mjs test/reducers.test.mjs test/ergonomics.test.mjs",
     "example:reducers": "node examples/interop/reducers.mjs",
+    "example:reconstruction": "node examples/interop/reconstruction.mjs",
     "bench:improvements": "node scripts/bench-improvements.mjs",
     "example:case-studies": "node examples/case-studies/run.mjs",
     "test:simd": "node --test test/simd.test.mjs test/expanded-corpus.test.mjs",
@@ -33,6 +34,6 @@
     "test:pullback": "node --test test/pullback.test.mjs test/vjp.test.mjs test/linearize.test.mjs test/gradients.test.mjs test/differential.test.mjs test/experiments.test.mjs",
     "test:vjp": "node --test test/vjp.test.mjs test/differential.test.mjs test/gradients.test.mjs test/linearize.test.mjs test/experiments.test.mjs",
     "test:record-symbols": "node --test test/record-symbols.test.mjs test/experiments.test.mjs",
-    "test:loop-budgets": "node --test test/loop-budgets.test.mjs test/loop-budgets-cli.test.mjs test/experiments.test.mjs"
+    "test:loop-budgets": "node --test test/reconstruction-loop-budgets.test.mjs test/loop-budgets.test.mjs test/loop-budgets-cli.test.mjs test/experiments.test.mjs"
   }
 }

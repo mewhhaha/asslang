@@ -3,7 +3,7 @@ import { selectDiagnostic } from '../web/diagnostic-navigation.mjs';
 import { unaryCases } from './unary-cases.mjs';
 import { createRuntime, createCapability } from '../src/abi.mjs';
 import { corpus, unsupportedCorpus, exampleSource } from '../examples/corpus.mjs';
-import { compile, compileSources, check, checkSources, formatDiagnostic, createCompiler, instantiate, supportsSIMD } from '../src/compiler.mjs';
+import { compile, compileSources, check, checkSources, formatDiagnostic, createCompiler, instantiate, supportsSIMD, planReconstruction, reconstructionSource } from '../src/compiler.mjs';
 import { reference } from './reference.mjs';
 const report = { browser: navigator.userAgent, checks: 0, cases: [] };
 const assert = (condition,message) => { if (!condition) throw new Error(message); report.checks++; };
@@ -239,6 +239,49 @@ try {
   assert(close(oddMap.call('main',[[2,3,4]]),[4,9,16]),'SIMD odd tail');
   assert(close(oddMap.call('main',[[]]),[]),'SIMD empty output');
   report.cases.push({name:'ordered-simd-corpus',exports:corpus.filter(e=>!e.host).length,modes:2,vectorizedLoops:vectorized,unsupported:unsupportedCorpus.length});
+  const observationGraph = {nodes:['a','b','sink'],edges:[
+    {from:'a',to:'b',map:'flip'}, {from:'b',to:'a',map:'flip'}, {from:'a',to:'sink',map:'zero'}
+  ]};
+  const reconstruction = reconstructionSource('observations',observationGraph,{observed:['b']});
+  assert(reconstruction.plan.minimumDistance===2,'Reconstruction source-component distance');
+  assert(reconstruction.plan.basis.join(',')==='b','Explicit reconstruction seed');
+  assert(!planReconstruction(observationGraph,{observed:['sink']}).complete,'Downstream observation is insufficient');
+  for(const reductionFusion of [false,true]) {
+    const compiled=compileSources([reconstruction,{name:'restore.ass',source:`
+      fn equal = x -> y -> x == y;
+      export fn main = (b:Num) -> do {
+        let p=observations {flip:x -> -x,zero:x -> 0}; let value=p.restore {b};
+        {value,valid:p.check {a:equal,b:equal,sink:equal} value}
+      };`}],{reductionFusion});
+    const r=await createRuntime(compiled);
+    const restored=r.call('main',[3]);
+    assert(restored.valid && restored.value.a===-3 && restored.value.b===3 && restored.value.sink===0,'Cyclic reconstruction in browser');
+    assert(!r.call('main',[NaN]).valid,'Explicit equality rejects incoherent NaN observations');
+    assert(compiled.stats.kernelHeapAllocationSites===0,'No reconstruction guest allocator');
+  }
+  report.cases.push({name:'reconstruction-basis',modes:2,sourceComponents:1,minimumDistance:2});
+  const budgetedReconstruction = reconstructionSource('budgeted_observations', {
+    nodes:['n','first','second'],edges:[
+      {from:'n',to:'first',map:'sumRange'},
+      {from:'first',to:'second',map:'sumRange'}
+    ]
+  });
+  const budgetedSources = [budgetedReconstruction,{name:'budgeted.ass',source:`
+    export fn main = (n:Num) ->
+      ((budgeted_observations {sumRange:x -> sum (range x)}).restore {n}).second;
+  `}];
+  for(const simd of [false,true])for(const reductionFusion of [false,true]) {
+    // Four iterations produce six, then six more produce fifteen: ten units.
+    const c=compileSources(budgetedSources,{simd,reductionFusion,maxLoopIterations:10});
+    assert(c.executionLimits.maxLoopIterations===10,'Generated source retains loop policy');
+    assert((await createRuntime(c)).call('main',[4])===15,'Generated arrows share exact ten-unit allowance');
+    const r=await createRuntime(compileSources(budgetedSources,{simd,reductionFusion,maxLoopIterations:9}));
+    let exhausted=false;
+    try {r.call('main',[4]);} catch(e) {exhausted=e instanceof WebAssembly.RuntimeError;}
+    assert(exhausted,'Generated helper cannot reset a nine-unit allowance');
+    assert(r.call('main',[3])===3,'Generated protocol receives fresh allowance after a trap');
+  }
+  report.cases.push({name:'reconstruction-loop-budgets',modes:4,exactAllowance:10});
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {

@@ -71,3 +71,58 @@ reconstruction/case-study examples, example build, Chromium engine tests, syntax
 checks, and `git diff --check`. Record results below only after execution. Preserve
 previous validation reports unchanged; they describe their own original revisions.
 Remote checks for the repaired head must pass before merging PR #14.
+
+## Executed repair validation — 2026-09-10
+
+The three-way integration found one textual conflict, in `docs/README.md`.
+Both feature entries are retained. The compiler entry point and package scripts
+combined cleanly; the reconstruction exports/example and loop-budget options/test
+command are all present. The focused loop-budget command now includes the new
+integration suite. The original metering emitter, CLI implementation, and previous
+validation reports were not changed by this repair.
+
+Environment: Node v22.16.0, Linux x64, Chromium 144.0.7559.96.
+
+| Command | Executed result |
+| --- | --- |
+| `npm test` on the original PR #14 | 845 passed; zero failures or skips |
+| `npm test` on the repaired integration | 877 passed; zero failures or skips |
+| `node --test test/reconstruction-loop-budgets.test.mjs` | 7 passed |
+| `npm run test:loop-budgets` | 187 passed |
+| `node --test test/reconstruction.test.mjs` | 25 passed |
+| `npm run example:host` | Passed |
+| `npm run example:reducers` | Passed |
+| `npm run example:reconstruction` | Passed |
+| `npm run example:case-studies` | Passed |
+| `npm run build:example` | Passed |
+| `npm run test:browser -- --output /mnt/data/pr14-repaired-browser.json` | 1,121 core checks and 276 experiment checks passed (138 experiment cases) |
+| `node --check` for the combined compiler/browser modules and new test module | Passed |
+| `git diff --check` | Passed |
+
+The seven new Node tests exercise all eight SIMD/fusion/memoization combinations
+for scalar erasure, chained arrows, explicit coherence checks, demand, and causal
+streams. A two-arrow chain first sums `range 4`, obtaining 6, and then sums
+`range 6`, obtaining 15. The shared allowance is exactly 10: 10 succeeds and 9
+traps, including direct Wasm invocation. A separate coherence check spends four
+units in its arrow and two in its equality predicate; six succeeds and five
+traps. Retained conflicting coordinates produce `false`, or trap when the caller
+explicitly requires validity. Unused reconstruction/check work succeeds even
+with zero allowance and a large otherwise-expensive input.
+
+Generated scalar/stream workloads produce byte-identical Wasm to their
+handwritten equivalents under the tested limited and unlimited configurations.
+This is narrow compatibility evidence, not a general performance claim. The
+suite also covers per-call reset after traps, generated named-source compilation,
+cache snapshot isolation, non-executing checks, file-local diagnostics, and
+rejection of noncausal stream access.
+
+The Chromium suite adds 16 assertions across four SIMD/fusion combinations,
+using generated named sources to test the exact 10-unit boundary, exhaustion,
+metadata, and fresh allowance after a trap. It retains both existing feature
+suites. Validation used the engine-only bundle: HTTP module loading, browser
+worker loading, other browser engines, and throughput benchmarks were not tested.
+The limits are still emitted-loop counts, not elapsed-time or full-instruction
+fuel; equality laws and totality remain the application's responsibility.
+
+These are local execution results. Remote CI results and the exact published
+head are recorded separately in the PR conversation after publication.
