@@ -155,6 +155,26 @@ is unsound. The bounded helper lives in the example; no compiler API or equality
 semantics changes are required. The runtime example rechecks both the actual
 caller guarantee and the extra evidence.
 
+## Compose reusable evidence contracts
+
+`createEvidenceAlgebra` gives component contracts their own named atoms, then
+substitutes concrete formulas at composition time. Equivalent contracts share a
+canonical handle within a session. `residual(guarantee, target)` derives the
+weakest monotone missing requirement; infer it after substitution, because
+identifying atoms can make an old requirement unnecessarily strong.
+
+Run `npm run example:evidence-algebra`. The example checks an existing descent
+frontier, instantiates a component contract, and rechecks current facts and local
+equations in ordinary Asslang before returning values. A structured 96-atom
+contract represents 2^48 minimal supports with 96 reachable decision nodes.
+This is a measured representation example, not a general size guarantee.
+
+The [contract algebra](EVIDENCE-ALGEBRA.md) documents bounded decision diagrams,
+substitution, witnesses, pricing and generated predicates. Prime products provide
+a useful tiny reference model for supports, not a replacement for Hindley–Milner
+types, scope or occurs checks. No runtime truth or authority follows from an
+algebra handle. [Executed checks](EVIDENCE-ALGEBRA-VALIDATION.md) give the limits.
+
 ## Go deeper
 
 The implementation documents separate established mathematics, proved derivations,

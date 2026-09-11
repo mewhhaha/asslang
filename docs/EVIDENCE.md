@@ -16,6 +16,7 @@ checks and regression runs for this change.
 
 | Area | Executed validation |
 | --- | --- |
+| Compositional evidence contracts | [Symbolic algebra and staging](EVIDENCE-ALGEBRA-VALIDATION.md). |
 | Shared proof frontiers | [Batch proofs](DESCENT-BATCHES-VALIDATION.md). |
 | Goal-directed evidence | [Query proofs](DESCENT-QUERIES-VALIDATION.md). |
 | Restricted or retained evidence | [Relative descent](DESCENT-EXTENSIONS-VALIDATION.md). |

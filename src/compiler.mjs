@@ -11,6 +11,7 @@ export { planDescent, verifyDescent, descentSource } from './descent.mjs';
 export { planDescentExtension, descentCountermodel, descentExtensionSource } from './descent-extension.mjs';
 export { planDescentQuery, verifyDescentQuery, verifyDescentQueryCost, descentQuerySource } from './descent-query.mjs';
 export { planDescentBatch, verifyDescentBatch, descentBatchSource } from './descent-batch.mjs';
+export { createEvidenceAlgebra } from './evidence-algebra.mjs';
 
 function validateOptions(options) {
   if (!options || typeof options !== 'object' || Array.isArray(options)) throw new TypeError('Compiler options must be an object');
