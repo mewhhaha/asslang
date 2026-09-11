@@ -1,10 +1,11 @@
 # Executable examples and feature catalogue
 
-The corpus now registers **91 runnable exports**, **18 unsupported-feature
-fixtures**, and **3 deliberate safety rejections**. `corpus.mjs` is the discovery
-entry point for tests, benchmarks and the playground. `expanded-corpus.mjs` adds
-43 canonical-syntax examples, including six app-like case studies. Every `.ass`
-file is registered, and every accepted export has arguments and expected output.
+`corpus.mjs` is the discovery entry point for tests, benchmarks and the playground.
+Every `.ass` file is registered, and every accepted export has arguments and an
+expected output. Start with the [practical workflows](case-studies/workflows/README.md)
+for reusable hosts around numerical, stateful and evidence-driven kernels.
+AD/generated source fragments have dedicated analytic and browser tests rather
+than bypassing the corpus interpreter's unsupported-operation checks.
 
 ## Start here
 

@@ -54,6 +54,8 @@
     "example:evidence-transport": "node examples/interop/evidence-transport.mjs",
     "test:evidence-transport": "node --test test/evidence-transport*.test.mjs",
     "example:evidence-presentation": "node examples/interop/evidence-presentation.mjs",
-    "test:evidence-presentations": "node --test test/evidence-presentation*.test.mjs"
+    "test:evidence-presentations": "node --test test/evidence-presentation*.test.mjs",
+    "example:workflows": "node examples/case-studies/workflows/run.mjs",
+    "test:workflows": "node --test test/workflows.test.mjs"
   }
 }

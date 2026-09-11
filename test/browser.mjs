@@ -1,3 +1,4 @@
+import { runWorkflowBrowserChecks } from './workflows-browser.mjs';
 import { runEvidencePresentationBrowserChecks } from './evidence-presentation-browser.mjs';
 import { runEvidenceTransportBrowserChecks } from './evidence-transport-browser.mjs';
 import { runEvidenceRefinementBrowserChecks } from './evidence-refinement-browser.mjs';
@@ -296,6 +297,7 @@ try {
   await runEvidenceRefinementBrowserChecks({createEvidenceAlgebra,compileSources},createRuntime,report);
   await runEvidenceTransportBrowserChecks({createEvidenceAlgebra,compileSources},createRuntime,report);
   await runEvidencePresentationBrowserChecks({createEvidenceAlgebra,compileSources},createRuntime,report);
+  await runWorkflowBrowserChecks({compileSources},createRuntime,report);
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {

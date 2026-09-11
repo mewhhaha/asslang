@@ -1,0 +1,30 @@
+// Explicit carry state: splitting a sequence must not reset its history.
+fn monitor_finite = x -> x-x == 0;
+fn monitor_count = x -> x >= 0 && x <= 1000000000 && floor x == x;
+export fn monitor_chunk = (samples:[Num]) ->
+  (seed:{seen:Num,mean:Num,alarm:Bool,raised:Num,cleared:Num}) ->
+  (config:{alpha:Num,low:Num,high:Num}) -> do {
+    let valid = monitor_finite config.alpha && config.alpha > 0 && config.alpha <= 1
+      && monitor_finite config.low && monitor_finite config.high && config.low < config.high
+      && monitor_finite seed.mean && monitor_count seed.seen
+      && monitor_count seed.raised && monitor_count seed.cleared
+      && seed.raised + seed.cleared <= seed.seen
+      && seed.raised - seed.cleared == (if seed.alarm then 1 else 0)
+      && (seed.seen > 0 || seed.mean == 0)
+      && (seed.seen == 0 || (if seed.alarm then seed.mean > config.low else seed.mean < config.high));
+    let history = scan samples seed (s -> x -> do {
+      let nextMean = if s.seen == 0 then x else s.mean + config.alpha*(x-s.mean);
+      let mean = if nextMean == 0 then 0 else nextMean;
+      let alarm = if s.alarm then mean > config.low else mean >= config.high;
+      require (monitor_finite x && monitor_finite mean && s.seen < 1000000000) {
+        seen:s.seen+1, mean, alarm,
+        raised:s.raised + (if alarm && !s.alarm then 1 else 0),
+        cleared:s.cleared + (if s.alarm && !alarm then 1 else 0)
+      }
+    });
+    require valid {
+      state:fold history seed (previous -> next -> next),
+      smoothed:map history (s -> s.mean),
+      alarms:map history (s -> s.alarm)
+    }
+  };

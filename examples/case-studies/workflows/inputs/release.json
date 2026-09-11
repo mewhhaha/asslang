@@ -1,0 +1,6 @@
+{
+  "candidate": {"revision": "demo-rev-42", "digest": "demo-artifact-42"},
+  "ci": {"revision": "demo-rev-42", "passed": 120, "failed": 0},
+  "artifact": {"revision": "demo-rev-42", "digest": "demo-artifact-42"},
+  "approval": {"revision": "demo-rev-41", "approved": true}
+}

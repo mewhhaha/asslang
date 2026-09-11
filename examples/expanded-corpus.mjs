@@ -1,5 +1,9 @@
 // Canonical examples, language-pattern inspirations, and app-like fixtures.
 export const expandedCorpus = [
+  {id:'resumable-monitor',path:'case-studies/workflows/monitor.ass',name:'monitor_chunk',
+    args:[[0,8,8,0,0],{seen:0,mean:0,alarm:false,raised:0,cleared:0},{alpha:0.5,low:3,high:6}],
+    expected:{state:{seen:5,mean:1.5,alarm:false,raised:1,cleared:1},smoothed:[0,4,6,3,1.5],alarms:[false,false,true,false,false]},
+    inspiration:'chunk-stable smoothing and hysteresis with explicit checkpoint state',kind:'case-study'},
   {"id":"partial-application","path":"patterns/partial_application.ass","name":"main","args":[7],"expected":17,"inspiration":"ML/Haskell currying"},
   {"id":"function-composition","path":"patterns/function_composition.ass","name":"main","args":[4],"expected":25,"inspiration":"Haskell composition","libraries":["../lib/patterns.ass"]},
   {"id":"nested-products","path":"patterns/nested_products.ass","name":"main","args":[3],"expected":50,"inspiration":"ML destructuring"},
