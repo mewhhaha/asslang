@@ -127,10 +127,12 @@ test('monitor random input matches explicit transitions; thresholds count edges 
 });
 
 test('monitor loop exhaustion preserves host checkpoint and permits a later smaller call',async()=>{
-  // Three sinks currently traverse the history independently: do not claim one loop.
-  const m=await createMonitor(config,null,{maxLoopIterations:3});
-  const before=m.checkpoint();assert.throws(()=>m.process([1,2]),WebAssembly.RuntimeError);
-  assert.deepEqual(m.checkpoint(),before);assert.equal(m.process([1]).checkpoint.state.seen,1);
+  for (const reductionFusion of [false,true]) {
+    const m=await createMonitor(config,null,{maxLoopIterations:3,reductionFusion});
+    const before=m.checkpoint();
+    assert.throws(()=>m.process(reductionFusion ? [1,2,3,4] : [1,2]),WebAssembly.RuntimeError);
+    assert.deepEqual(m.checkpoint(),before);assert.equal(m.process([1]).checkpoint.state.seen,1);
+  }
 });
 
 test('calibration clean and contaminated fixtures have independent analytic optima',async()=>{

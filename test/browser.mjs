@@ -1,3 +1,4 @@
+import { runOutputFusionBrowserChecks } from './output-fusion-browser.mjs';
 import { runWorkflowBrowserChecks } from './workflows-browser.mjs';
 import { runEvidencePresentationBrowserChecks } from './evidence-presentation-browser.mjs';
 import { runEvidenceTransportBrowserChecks } from './evidence-transport-browser.mjs';
@@ -298,6 +299,7 @@ try {
   await runEvidenceTransportBrowserChecks({createEvidenceAlgebra,compileSources},createRuntime,report);
   await runEvidencePresentationBrowserChecks({createEvidenceAlgebra,compileSources},createRuntime,report);
   await runWorkflowBrowserChecks({compileSources},createRuntime,report);
+  await runOutputFusionBrowserChecks({compile,createCompiler},createRuntime,report);
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {

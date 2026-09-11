@@ -38,7 +38,7 @@ sinks (arrays plus distinct reduction nodes). All non-record leaves must be:
   wrapped in a matching sequence of unconditional `require` guards.
 
 Every sink must have the same checked JTE event domain, exact extent node,
-lexical cursor identities and ordered causal-machine identities. At least one
+lexical cursor identities and ordered causal-machine identities and identical machine objects. At least one
 causal machine is required. The observation must be dense and its mask absent.
 The effective guard sequence (outer scalar guards, then its stream guards) must
 be identical to the array guard sequence. This is deliberately stricter than
@@ -116,7 +116,8 @@ wall-clock time.
 
 Report `outputFusion` separately from reduction-only groups: enabled flag,
 cohort domain, participating stream proofs/reduction IDs, shared machine count
-and eliminated traversal count. Overall loop, machine, local and Wasm-byte
+and eliminated traversal count relative to independent physical sinks (not
+already-fused scalar groups). Overall loop, machine, local and Wasm-byte
 statistics remain real emitted counts. The existing `reductionFusion` toggle
 also disables this pass; no configuration migration is required. Keeping an
 old tight allowance can now succeed on an eligible optimized program, which is
@@ -152,3 +153,18 @@ access and ABI rejection. Test source-local diagnostics, cache copies and leases
 Register real-browser checks in both harnesses and run all existing Node,
 host/reducer/workflow examples and available Chromium validation. Keep README
 short, and record only executed results in a new validation report.
+
+## Run the unchanged application
+
+```sh
+npm run example:output-fusion
+npm run test:output-fusion
+npm run example:workflows
+```
+
+The comparison script compiles the same `monitor.ass` twice. Its report includes
+actual loops, state-machine copies, local count and Wasm size, and asserts identical
+application results. Compiler diagnostics expose `stats.functions[i].outputFusion`.
+To retain the old scheduling, use `{reductionFusion:false}` or CLI
+`--no-reduction-fusion`. Successful values and ABI layout do not need migration.
+See [executed validation](OUTPUT-FUSION-VALIDATION.md) for results and limitations.

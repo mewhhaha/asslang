@@ -16,6 +16,7 @@ checks and regression runs for this change.
 
 | Area | Executed validation |
 | --- | --- |
+| One-pass causal output | [Output cohorts and monitor replay reduction](OUTPUT-FUSION-VALIDATION.md). |
 | Practical application workflows | [Monitoring, calibration and release preflight](CASE-STUDIES-VALIDATION.md). |
 | Law-aware contract interfaces | [Presentations and image transport](EVIDENCE-PRESENTATIONS-VALIDATION.md). |
 | Conditional interface composition | [Transport audits and exact evidence lifting](EVIDENCE-TRANSPORT-VALIDATION.md). |

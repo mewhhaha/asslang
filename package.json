@@ -56,6 +56,8 @@
     "example:evidence-presentation": "node examples/interop/evidence-presentation.mjs",
     "test:evidence-presentations": "node --test test/evidence-presentation*.test.mjs",
     "example:workflows": "node examples/case-studies/workflows/run.mjs",
-    "test:workflows": "node --test test/workflows.test.mjs"
+    "test:workflows": "node --test test/workflows.test.mjs",
+    "example:output-fusion": "node examples/interop/output-fusion.mjs",
+    "test:output-fusion": "node --test test/output-fusion.test.mjs"
   }
 }

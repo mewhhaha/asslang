@@ -47,8 +47,10 @@ causal transitions ARE inspected because consumed transitions are strict.
 Candidates containing nested reductions, bounded iterations or host calls are
 conservatively excluded. Cohorts do not enter per-iteration contexts. Completed
 scalar/group results and lazily memoized results cannot be pulled into a second
-cohort. Scalar record result fields may form one demand region; materialized array
-outputs are not fused with independent sinks.
+cohort. Scalar record result fields may form one demand region. A separate
+[output-cohort pass](OUTPUT-FUSION.md) shares dense causal materializations and
+direct reductions when the entire returned record has identical schedules and
+guards. Sparse/stateless outputs and unsupported mixtures keep independent sinks.
 
 All explicit host effects execute through the existing broker, in source order,
 before result materialization. Fusion neither activates capabilities nor moves work
