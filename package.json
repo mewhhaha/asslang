@@ -42,6 +42,8 @@
     "example:descent-query": "node examples/interop/descent-query.mjs",
     "test:descent-queries": "node --test test/descent-query*.test.mjs",
     "example:descent-batch": "node examples/interop/descent-batch.mjs",
-    "test:descent-batches": "node --test test/descent-batch*.test.mjs"
+    "test:descent-batches": "node --test test/descent-batch*.test.mjs",
+    "example:evidence-residual": "node examples/interop/evidence-residual.mjs",
+    "test:docs": "node --test test/documentation.test.mjs test/evidence-residual.test.mjs"
   }
 }

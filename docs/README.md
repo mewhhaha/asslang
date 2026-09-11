@@ -1,67 +1,62 @@
-# Asslang theory and implementation
+# Asslang documentation
 
-Design changes begin here, before code. The repository-wide workflow is in
-[AGENTS.md](../AGENTS.md).
+Start with a runnable program, then follow the contract for the abstraction you use.
+The [repository README](../README.md) is the overview; this directory holds the detail.
 
-- [Shared descent proof frontiers](DESCENT-BATCHES.md): exact bounded multi-goal
-  evidence sharing, exhaustive frontier certificates and atomic staged guards.
-  See the [executed validation](DESCENT-BATCHES-VALIDATION.md).
-- [Query-directed descent](DESCENT-QUERIES.md): cheapest evidence for one equality,
-  transport proofs, dual cost certificates and support-local guarded selection.
-  See the [executed validation](DESCENT-QUERIES-VALIDATION.md).
-- [Relative descent certificates](DESCENT-EXTENSIONS.md): minimum-cost extension
-  under retained facts and restricted comparisons, with executable obstructions.
-  See the [executed validation](DESCENT-EXTENSIONS-VALIDATION.md).
-- [Optimal descent certificates](DESCENT.md): minimum-cost overlap checks for
-  coherent partial records, independently verified and staged into checked joins.
-  See the [executed validation](DESCENT-VALIDATION.md).
-- [Per-invocation loop budgets](LOOP-BUDGETS.md): optional aggregate runtime
-  traversal ceilings embedded in Wasm, with no extra imports or ABI arguments.
-  See the [original validation](LOOP-BUDGETS-VALIDATION.md) and
-  [reconstruction integration](LOOP-BUDGETS-INTEGRATION.md).
-- [Reconstruction bases](RECONSTRUCTION.md): finite observation graphs, exact
-  source-component covers, and staged restoration with explicit coherence checks.
-  See the [executed validation](RECONSTRUCTION-VALIDATION.md).
-- [Static record symbols](RECORD-SYMBOLS.md): explicit typed protocol keys,
-  staged dictionaries, and call-frame/ABI memory boundaries. See the
-  [executed validation](RECORD-SYMBOLS-VALIDATION.md).
-- [Reusable reverse pullbacks](PULLBACK.md): prepare an objective and reverse
-  analysis once, then apply independent output weights with staged callables.
-  See the [executed validation](PULLBACK-VALIDATION.md).
-- [Reverse-mode vector-Jacobian products](VJP.md): output-weighted sensitivities
-  with branch-gated reverse accumulation and product-shaped cotangents. See the
-  [executed validation](VJP-VALIDATION.md).
-- [Reusable linearization](LINEARIZE.md): prepare a forward derivative once and
-  reuse its statically staged pushforward across directions and numeric products.
-  See the [executed validation](LINEARIZE-VALIDATION.md).
-- [Finite product gradients](GRADIENTS.md): scalar objectives, product-shaped
-  forward gradients, nested derivatives, and bounded basis expansion. See the
-  [executed gradient validation](GRADIENTS-VALIDATION.md).
-- [Differential staging](DIFFERENTIAL-STAGING.md): perturbation-scoped forward
-  differentiation, demand preservation, and atomic performed-result boundaries.
-- [Finite callable choices](STAGED-CALLABLES.md): demand-preserving branch
-  specialization of higher-order policies without guest closures.
-- [Expanded examples and ordered SIMD](EXAMPLES-SIMD.md): corpus categories,
-  extensibility, default reduction cohorts, SIMD eligibility, and app case studies.
-- [Implementation theory](IMPLEMENTATION.md): phases, representations, invariants,
-  and the boundary between static abstractions and runtime kernels.
-- [Structured diagnostics](DIAGNOSTICS.md): source-local error data, full-pipeline
-  non-executing checks, JSON CLI output, and playground navigation. See the
-  [executed diagnostics validation](DIAGNOSTICS-VALIDATION.md).
-- [Canonical syntax](SYNTAX.md): unary arrows, whitespace calls, products, explicit
-  blocks, deterministic parsing, and migration from the legacy surface.
-- [Causal streams](CAUSAL.md), [JTE](JTE.md), and [concepts](CONCEPTS.md): event
-  alignment, sequential access, and scalar machines.
-- [Composability](COMPOSABILITY.md) and [integration](INTEGRATION.md): reducers,
-  linked sources, compiler sessions, and demand-scoped reduction fusion.
-- [ASABI 1](ABI.md), [effects](EFFECTS.md), and [leases](LEASES.md): representation,
-  host authority, and input lifetime.
-- [Syntax validation](SYNTAX-VALIDATION.md): executed unary-language checks and
-  parser measurements, including limitations.
-- [Validation](VALIDATION.md), [composability validation](COMPOSABILITY-VALIDATION.md),
-  and [provenance](PROVENANCE.md): dated evidence and its limitations.
+## Start here
 
-Existing benchmark JSON and `history/` are historical evidence, not measurements
-of subsequent changes. New validation reports must identify what was actually run.
+| Guide | Use it for |
+| --- | --- |
+| [Getting started](GETTING-STARTED.md) | Node setup, CLI and JS calls, diagnostics, tests, limits. |
+| [Language tour](LANGUAGE-TOUR.md) | Canonical syntax, streams, derivatives, demand and effects. |
+| [Category theory in practice](CATEGORY-THEORY.md) | Choose a reconstruction/proof helper and run complete examples. |
+| [Example corpus](../examples/README.md) | Algorithms, unsupported fixtures and app-like case studies. |
+| [Validation and provenance](EVIDENCE.md) | Revision-specific checks, measurements and limitations. |
 
-* [Examples and SIMD validation](EXAMPLES-SIMD-VALIDATION.md): executed checks and remaining limitations.
+## Language, runtime and compiler
+
+| Topic | Contract |
+| --- | --- |
+| Syntax and migration | [Unary syntax](SYNTAX.md), [static record symbols](RECORD-SYMBOLS.md). |
+| Streams and state | [Causality](CAUSAL.md), [JTE alignment](JTE.md), [concept mappings](CONCEPTS.md). |
+| Composition | [Reducers and linked sources](COMPOSABILITY.md), [staged callables](STAGED-CALLABLES.md). |
+| Host boundaries | [ASABI 1](ABI.md), [explicit effects](EFFECTS.md), [input leases](LEASES.md). |
+| Resource controls | [Per-invocation loop budgets](LOOP-BUDGETS.md), [compiler limits](IMPLEMENTATION.md#resource-bounds-and-evidence). |
+| Diagnostics | [Non-executing checks and source locations](DIAGNOSTICS.md). |
+| Lowering | [Implementation](IMPLEMENTATION.md), [ordered SIMD](EXAMPLES-SIMD.md), [reduction fusion](REDUCTION-FUSION.md), [integration history](INTEGRATION.md). |
+
+## Numerical differentiation
+
+| Task | Contract |
+| --- | --- |
+| Understand differentiation and demand | [Differential staging](DIFFERENTIAL-STAGING.md). |
+| Scalar objectives over numeric products | [Gradients](GRADIENTS.md). |
+| Reuse forward derivatives across directions | [Linearization](LINEARIZE.md). |
+| Weight output sensitivities | [Reverse VJPs](VJP.md). |
+| Reuse reverse plans across output weights | [Pullbacks](PULLBACK.md). |
+
+## Observation diagrams and evidence
+
+Read the [practical guide](CATEGORY-THEORY.md) before the derivations.
+These are explicit models and generated protocols, not inferred laws about arbitrary programs.
+
+| Question | Derivation and API |
+| --- | --- |
+| Which observations determine a coherent record? | [Reconstruction bases](RECONSTRUCTION.md). |
+| Which overlaps must agree to glue records? | [Optimal descent](DESCENT.md). |
+| What is the cheapest permitted extension of retained comparisons? | [Relative descent](DESCENT-EXTENSIONS.md). |
+| What evidence proves one requested equality? | [Query-directed proofs and metrics](DESCENT-QUERIES.md). |
+| Which alternative supports share work across goals? | [Batch frontiers](DESCENT-BATCHES.md). |
+| What additional evidence handles every promised alternative? | [Conditional evidence and Heyting implication](EVIDENCE-RESIDUALS.md); bounded teaching example. |
+
+## Contribute and assess the evidence
+
+Follow [AGENTS.md](../AGENTS.md): document semantics and invariants before changing
+implementation, then reconcile the documents with actual tests. See the
+[architecture](IMPLEMENTATION.md), [related work](RELATED-WORK.md), and
+[publication provenance](PROVENANCE.md).
+
+[Validation reports](EVIDENCE.md) preserve what was actually measured at particular
+revisions. Old benchmark files and `history/` are historical evidence, not current
+performance promises. A mathematical derivation and finite test suite do not
+establish worldwide novelty or substitute for a proof-assistant check.
