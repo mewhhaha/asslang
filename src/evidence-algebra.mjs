@@ -1,3 +1,4 @@
+import { createEvidencePresentation } from './evidence-presentation.mjs';
 import { auditEvidenceTransport, liftEvidenceTransport } from './evidence-transport.mjs';
 import { planReconstruction } from './reconstruction.mjs';
 import { inferEvidenceInterface } from './evidence-interface.mjs';
@@ -259,6 +260,14 @@ export function createEvidenceAlgebra(atoms, options = {}) {
      */
     auditTransport(bindings) {
       return freeze(auditEvidenceTransport(state, transportBindings(bindings), { maxNodes, maxWork }));
+    },
+    /** Infer exact public laws and form an independent contract algebra modulo
+     * those laws. Public generation checks realizability; flags are not authority.
+     * See docs/EVIDENCE-PRESENTATIONS.md for relative implication and transport.
+     * @param {{atom:string,value:object}[]} bindings Private-owned summaries.
+     */
+    present(bindings) {
+      return createEvidencePresentation(state, transportBindings(bindings), { maxNodes, maxWork });
     },
     /** Cheapest additional private facts realizing EXACTLY a requested public
      * view while retaining all current private facts. This plans Boolean evidence,
