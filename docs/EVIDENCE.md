@@ -16,6 +16,7 @@ checks and regression runs for this change.
 
 | Area | Executed validation |
 | --- | --- |
+| Minimum-cost interface repair | [Refinement selection and certificates](EVIDENCE-REFINEMENT-VALIDATION.md). |
 | Principal module interfaces | [Adjoints and information-loss witnesses](EVIDENCE-INTERFACES-VALIDATION.md). |
 | Compositional evidence contracts | [Symbolic algebra and staging](EVIDENCE-ALGEBRA-VALIDATION.md). |
 | Shared proof frontiers | [Batch proofs](DESCENT-BATCHES-VALIDATION.md). |

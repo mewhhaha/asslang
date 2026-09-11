@@ -1,5 +1,6 @@
 import { planReconstruction } from './reconstruction.mjs';
 import { inferEvidenceInterface } from './evidence-interface.mjs';
+import { planEvidenceRefinement, verifyEvidenceRefinement } from './evidence-refinement.mjs';
 
 // Explicit, bounded ROBDD sessions. No global strong intern table or guest data.
 // Only monotone contracts escape; Boolean negation stays inside entailment/residual.
@@ -223,6 +224,21 @@ export function createEvidenceAlgebra(atoms, options = {}) {
         names.map((_, i) => meanings.get(i)), { tick, mk, maxNodes, nodes: state.nodes, atoms: names }));
       // Publish neither handle until workspace, bounds and witness checks succeed.
       return freeze({ ...result, necessary: handle(result.necessary), sufficient: handle(result.sufficient) });
+    },
+    /** Choose cheapest additional public summaries making every named private
+     * target exactly expressible. Pure build-time selection; no authenticated facts.
+     * @param {{name:string,value:object}[]} targets Private-owned contract handles.
+     * @param {{retained?:{atom:string,value:object}[],candidates:{atom:string,value:object,cost?:number}[],maxRounds?:number,maxVerificationWork?:number}} options
+     */
+    refine(targets, options) {
+      return planEvidenceRefinement(api, createEvidenceAlgebra, targets, options);
+    },
+    /** Check exactness and the price/cardinality certificate without the planner's
+     * hitting-set optimizer. Shares the existing semantic abstraction oracle.
+     * Malformed data returns false; invalid inputs or exhausted budgets throw.
+     */
+    verifyRefinement(targets, options, certificate) {
+      return verifyEvidenceRefinement(api, createEvidenceAlgebra, targets, options, certificate);
     },
     equivalent(a, b) { return own(a) === own(b); },
     entails(a, b) { return difference(a, b) === 0; },
