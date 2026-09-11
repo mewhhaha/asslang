@@ -1,3 +1,4 @@
+import { auditEvidenceTransport, liftEvidenceTransport } from './evidence-transport.mjs';
 import { planReconstruction } from './reconstruction.mjs';
 import { inferEvidenceInterface } from './evidence-interface.mjs';
 import { planEvidenceRefinement, verifyEvidenceRefinement } from './evidence-refinement.mjs';
@@ -87,6 +88,16 @@ export function createEvidenceAlgebra(atoms, options = {}) {
       set.add(i);
     }
     return set;
+  }
+  function transportBindings(input) {
+    const result = [];
+    for (const binding of array(input, 128, 'Transport bindings')) {
+      if (!object(binding)) throw new TypeError('Transport bindings must be objects');
+      const { atom, value } = binding;
+      result.push({ atom, root: own(value) });
+    }
+    planReconstruction({ nodes: result.map(b => b.atom), edges: [] });
+    return result;
   }
   function transaction(fn) {
     const start = state.nodes.length;
@@ -239,6 +250,40 @@ export function createEvidenceAlgebra(atoms, options = {}) {
      */
     verifyRefinement(targets, options, certificate) {
       return verifyEvidenceRefinement(api, createEvidenceAlgebra, targets, options, certificate);
+    },
+    /** Audit every public implication, not only specified consumers. A positive
+     * result means every public view extension lifts to a private extension.
+     * Negative results give a concrete missing single-atom extension. No source
+     * session mutation or authority token. See docs/EVIDENCE-TRANSPORT.md.
+     * @param {{atom:string,value:object}[]} bindings Private-owned meanings.
+     */
+    auditTransport(bindings) {
+      return freeze(auditEvidenceTransport(state, transportBindings(bindings), { maxNodes, maxWork }));
+    },
+    /** Cheapest additional private facts realizing EXACTLY a requested public
+     * view while retaining all current private facts. This plans Boolean evidence,
+     * not acquisition or mutation of actual data. Returns null if no lift exists.
+     * @param {{atom:string,value:object}[]} bindings Private-owned meanings.
+     * @param {string[]} current True private atoms; all others currently false.
+     * @param {string[]} requested Exactly the requested true public atoms.
+     * @param {{atom:string,cost:number}[]} overrides Nonnegative added-fact prices.
+     */
+    liftEvidence(bindings, current, requested, overrides = []) {
+      const mapping = transportBindings(bindings), initial = trueSet(current);
+      const publicIndices = new Map(mapping.map((b, i) => [b.atom, i])), desired = new Set();
+      for (const atom of array(requested, mapping.length, 'Requested public atoms')) {
+        const i = publicIndices.get(atom);
+        if (i === undefined || desired.has(i)) throw new TypeError('Unknown or duplicate requested public atom');
+        desired.add(i);
+      }
+      const prices = names.map(() => 1), seen = new Set();
+      for (const entry of array(overrides, names.length, 'Evidence lift prices')) {
+        if (!object(entry)) throw new TypeError('Evidence lift prices must be objects');
+        const { atom, cost } = entry, i = atomIndex(atom);
+        if (seen.has(i)) throw new TypeError('Duplicate evidence lift price');
+        seen.add(i); prices[i] = integer(cost, 0, 1000000000, 'Evidence lift price');
+      }
+      return freeze(liftEvidenceTransport(state, mapping, initial, desired, prices, { maxNodes, maxWork }));
     },
     equivalent(a, b) { return own(a) === own(b); },
     entails(a, b) { return difference(a, b) === 0; },
