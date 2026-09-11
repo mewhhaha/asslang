@@ -40,6 +40,8 @@
     "example:descent-extension": "node examples/interop/descent-extension.mjs",
     "test:descent-extensions": "node --test test/descent-extension*.test.mjs test/descent.test.mjs test/descent-theory.test.mjs",
     "example:descent-query": "node examples/interop/descent-query.mjs",
-    "test:descent-queries": "node --test test/descent-query*.test.mjs"
+    "test:descent-queries": "node --test test/descent-query*.test.mjs",
+    "example:descent-batch": "node examples/interop/descent-batch.mjs",
+    "test:descent-batches": "node --test test/descent-batch*.test.mjs"
   }
 }
