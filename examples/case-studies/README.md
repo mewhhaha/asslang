@@ -1,5 +1,10 @@
 # App-like case studies
 
+For end-to-end hosts, checkpoints, fitting and receipt validation, see the
+[new practical workflows](workflows/README.md). The smaller kernels below remain
+independently runnable; their CLI takes argument arrays, while the workflow CLI
+takes named request objects.
+
 These examples separate a small application host from pure, checked Wasm kernels.
 `app.mjs` reads a JSON argument array from stdin (at most 1 MiB), links only the
 selected registered sources, uses a fixed 16-page runtime arena, and prints a JSON

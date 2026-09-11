@@ -5,7 +5,7 @@ numerical functions, and reusable abstractions; the compiler infers types and
 stages functions and dictionaries into kernels rather than runtime closures.
 
 [Get started](docs/GETTING-STARTED.md) · [Language tour](docs/LANGUAGE-TOUR.md) ·
-[Category theory in practice](docs/CATEGORY-THEORY.md) · [All docs](docs/README.md)
+[Category theory in practice](docs/CATEGORY-THEORY.md) · [Practical workflows](docs/CASE-STUDIES.md) · [All docs](docs/README.md)
 
 ## Run a kernel
 
