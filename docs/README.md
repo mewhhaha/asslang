@@ -49,6 +49,7 @@ These are explicit models and generated protocols, not inferred laws about arbit
 | Which alternative supports share work across goals? | [Batch frontiers](DESCENT-BATCHES.md). |
 | How can components instantiate symbolic requirements without enumerating supports? | [Compositional evidence algebra](EVIDENCE-ALGEBRA.md). |
 | Which public summaries guarantee a private contract, and what information is missing? | [Principal evidence interfaces](EVIDENCE-INTERFACES.md). |
+| Which additional summaries make all consumers exactly expressible at least cost? | [Certified interface refinement](EVIDENCE-REFINEMENT.md). |
 | What additional evidence handles every promised alternative? | [Conditional evidence and Heyting implication](EVIDENCE-RESIDUALS.md); bounded teaching example. |
 
 ## Contribute and assess the evidence

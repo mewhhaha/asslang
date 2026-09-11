@@ -197,6 +197,29 @@ bounds. [Executed validation](EVIDENCE-INTERFACES-VALIDATION.md) records indepen
 truth-table checks and generated-code behavior. Existing `.substitute` maps public
 requirements inward; `.abstract` derives best public contracts in the other direction.
 
+## Choose the missing public summaries automatically
+
+`privateAlgebra.refine(targets, {retained, candidates})` chooses a cheapest
+extension of a declared summary interface that expresses every target exactly.
+The targets are `{name,value}` contract handles, and candidates have named
+private meanings and optional costs. Returned ambiguity pairs explain the
+choices; `verifyRefinement` checks their lower bound and rechecks exactness.
+An impossible result includes a pair that none of the permitted summaries can
+separate in the required direction. Resource exhaustion throws instead of
+claiming an approximate answer is optimal.
+
+Run `npm run example:evidence-refinement`. Two consumers independently prefer
+their own cost-2 summaries; together they can use one shared cost-3 summary.
+The selected interface also expresses every positive AND/OR combination of
+those consumers, but not necessarily their Heyting residuals. Generate guards
+with the existing `.abstract` and `.source` methods and compute summaries from
+current data; the plan itself authenticates nothing.
+
+[The derivation and API](EVIDENCE-REFINEMENT.md) explain directional separation,
+counterexample-guided optimization, certificates and explicit resource bounds.
+[Executed checks](EVIDENCE-REFINEMENT-VALIDATION.md) distinguish tested results
+from general complexity and historical-novelty claims.
+
 ## Go deeper
 
 The implementation documents separate established mathematics, proved derivations,

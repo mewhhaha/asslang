@@ -242,3 +242,14 @@ Ordered discernibility and reductions of summary attributes are related prior wo
 Sources checked September 11, 2026. These establish neighboring theory; their
 absence of this API does not establish priority. The delivered result is a proved
 specialization and tested compiler-side tool, not a world-first theorem claim.
+
+## Implemented entry points and validation
+
+The two methods are implemented through `src/evidence-refinement.mjs`. The returned
+certificate is checked before publication, including the separate cover search
+and a fresh exactness replay. The executable example composes the selected
+interface using existing `.abstract` and `.source`; no new runtime guard primitive
+is introduced. Run `npm run example:evidence-refinement` and
+`npm run test:evidence-refinements`. See the
+[executed report](EVIDENCE-REFINEMENT-VALIDATION.md) for the finite families,
+96-private-atom case, actual compiler/browser results and remaining limits.

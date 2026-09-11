@@ -1,3 +1,4 @@
+import { runEvidenceRefinementBrowserChecks } from './evidence-refinement-browser.mjs';
 import { runEvidenceInterfaceBrowserChecks } from './evidence-interface-browser.mjs';
 import { runDescentBatchBrowserChecks } from './descent-batch-browser.mjs';
 import { runDescentQueryBrowserChecks } from './descent-query-browser.mjs';
@@ -290,6 +291,7 @@ try {
   await runDescentQueryBrowserChecks({compileSources,planDescentQuery,verifyDescentQuery,verifyDescentQueryCost,descentQuerySource},createRuntime,report);
   await runDescentBatchBrowserChecks({compileSources,planDescentBatch,verifyDescentBatch,descentBatchSource},createRuntime,report);
   await runEvidenceInterfaceBrowserChecks({createEvidenceAlgebra,compileSources},createRuntime,report);
+  await runEvidenceRefinementBrowserChecks({createEvidenceAlgebra,compileSources},createRuntime,report);
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {
