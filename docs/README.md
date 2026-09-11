@@ -52,6 +52,7 @@ These are explicit models and generated protocols, not inferred laws about arbit
 | Which additional summaries make all consumers exactly expressible at least cost? | [Certified interface refinement](EVIDENCE-REFINEMENT.md). |
 | When do conditional requirements survive an interface translation, and how can a view be realized? | [Implication-preserving transport](EVIDENCE-TRANSPORT.md). |
 | What additional evidence handles every promised alternative? | [Conditional evidence and Heyting implication](EVIDENCE-RESIDUALS.md); bounded teaching example. |
+| What laws hold between public flags, and can those laws repair conditional transport? | [Law-aware evidence presentations](EVIDENCE-PRESENTATIONS.md). |
 
 ## Contribute and assess the evidence
 

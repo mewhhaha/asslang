@@ -234,3 +234,12 @@ https://www.cs.rice.edu/~lm30/RSynth/CUDD/cudd/doc/node3.html
 Boolean quantification and decision-diagram algorithms are prior work; no CUDD
 dependency is added. Sources checked September 11, 2026. Citing these references
 does not mean the implementation was formally verified or independently reviewed.
+
+## Implemented entry point
+
+The factory is available as `privateAlgebra.present(bindings)`. Its implementation
+is isolated in `src/evidence-presentation.mjs`; ordinary algebra handles and
+existing residual/audit semantics are unchanged. Run
+`npm run example:evidence-presentation` and `npm run test:evidence-presentations`.
+See [executed verification and remaining limits](EVIDENCE-PRESENTATIONS-VALIDATION.md)
+for the exact finite families, compiled guards, symbolic cases and browser results.

@@ -16,6 +16,7 @@ checks and regression runs for this change.
 
 | Area | Executed validation |
 | --- | --- |
+| Law-aware contract interfaces | [Presentations and image transport](EVIDENCE-PRESENTATIONS-VALIDATION.md). |
 | Conditional interface composition | [Transport audits and exact evidence lifting](EVIDENCE-TRANSPORT-VALIDATION.md). |
 | Minimum-cost interface repair | [Refinement selection and certificates](EVIDENCE-REFINEMENT-VALIDATION.md). |
 | Principal module interfaces | [Adjoints and information-loss witnesses](EVIDENCE-INTERFACES-VALIDATION.md). |

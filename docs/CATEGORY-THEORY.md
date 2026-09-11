@@ -220,6 +220,26 @@ counterexample-guided optimization, certificates and explicit resource bounds.
 [Executed checks](EVIDENCE-REFINEMENT-VALIDATION.md) distinguish tested results
 from general complexity and historical-novelty claims.
 
+## Reason with the laws between public flags
+
+`privateAlgebra.present(bindings)` infers every realizable public flag combination,
+then provides a separate contract algebra modulo those laws. Duplicated summaries
+become equivalent; conditional requirements quantify only over legal image states.
+The presentation's `.source` rejects impossible flag combinations even when its
+quotient predicate simplifies to always. `.sourcePrivate` instead computes the
+predicate from the declared private meanings. Neither authenticates external data.
+
+Run `npm run example:evidence-presentation`. It contrasts duplicated flags, whose
+conditional transport is repaired by their exact schema, with a hidden dependency
+that still blocks a globally realizable future. The presentation's `.auditTransport`
+distinguishes these cases. Unlike the independent-cube audit, it can certify a
+more informative interface after the public laws are recomputed.
+
+[Law-aware presentations](EVIDENCE-PRESENTATIONS.md) proves the quotient, relative
+implication, and a complete criterion for whether any sound state-only schema can
+repair transport. [Executed checks](EVIDENCE-PRESENTATIONS-VALIDATION.md) give the
+finite oracles, generated guards, resource limits and remaining uncertainty.
+
 ## Go deeper
 
 The implementation documents separate established mathematics, proved derivations,

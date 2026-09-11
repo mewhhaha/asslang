@@ -1,3 +1,4 @@
+import { runEvidencePresentationBrowserChecks } from './evidence-presentation-browser.mjs';
 import { runEvidenceTransportBrowserChecks } from './evidence-transport-browser.mjs';
 import { runEvidenceRefinementBrowserChecks } from './evidence-refinement-browser.mjs';
 import { runEvidenceInterfaceBrowserChecks } from './evidence-interface-browser.mjs';
@@ -294,6 +295,7 @@ try {
   await runEvidenceInterfaceBrowserChecks({createEvidenceAlgebra,compileSources},createRuntime,report);
   await runEvidenceRefinementBrowserChecks({createEvidenceAlgebra,compileSources},createRuntime,report);
   await runEvidenceTransportBrowserChecks({createEvidenceAlgebra,compileSources},createRuntime,report);
+  await runEvidencePresentationBrowserChecks({createEvidenceAlgebra,compileSources},createRuntime,report);
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {
