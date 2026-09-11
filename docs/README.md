@@ -47,6 +47,7 @@ These are explicit models and generated protocols, not inferred laws about arbit
 | What is the cheapest permitted extension of retained comparisons? | [Relative descent](DESCENT-EXTENSIONS.md). |
 | What evidence proves one requested equality? | [Query-directed proofs and metrics](DESCENT-QUERIES.md). |
 | Which alternative supports share work across goals? | [Batch frontiers](DESCENT-BATCHES.md). |
+| How can components instantiate symbolic requirements without enumerating supports? | [Compositional evidence algebra](EVIDENCE-ALGEBRA.md). |
 | What additional evidence handles every promised alternative? | [Conditional evidence and Heyting implication](EVIDENCE-RESIDUALS.md); bounded teaching example. |
 
 ## Contribute and assess the evidence
