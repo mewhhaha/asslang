@@ -128,12 +128,12 @@ views. This provides a concrete diagnosis and repair of an under-informative API
 
 An implementation may generate ordinary Asslang predicates for the public
 contracts or concretize them through the existing simultaneous substitution API.
-The example will compute leftValid/rightValid from current numeric inputs, use
-reviewed as an explicit Boolean input, and require the sufficient predicate before
+The example computes leftValid/rightValid from current numeric inputs, uses
+reviewed as an explicit Boolean input, and requires the sufficient predicate before
 returning their sum. These are Boolean contract guarantees, not authentication,
 cryptographic trust, or verified refinement types.
 
-## Proposed API and symbolic algorithm
+## API and symbolic algorithm
 
 Add one method to an existing algebra:
 
@@ -251,3 +251,15 @@ https://arxiv.org/abs/1807.08711
 Sources accessed September 11, 2026. These establish the background rather than
 historical priority of this exact integration. Citing formal libraries does not
 mean this code or these proofs were checked in a proof assistant.
+
+## Implemented entry point
+
+The method is available as `publicAlgebra.abstract(privateContract, bindings)`.
+It returns public-owned `necessary` and `sufficient` contract handles, `exact`,
+and an immutable `obstruction` or null. The private Boolean workspace lives in
+`src/evidence-interface.mjs`; no internal workspace or raw node IDs are a public
+input format. The existing `.source` and `.substitute` methods consume the resulting
+contracts normally, with their original trust and demand semantics.
+
+Run `npm run example:evidence-interface` and `npm run test:evidence-interfaces`.
+See [executed checks and remaining limits](EVIDENCE-INTERFACES-VALIDATION.md).

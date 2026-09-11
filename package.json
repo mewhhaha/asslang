@@ -46,6 +46,8 @@
     "example:evidence-residual": "node examples/interop/evidence-residual.mjs",
     "test:docs": "node --test test/documentation.test.mjs test/evidence-residual.test.mjs",
     "example:evidence-algebra": "node examples/interop/evidence-algebra.mjs",
-    "test:evidence-algebra": "node --test test/evidence-algebra.test.mjs test/evidence-algebra-theory.test.mjs"
+    "test:evidence-algebra": "node --test test/evidence-algebra.test.mjs test/evidence-algebra-theory.test.mjs",
+    "example:evidence-interface": "node examples/interop/evidence-interface.mjs",
+    "test:evidence-interfaces": "node --test test/evidence-interface*.test.mjs"
   }
 }

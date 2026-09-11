@@ -175,6 +175,28 @@ a useful tiny reference model for supports, not a replacement for Hindley–Miln
 types, scope or occurs checks. No runtime truth or authority follows from an
 algebra handle. [Executed checks](EVIDENCE-ALGEBRA-VALIDATION.md) give the limits.
 
+## Hide private facts behind a precise interface
+
+An interface atom can summarize a formula over private facts. The receiving
+algebra's `abstract(privateContract, bindings)` method infers two public contracts:
+the strongest necessary consequence and the weakest sufficient admission rule.
+These are different: a necessary summary can hold for invalid data. The method
+reports whether the interface expresses the private contract exactly; otherwise
+it returns a pair of private assignments explaining the lost information.
+
+Run `npm run example:evidence-interface`. Its coarse interface distinguishes
+“some input is valid” from “the pair is valid and reviewed”. The former is not a
+safe acceptance rule, while the latter rejects some otherwise valid pairs.
+Exposing the missing pair-validity summary restores exact expressibility.
+The runtime example computes current facts before using the sufficient guard;
+public flags are not authentication tokens.
+
+[Principal interface adjoints](EVIDENCE-INTERFACES.md) gives the two universal
+properties, composition and residual laws, symbolic algorithm and resource
+bounds. [Executed validation](EVIDENCE-INTERFACES-VALIDATION.md) records independent
+truth-table checks and generated-code behavior. Existing `.substitute` maps public
+requirements inward; `.abstract` derives best public contracts in the other direction.
+
 ## Go deeper
 
 The implementation documents separate established mathematics, proved derivations,
