@@ -9,6 +9,7 @@ export { supportsSIMD } from './simd.mjs';
 export { planReconstruction, reconstructionSource } from './reconstruction.mjs';
 export { planDescent, verifyDescent, descentSource } from './descent.mjs';
 export { planDescentExtension, descentCountermodel, descentExtensionSource } from './descent-extension.mjs';
+export { planDescentQuery, verifyDescentQuery, verifyDescentQueryCost, descentQuerySource } from './descent-query.mjs';
 
 function validateOptions(options) {
   if (!options || typeof options !== 'object' || Array.isArray(options)) throw new TypeError('Compiler options must be an object');

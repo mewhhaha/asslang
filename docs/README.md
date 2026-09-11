@@ -3,6 +3,9 @@
 Design changes begin here, before code. The repository-wide workflow is in
 [AGENTS.md](../AGENTS.md).
 
+- [Query-directed descent](DESCENT-QUERIES.md): cheapest evidence for one equality,
+  transport proofs, dual cost certificates and support-local guarded selection.
+  See the [executed validation](DESCENT-QUERIES-VALIDATION.md).
 - [Relative descent certificates](DESCENT-EXTENSIONS.md): minimum-cost extension
   under retained facts and restricted comparisons, with executable obstructions.
   See the [executed validation](DESCENT-EXTENSIONS-VALIDATION.md).
