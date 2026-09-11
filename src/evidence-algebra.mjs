@@ -1,4 +1,5 @@
 import { planReconstruction } from './reconstruction.mjs';
+import { inferEvidenceInterface } from './evidence-interface.mjs';
 
 // Explicit, bounded ROBDD sessions. No global strong intern table or guest data.
 // Only monotone contracts escape; Boolean negation stays inside entailment/residual.
@@ -44,7 +45,8 @@ function supportFor(state, root) {
 
 /** A compositional algebra of monotone evidence contracts, not type inference or
  * a runtime authority system. Declaration order fixes the BDD's decision order.
- * All methods except substitute require handles owned by this session. See
+ * substitute and abstract explicitly cross session boundaries; other methods
+ * require local handles. See
  * docs/EVIDENCE-ALGEBRA.md for exact semantics, partial-fact demand, and limits.
  * @param {string[]} atoms Distinct ordinary Asslang identifiers, at most 128.
  * @param {{maxNodes?:number,maxWork?:number}} options
@@ -199,6 +201,28 @@ export function createEvidenceAlgebra(atoms, options = {}) {
         }
         return visit(source.root);
       }));
+    },
+    /** Infer strongest necessary and weakest sufficient PUBLIC contracts for a
+     * private target. Every public atom is bound to a meaning in the target's
+     * private session. Necessary is NOT a safe acceptance guard. See
+     * docs/EVIDENCE-INTERFACES.md for adjunctions, exactness and witnesses.
+     */
+    abstract(privateContract, bindings) {
+      const source = metadata(privateContract);
+      array(bindings, names.length, 'Interface bindings');
+      const meanings = new Map();
+      for (const binding of bindings) {
+        if (!object(binding)) throw new TypeError('Interface bindings must be objects');
+        const { atom, value } = binding, index = atomIndex(atom), data = metadata(value);
+        if (meanings.has(index)) throw new TypeError('Duplicate interface atom');
+        if (data.state !== source.state) throw new TypeError('Interface meanings must belong to the private contract session');
+        meanings.set(index, data.root);
+      }
+      if (meanings.size !== names.length) throw new TypeError('Interface must bind every public atom');
+      const result = transaction(({ tick, mk }) => inferEvidenceInterface(source.state, source.root,
+        names.map((_, i) => meanings.get(i)), { tick, mk, maxNodes, nodes: state.nodes, atoms: names }));
+      // Publish neither handle until workspace, bounds and witness checks succeed.
+      return freeze({ ...result, necessary: handle(result.necessary), sufficient: handle(result.sufficient) });
     },
     equivalent(a, b) { return own(a) === own(b); },
     entails(a, b) { return difference(a, b) === 0; },

@@ -253,3 +253,14 @@ The single new factory and its methods are implemented in `src/evidence-algebra.
 Run `npm run example:evidence-algebra` and `npm run test:evidence-algebra`.
 The [validation report](EVIDENCE-ALGEBRA-VALIDATION.md) records the exact tests,
 structured scaling example, source-factoring correction, and remaining limits.
+
+## Principal public interfaces
+
+The algebra's `.abstract(privateContract, bindings)` method derives the strongest
+necessary and weakest sufficient public contracts for a private requirement.
+Every public atom is mapped to a meaning in the private contract's session.
+The result includes exactness on realizable views and a separating pair if the
+interface loses information. See [interface adjunctions](EVIDENCE-INTERFACES.md)
+for the proof, API and limits, and [their validation](EVIDENCE-INTERFACES-VALIDATION.md).
+A necessary condition is not safe admission; current summaries must be computed
+according to their declared meanings before using a sufficient condition.

@@ -1,3 +1,4 @@
+import { runEvidenceInterfaceBrowserChecks } from './evidence-interface-browser.mjs';
 import { runDescentBatchBrowserChecks } from './descent-batch-browser.mjs';
 import { runDescentQueryBrowserChecks } from './descent-query-browser.mjs';
 import { runDescentExtensionBrowserChecks } from './descent-extension-browser.mjs';
@@ -6,7 +7,7 @@ import { selectDiagnostic } from '../web/diagnostic-navigation.mjs';
 import { unaryCases } from './unary-cases.mjs';
 import { createRuntime, createCapability } from '../src/abi.mjs';
 import { corpus, unsupportedCorpus, exampleSource } from '../examples/corpus.mjs';
-import { compile, compileSources, check, checkSources, formatDiagnostic, createCompiler, instantiate, supportsSIMD, planReconstruction, reconstructionSource, planDescentExtension, descentCountermodel, descentExtensionSource, planDescentQuery, verifyDescentQuery, verifyDescentQueryCost, descentQuerySource, planDescentBatch, verifyDescentBatch, descentBatchSource } from '../src/compiler.mjs';
+import { createEvidenceAlgebra, compile, compileSources, check, checkSources, formatDiagnostic, createCompiler, instantiate, supportsSIMD, planReconstruction, reconstructionSource, planDescentExtension, descentCountermodel, descentExtensionSource, planDescentQuery, verifyDescentQuery, verifyDescentQueryCost, descentQuerySource, planDescentBatch, verifyDescentBatch, descentBatchSource } from '../src/compiler.mjs';
 import { reference } from './reference.mjs';
 const report = { browser: navigator.userAgent, checks: 0, cases: [] };
 const assert = (condition,message) => { if (!condition) throw new Error(message); report.checks++; };
@@ -288,6 +289,7 @@ try {
   await runDescentExtensionBrowserChecks({compileSources,planDescentExtension,descentCountermodel,descentExtensionSource},createRuntime,report);
   await runDescentQueryBrowserChecks({compileSources,planDescentQuery,verifyDescentQuery,verifyDescentQueryCost,descentQuerySource},createRuntime,report);
   await runDescentBatchBrowserChecks({compileSources,planDescentBatch,verifyDescentBatch,descentBatchSource},createRuntime,report);
+  await runEvidenceInterfaceBrowserChecks({createEvidenceAlgebra,compileSources},createRuntime,report);
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {
