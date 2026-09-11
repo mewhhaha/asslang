@@ -3,6 +3,9 @@
 Design changes begin here, before code. The repository-wide workflow is in
 [AGENTS.md](../AGENTS.md).
 
+- [Shared descent proof frontiers](DESCENT-BATCHES.md): exact bounded multi-goal
+  evidence sharing, exhaustive frontier certificates and atomic staged guards.
+  See the [executed validation](DESCENT-BATCHES-VALIDATION.md).
 - [Query-directed descent](DESCENT-QUERIES.md): cheapest evidence for one equality,
   transport proofs, dual cost certificates and support-local guarded selection.
   See the [executed validation](DESCENT-QUERIES-VALIDATION.md).
