@@ -50,6 +50,8 @@
     "example:evidence-interface": "node examples/interop/evidence-interface.mjs",
     "test:evidence-interfaces": "node --test test/evidence-interface*.test.mjs",
     "example:evidence-refinement": "node examples/interop/evidence-refinement.mjs",
-    "test:evidence-refinements": "node --test test/evidence-refinement*.test.mjs"
+    "test:evidence-refinements": "node --test test/evidence-refinement*.test.mjs",
+    "example:evidence-transport": "node examples/interop/evidence-transport.mjs",
+    "test:evidence-transport": "node --test test/evidence-transport*.test.mjs"
   }
 }

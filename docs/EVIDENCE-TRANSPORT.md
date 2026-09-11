@@ -91,15 +91,35 @@ stronger property.
 A public constant-true meaning is allowed: that atom is already in every current
 view, so it need not be newly enabled. A constant-false public atom fails because
 an extension can request it. Unreachable worlds above an actual view matter; worlds
-that are not extensions of that view do not. Surjectivity alone is insufficient: future possibilities depend on the current
-private state, not just which public views occur somewhere. The tests must include
-a verified surjective non-lifting example rather than using surjectivity as an
-implementation shortcut.
+that are not extensions of that view do not. Surjectivity alone is insufficient. For p:=a OR (b AND c), q:=b, all four public
+views occur. But from private {c}, public view {} cannot extend to exactly {q}:
+enabling b also forces p. From private empty the same requested view does have
+lift {b}. Thus checking fibers only at the initial empty state is unsound.
 
 Lawful maps compose: lift an outer extension through the outer map, then lift
 that intermediate extension through the inner map. Identity and coordinate
 projections are lawful. No assertion is made that this property can be repaired
 monotonically by adding more public flags.
+
+## Why more exported information cannot repair this defect
+
+**Corollary (extension obstruction).** If phi fails the lifting property, adding
+any collection of public summary coordinates while keeping its old meanings
+unchanged cannot restore implication preservation.
+
+Proof: projection from the enlarged public cube to the old coordinates is lawful.
+If the enlarged map were lawful, composing it with this projection would make
+phi lawful, a contradiction. More constructively, keep the old witness S,T and
+extend T by exactly the newly exported flags already true at S. This is a public
+extension of the enlarged current view. Any lift would project to the forbidden
+old lift. QED.
+
+This reverses the earlier target-refinement intuition. Adding summaries can repair
+exact expressibility of private consumers, but cannot repair an already broken
+conditional-transport law. Even exposing every private atom does not fix duplicated
+old outputs. A repair must change/remove old summaries or deliberately change the
+public-world semantics; the current algebra continues to use the full public cube.
+The two analyses should not be substituted for one another.
 
 ## Minimum-cost exact lifting
 
@@ -210,7 +230,8 @@ the tool actually executes. Keep root README and historical validation unchanged
 
 ## Primary sources
 
-[1] Esakia duals of regular Heyting algebras. Algebra Universalis (2023),
+[1] G. Grilletti and D. E. Quadrellaro. Esakia duals of regular Heyting algebras.
+Algebra Universalis 85, article 5 (2024; published online November 21, 2023),
 Definition 2.2 and Esakia duality. DOI 10.1007/s00012-023-00833-5.
 https://link.springer.com/article/10.1007/s00012-023-00833-5
 Bounded-morphism theory is prior work, not an invention of this feature.
@@ -225,3 +246,12 @@ The algorithmic foundation is established; this change adds no BuDDy dependency.
 Sources consulted September 11, 2026. Historical originality of the integration
 is unverified. An exact Boolean guarantee does not prove equality laws, totality,
 physical realizability of proposed facts, or audited security of the runtime.
+
+## Implemented entry points
+
+The audit and minimum lift are implemented in `src/evidence-transport.mjs` and
+exposed as methods of the existing private algebra. The old source emitter and
+all prior semantic operations are unchanged. Run `npm run example:evidence-transport`
+and `npm run test:evidence-transport`. The
+[validation report](EVIDENCE-TRANSPORT-VALIDATION.md) separates executed finite
+checks, structured scale and compiler results from general proof claims.
