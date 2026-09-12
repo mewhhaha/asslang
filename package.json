@@ -62,6 +62,9 @@
     "example:calibration-coordinates": "node examples/interop/calibration-coordinates.mjs",
     "test:calibration-coordinates": "node --test test/calibration-coordinates.test.mjs",
     "example:vertical-composition": "node examples/interop/vertical-composition.mjs",
-    "test:local-patterns": "node --test test/local-patterns.test.mjs"
+    "test:local-patterns": "node --test test/local-patterns.test.mjs",
+    "example:partition-recursion": "node examples/interop/partition-recursion.mjs",
+    "test:partition-order": "node --test test/partition-order.test.mjs",
+    "bench:partition-order": "node scripts/bench-partition-order.mjs"
   }
 }
