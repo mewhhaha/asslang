@@ -127,8 +127,11 @@ and [host](../examples/case-studies/workflows/release.mjs).
 All three reusable APIs accept compiler options as their final argument, with a
 default 100,000-loop-iteration allowance per kernel call. Their own host/request
 limits remain in force. The monitor materializes two traces and a final state;
-its current default lowering performs three history traversals, not one shared
-loop. The examples make no general throughput, vectorization or zero-memory claim.
+its default lowering now shares one causal traversal across all three outputs.
+`reductionFusion:false` retains three traversals. Run `npm run example:output-fusion`
+to compare emitted loops, machine copies and Wasm bytes on the unchanged source.
+[Eligibility, memory layout and budget semantics](OUTPUT-FUSION.md) are explicit.
+The examples make no general throughput, vectorization or zero-memory claim.
 
 ## Design and invariants
 

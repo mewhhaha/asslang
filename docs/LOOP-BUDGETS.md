@@ -51,13 +51,16 @@ element, accepted filter event, byte, millisecond, or source-level callback.
   executes. Exhaustion need not leave the same partial output prefix as scalar
   lowering; no partial-result contract is introduced.
 - All loops in one export share one remaining count: scalar/record reductions,
-  reduction cohorts, `fold_until`, `iterate`, stream materialization, SIMD loops,
+  reduction/output cohorts, `fold_until`, `iterate`, stream materialization, SIMD loops,
   and nested traversals. Entering a nested loop does not reset the count.
 - Empty loops and inactive branches spend no units. A successful early-exit step
   is charged, but there is no extra charge to discover that the loop has ended.
   A dense `count` that lowers to an extent query has no loop and spends nothing.
 
-Fusion pays for its shared traversal once, not once per constituent reduction.
+Fusion pays for its shared traversal once, not once per constituent sink.
+[Dense causal output cohorts](OUTPUT-FUSION.md) apply this to arrays and final
+state: the unchanged monitor needs one unit per sample by default, three with
+`reductionFusion:false`.
 Memoized reductions pay only when actually forced. Therefore changing optimizer
 options can change the minimum allowance, even with equal numeric results.
 A limit is deterministic for a given emitted artifact and inputs, not a stable

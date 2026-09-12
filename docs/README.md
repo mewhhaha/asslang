@@ -24,7 +24,7 @@ The [repository README](../README.md) is the overview; this directory holds the 
 | Host boundaries | [ASABI 1](ABI.md), [explicit effects](EFFECTS.md), [input leases](LEASES.md). |
 | Resource controls | [Per-invocation loop budgets](LOOP-BUDGETS.md), [compiler limits](IMPLEMENTATION.md#resource-bounds-and-evidence). |
 | Diagnostics | [Non-executing checks and source locations](DIAGNOSTICS.md). |
-| Lowering | [Implementation](IMPLEMENTATION.md), [ordered SIMD](EXAMPLES-SIMD.md), [reduction fusion](REDUCTION-FUSION.md), [integration history](INTEGRATION.md). |
+| Lowering | [Implementation](IMPLEMENTATION.md), [ordered SIMD](EXAMPLES-SIMD.md), [reduction fusion](REDUCTION-FUSION.md), [causal output fusion](OUTPUT-FUSION.md), [integration history](INTEGRATION.md). |
 
 ## Numerical differentiation
 

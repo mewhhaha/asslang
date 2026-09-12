@@ -1,5 +1,6 @@
 import { planSIMD, SIMD_OPS } from './simd.mjs';
 import { planReductionFusion } from './fusion.mjs';
+import { planOutputFusion } from './output-fusion.mjs';
 import { ABI_VERSION, layout, flatTypes } from './abi-schema.mjs';
 // Direct Wasm binary emission. No WAT parser, LLVM, binaryen, or runtime library.
 const wasmType = type => type === 'V128' ? 0x7b : type === 'Num' ? 0x7c : 0x7f;
@@ -33,7 +34,7 @@ const f64bytes = value => {
 };
 
 function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFusion = true, simd = false, maxLoopIterations } = {}, steps = []) {
-  const fusionGroups = [];
+  const fusionGroups = [], outputGroups = [];
   let vectorizedLoops = 0, vectorInstructions = 0;
   const code = [], locals = []; let loops = 0, runtimeChecks = 0, zipChecks = 0, stores = 0, memoizedReductions = 0, stateMachines = 0, stateSlots = 0, boundedIterations = 0, shortCircuitFolds = 0;
   const emit = (...bytes) => code.push(...bytes);
@@ -466,6 +467,59 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
   function writeDescriptor(base,offset,type,valueLocal) {
     get(base);get(valueLocal);emit(type==='Num'?0x39:0x36,type==='Num'?3:2,...uleb(offset));stores++;
   }
+  const fusedArrays = new Map();
+  function materializeCohort(plan) {
+    const { stream, guards, arrays, reductions } = plan;
+    const outer = { ...resultContext, cohorts: new Map() };
+    for (const guard of guards) { load(guard, outer); trapUnless(); noteGuard(guard); }
+    const extent = evaluate(stream.extent, outer);
+    // Reserve only FINAL dense output slices in their original ABI order. Guard
+    // division before multiplication prevents overflow in extent * element size.
+    const outputs = arrays.map(entry => {
+      get(cursor); i32(7); emit(0x6a); i32(-8); emit(0x71); set(cursor);
+      get(cursor); get(end); emit(0x4d); trapUnless();
+      get(extent); get(end); get(cursor); emit(0x6b); i32(entry.stride); emit(0x6e, 0x4d); trapUnless();
+      const begin = allocate('I32'); get(cursor); set(begin);
+      get(cursor); get(extent); i32(entry.stride); emit(0x6c, 0x6a); set(cursor);
+      fusedArrays.set(entry.offset, { begin, count: extent });
+      return { ...entry, begin };
+    });
+    const frames = reductions.map(node => ({ node,
+      initial: node.op === 'reduce' ? [node.initial] : node.initial,
+      acc: node.op === 'reduce' ? [node.acc] : node.acc,
+      body: node.op === 'reduce' ? [node.body] : node.body,
+    }));
+    for (const f of frames) {
+      f.targets = f.initial.map(n => allocate(n.type));
+      f.initial.forEach((n, i) => { load(n, outer); set(f.targets[i]); });
+    }
+    const index = allocate('I32'); i32(0); set(index);
+    const body = copyContext(outer); disableFusion(body);
+    invalidateBindings(body, [...stream.indices.map(n => n.id), ...frames.flatMap(f => f.acc.map(n => n.id))]);
+    for (const identity of stream.indices) body.indices.set(identity.id, index);
+    for (const f of frames) f.acc.forEach((n, i) => body.accumulators.set(n.id, f.targets[i]));
+    const machines = prepareMachines(stream, body);
+    loopHeader(() => { get(index); get(extent); emit(0x4f); });
+    stepMachines(machines, body);
+    const snapshots = frames.map(f => f.body.map(n => {
+      const temporary = allocate(n.type); load(n, body); set(temporary); return temporary;
+    }));
+    for (const output of outputs) {
+      get(output.begin); get(index); i32(output.stride); emit(0x6c, 0x6a);
+      load(output.stream.item, body);
+      emit(output.stride === 8 ? 0x39 : 0x36, output.stride === 8 ? 3 : 2, 0); stores++;
+    }
+    frames.forEach((f, i) => snapshots[i].forEach((v, j) => { get(v); set(f.targets[j]); }));
+    get(index); i32(1); emit(0x6a); set(index); emit(0x0c, 0, 0x0b, 0x0b);
+    for (const f of frames) {
+      knownNodes.set(f.node.id, f.node);
+      if (f.node.op === 'reduce') resultContext.cache.set(f.node.id, f.targets[0]);
+      else resultContext.groups.set(f.node.id, f.targets);
+    }
+    outputGroups.push({ domain: plan.domain, streams: arrays.map(a => a.stream.proof),
+      reductions: reductions.map(r => r.id), stateMachines: stream.machines.length,
+      eliminatedLoops: arrays.length + reductions.length - 1 });
+  }
   function writeResult(value,schema,base,offset=0) {
     if(schema.kind==='Record') {
       for(const f of layout(schema).fields) writeResult(value.fields.get(f.name),f.schema,base,offset+f.offset);
@@ -476,6 +530,11 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
       // Borrowed result data is valid through the call frame; JS lifting copies it.
       writeDescriptor(base,offset,'I32',evaluate(value.pointer,resultContext));
       writeDescriptor(base,offset+4,'I32',evaluate(value.extent,resultContext));return;
+    }
+    if (fusedArrays.has(offset)) {
+      const { begin, count } = fusedArrays.get(offset);
+      writeDescriptor(base, offset, 'I32', begin); writeDescriptor(base, offset + 4, 'I32', count);
+      return;
     }
     const stream=value, stride=schema.element.kind==='Num'?8:4;
     // Each array starts at an 8-byte boundary, including after a Bool array.
@@ -510,7 +569,12 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     get(index);i32(1);emit(0x6a);set(index);emit(0x0c,0,0x0b,0x0b);
     writeDescriptor(base,offset,'I32',begin);writeDescriptor(base,offset+4,'I32',count);
   }
-  if(kernel.indirect) {writeResult(kernel.result,kernel.resultSchema,kernel.outputSlots[0]);get(cursor);}
+  if(kernel.indirect) {
+    const plan = experimentalReductionFusion && planOutputFusion(kernel.result, kernel.resultSchema, steps,
+      new Map([...resultContext.cache, ...resultContext.groups, ...resultContext.lazy]));
+    if (plan) materializeCohort(plan);
+    writeResult(kernel.result,kernel.resultSchema,kernel.outputSlots[0]); get(cursor);
+  }
   else loadRegion(kernel.result,root);
   emit(0x0b);
   const runs = [];
@@ -525,6 +589,8 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     localBytes: locals.reduce((n, t) => n + (t === 'V128' ? 16 : t === 'Num' ? 8 : 4), 0), loops, runtimeChecks, zipChecks, stores, memoizedReductions, stateMachines, stateSlots, boundedIterations, shortCircuitFolds,
     ...(remaining === null ? {} : { loopBudget: { limit: maxLoopIterations + 0, sites: loops } }),
     simd: { enabled: simd, lanes: 2, vectorizedLoops, vectorInstructions },
+    outputFusion: { enabled: experimentalReductionFusion, groups: outputGroups,
+      eliminatedLoops: outputGroups.reduce((n, g) => n + g.eliminatedLoops, 0) },
     reductionFusion: { enabled: experimentalReductionFusion, groups: fusionGroups,
       eliminatedLoops: fusionGroups.reduce((n, g) => n + g.reductions.length - 1, 0) } };
 }
@@ -559,5 +625,5 @@ export function emitModule(staged, options = {}) {
     functions:kernels.map((k,i)=>({name:k.name,
       ...(bodies[i].loopBudget ? { loopBudget: bodies[i].loopBudget } : {}),loops:bodies[i].loops,wasmLocals:bodies[i].locals,wasmLocalDeclarationGroups:bodies[i].localGroups,
       wasmLocalValueBytes:bodies[i].localBytes,runtimeZipChecks:bodies[i].zipChecks,runtimeStreamChecks:bodies[i].runtimeChecks,
-      outputStoreSites:bodies[i].stores,hostCallSites:k.effects.length,memoizedReductions:bodies[i].memoizedReductions,stateMachines:bodies[i].stateMachines,stateSlots:bodies[i].stateSlots,boundedIterations:bodies[i].boundedIterations,shortCircuitFolds:bodies[i].shortCircuitFolds,simd:bodies[i].simd,reductionFusion:bodies[i].reductionFusion}))};
+      outputStoreSites:bodies[i].stores,hostCallSites:k.effects.length,memoizedReductions:bodies[i].memoizedReductions,stateMachines:bodies[i].stateMachines,stateSlots:bodies[i].stateSlots,boundedIterations:bodies[i].boundedIterations,shortCircuitFolds:bodies[i].shortCircuitFolds,simd:bodies[i].simd,reductionFusion:bodies[i].reductionFusion,outputFusion:bodies[i].outputFusion}))};
 }

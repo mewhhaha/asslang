@@ -60,7 +60,10 @@ without a global registry or runtime key generation.
 `src/wasm.mjs` emits scalar locals, loops, bounds checks, and ASABI 1 metadata.
 `src/simd.mjs` conservatively plans optional f64x2 lane operations for dense maps
 and ordered additive reductions; no vector ABI or intermediate buffer is added.
-Reduction cohorts are enabled by default, with an explicit opt-out. See
+Reduction cohorts are enabled by default, with an explicit opt-out. Dense
+co-demanded causal output arrays and direct folds can also share a traversal;
+`src/output-fusion.mjs` checks schedules and demand before the writer reserves
+their final ABI slices. See [output fusion](OUTPUT-FUSION.md) for exact limits. See
 [EXAMPLES-SIMD.md](EXAMPLES-SIMD.md) for eligibility and compatibility.
 `src/abi-schema.mjs` describes the supported wire shapes, and `src/abi.mjs` lowers
 and lifts host values with explicit memory lifetime. There is no guest heap
