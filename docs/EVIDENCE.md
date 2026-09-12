@@ -16,6 +16,7 @@ checks and regression runs for this change.
 
 | Area | Executed validation |
 | --- | --- |
+| Native finite ordering | [Scratch ownership, stable merges and native execution](NATIVE-ORDERING-VALIDATION.md). |
 | Scaled numerical fitting | [Calibration coordinates and model prediction](CALIBRATION-COORDINATES-VALIDATION.md). |
 | Local patterns and readable pipelines | [Vertical syntax, shared execution and compatibility](VERTICAL-COMPOSITION-VALIDATION.md). |
 | One-pass causal output | [Output cohorts and monitor replay reduction](OUTPUT-FUSION-VALIDATION.md). |

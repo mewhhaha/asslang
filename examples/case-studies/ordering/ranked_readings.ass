@@ -1,0 +1,12 @@
+// Preserve provenance as data while a sort creates a new iteration domain.
+export fn rank_readings = (readings:[Num]) -> (center:Num) -> do {
+  let ranked =
+    readings
+    |> zip_checked (range (count readings)) (value -> position -> {value, position})
+    |> sort_by (reading -> abs (reading.value-center));
+
+  {
+    values: ranked |> map (reading -> reading.value),
+    positions: ranked |> map (reading -> reading.position),
+  }
+};

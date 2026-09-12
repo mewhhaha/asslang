@@ -1,7 +1,8 @@
+import { createOrderEmitter } from './order-wasm.mjs';
 import { planSIMD, SIMD_OPS } from './simd.mjs';
 import { planReductionFusion } from './fusion.mjs';
 import { planOutputFusion } from './output-fusion.mjs';
-import { ABI_VERSION, layout, flatTypes } from './abi-schema.mjs';
+import { ABI_VERSION, SCRATCH_ABI_VERSION, layout, flatTypes } from './abi-schema.mjs';
 // Direct Wasm binary emission. No WAT parser, LLVM, binaryen, or runtime library.
 const wasmType = type => type === 'V128' ? 0x7b : type === 'Num' ? 0x7c : 0x7f;
 export function uleb(value) {
@@ -35,6 +36,7 @@ const f64bytes = value => {
 
 function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFusion = true, simd = false, maxLoopIterations } = {}, steps = []) {
   const fusionGroups = [], outputGroups = [];
+  let orderEmitter;
   let vectorizedLoops = 0, vectorInstructions = 0;
   const code = [], locals = []; let loops = 0, runtimeChecks = 0, zipChecks = 0, stores = 0, memoizedReductions = 0, stateMachines = 0, stateSlots = 0, boundedIterations = 0, shortCircuitFolds = 0;
   const emit = (...bytes) => code.push(...bytes);
@@ -209,6 +211,9 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     knownNodes.set(node.id,node);
     if (ctx.cache.has(node.id)) return ctx.cache.get(node.id);
     if (ctx.lazy.has(node.id) && !ctx.bypass.has(node.id)) return forceLazy(node,ctx);
+    if (node.op === 'order') {
+      const pointer = orderEmitter.materialize(node, ctx); ctx.cache.set(node.id, pointer); return pointer;
+    }
     if (node.op === 'wire') return node.data.index;
     if (node.op === 'index') {
       if (!ctx.indices.has(node.id)) throw new Error('Unbound iteration index');
@@ -224,7 +229,12 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
       reduceCohort(node, ctx); return ctx.cache.get(node.id);
     }
     const target = allocate(node.type), a = node.args;
-    if (node.op === 'const') {
+    if (node.op === 'order_count') {
+      evaluate(a[0], ctx); get(orderEmitter.frame(a[0]).count);
+    } else if (node.op === 'order_load') {
+      load(a[0], ctx); load(a[1], ctx); i32(a[0].stride); emit(0x6c, 0x6a);
+      emit(node.type === 'Num' ? 0x2b : 0x28, node.type === 'Num' ? 3 : 2, ...uleb(node.data));
+    } else if (node.op === 'const') {
       node.type === 'Num' ? f64(node.data) : i32(node.data);
     } else if (node.op === 'if' || node.op === '&&' || node.op === '||') {
       loadRegion(a[0], ctx); emit(0x04, wasmType(node.type));
@@ -433,11 +443,18 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     get(pointer);emit(0xad);get(length);emit(0xad,0x42,...sleb(stride),0x7e,0x7c);
     emit(0x3f,0,0xad,0x42,...sleb(65536),0x7e,0x58);trapUnless();
   }
+    const nonoverlap=(a,b)=>{
+      // Empty ranges never conflict. Endpoints are compared in i64 arithmetic.
+      get(a.length);emit(0x45);get(b.length);emit(0x45,0x72);
+      const endpoint=r=>{get(r.pointer);emit(0xad);get(r.length);emit(0xad,0x42,...sleb(r.stride),0x7e,0x7c);};
+      endpoint(a);get(b.pointer);emit(0xad,0x58,0x72);
+      endpoint(b);get(a.pointer);emit(0xad,0x58,0x72);trapUnless();
+    };
   for(const p of kernel.inputLeaves) {
     if(p.stride) checkSpan(p.slots[0],p.slots[1],p.stride);
     else if(p.type==='Bool') {get(p.slots[0]);i32(1);emit(0x4d);trapUnless();}
   }
-  let cursor,end;
+  let cursor,end; const outputRanges = [];
   if(kernel.indirect) {
     const [ret,out,capacity]=kernel.outputSlots, size=layout(kernel.resultSchema).size;
     const len=allocate('I32');i32(size);set(len);checkSpan(ret,len,1);checkSpan(out,capacity,1);
@@ -446,13 +463,7 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     // Keep output cursors representable and non-wrapping within the v1 arena.
     get(out);emit(0xad);get(capacity);emit(0xad,0x7c,0x42,...sleb(2147483647),0x58);trapUnless();
     const ranges=[{pointer:ret,length:len,stride:1},{pointer:out,length:capacity,stride:1}];
-    const nonoverlap=(a,b)=>{
-      // Empty ranges never conflict. Endpoints are compared in i64 arithmetic.
-      get(a.length);emit(0x45);get(b.length);emit(0x45,0x72);
-      const endpoint=r=>{get(r.pointer);emit(0xad);get(r.length);emit(0xad,0x42,...sleb(r.stride),0x7e,0x7c);};
-      endpoint(a);get(b.pointer);emit(0xad,0x58,0x72);
-      endpoint(b);get(a.pointer);emit(0xad,0x58,0x72);trapUnless();
-    };
+    outputRanges.push(...ranges);
     nonoverlap(ranges[0],ranges[1]);
     for(const input of kernel.inputLeaves.filter(p=>p.stride)) {
       const r={pointer:input.slots[0],length:input.slots[1],stride:input.stride};
@@ -460,6 +471,24 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     }
     cursor=allocate('I32');get(out);set(cursor);
     end=allocate('I32');get(out);get(capacity);emit(0x6a);set(end);
+  }
+  if (kernel.orders.length) {
+    const [pointer, capacity] = kernel.scratchSlots;
+    checkSpan(pointer, capacity, 1);
+    get(pointer); i32(7); emit(0x71, 0x45); trapUnless();
+    get(pointer); emit(0xad); get(capacity); emit(0xad, 0x7c, 0x42, ...sleb(2147483647), 0x58); trapUnless();
+    const range = { pointer, length: capacity, stride: 1 };
+    for (const input of kernel.inputLeaves.filter(p => p.stride))
+      nonoverlap(range, { pointer: input.slots[0], length: input.slots[1], stride: input.stride });
+    for (const output of outputRanges) nonoverlap(range, output);
+    const scratch = { cursor: allocate('I32'), end: allocate('I32') };
+    get(pointer); set(scratch.cursor); get(pointer); get(capacity); emit(0x6a); set(scratch.end);
+    orderEmitter = createOrderEmitter(kernel.orders, scratch, {
+      allocate, get, set, i32, f64, emit, load, evaluate, copyContext, disableFusion,
+      invalidateBindings, prepareMachines, stepMachines, planLoopMemo, machineRoots,
+      loopHeader, trapUnless, noteGuard, uleb,
+      store: (type, offset) => emit(type === 'Num' ? 0x39 : 0x36, type === 'Num' ? 3 : 2, ...uleb(offset)),
+    });
   }
   // All host effects are forced exactly once, in source order, before the result.
   for(const effect of kernel.effects) evaluate(effect,root);
@@ -597,15 +626,16 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
 
 export function emitModule(staged, options = {}) {
   const kernels=staged.kernels, hosts=staged.hostDeclarations, bodies=kernels.map(k=>lowerKernel(k,options,staged.certificate.steps));
-  const needsMemory=kernels.some(k=>k.indirect || k.inputLeaves.some(p=>p.stride));
+  const needsMemory=kernels.some(k=>k.orders.length || k.indirect || k.inputLeaves.some(p=>p.stride));
   const functionType=(args,result)=>[0x60,...vector(args.map(t=>[wasmType(t)])),1,wasmType(result)];
   const types=[...hosts.map(h=>functionType(['I32',...h.parameters.flatMap(flatTypes)],h.result.kind)),...kernels.map(k=>functionType(k.abi,k.resultType))];
   const imports=hosts.map((h,i)=>[...text('asslang_host'),...text(h.name),0x00,...uleb(i)]);
   if(needsMemory) imports.push([...text('env'),...text('memory'),0x02,0x00,0x00]);
-  const contract={version:ABI_VERSION,addressBits:32,byteOrder:'little',memory:'env.memory',
+  const contract={version:kernels.some(k=>k.orders.length)?SCRATCH_ABI_VERSION:ABI_VERSION,addressBits:32,byteOrder:'little',memory:'env.memory',
     hosts:hosts.map(({name,parameters,result})=>({name,parameters,result})),
     exports:kernels.map(k=>({name:k.name,parameters:k.parameters,result:{schema:k.resultSchema,
       mode:k.indirect?'indirect':'scalar',slots:k.outputSlots,layout:layout(k.resultSchema)},
+      ...(k.orders.length ? {scratch:{version:1,slots:k.scratchSlots}} : {}),
       effects:k.effects.map((e,sequence)=>({sequence,name:hosts[e.data].name}))}))};
   const abiSection = section(0, concatenate([text('asslang.abi'), encoder.encode(JSON.stringify(contract))]));
   const executionLimits = options.maxLoopIterations === undefined ? null : {
@@ -620,9 +650,11 @@ export function emitModule(staged, options = {}) {
     abiSection,
     ...(executionLimits ? [section(0, concatenate([text('asslang.limits'), encoder.encode(JSON.stringify(executionLimits))]))] : []),
   ];
-  return {bytes:concatenate(pieces),needsMemory,contract,abiMetadataBytes:abiSection.length,
+  return {bytes:concatenate(pieces),needsMemory,contract,scratchSites:kernels.reduce((n,k)=>n+k.orders.length,0),abiMetadataBytes:abiSection.length,
     ...(executionLimits ? { executionLimits } : {}),
     functions:kernels.map((k,i)=>({name:k.name,
+      ...(k.orders.length ? {ordering:{algorithm:'stable-bottom-up-merge',sites:k.orders.map(n=>({id:n.id,
+        payloadLeaves:n.payload.length,rowBytes:n.stride,scratchBytesPerSourceEvent:2*n.stride}))}} : {}),
       ...(bodies[i].loopBudget ? { loopBudget: bodies[i].loopBudget } : {}),loops:bodies[i].loops,wasmLocals:bodies[i].locals,wasmLocalDeclarationGroups:bodies[i].localGroups,
       wasmLocalValueBytes:bodies[i].localBytes,runtimeZipChecks:bodies[i].zipChecks,runtimeStreamChecks:bodies[i].runtimeChecks,
       outputStoreSites:bodies[i].stores,hostCallSites:k.effects.length,memoizedReductions:bodies[i].memoizedReductions,stateMachines:bodies[i].stateMachines,stateSlots:bodies[i].stateSlots,boundedIterations:bodies[i].boundedIterations,shortCircuitFolds:bodies[i].shortCircuitFolds,simd:bodies[i].simd,reductionFusion:bodies[i].reductionFusion,outputFusion:bodies[i].outputFusion}))};

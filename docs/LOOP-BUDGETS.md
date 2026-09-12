@@ -52,7 +52,8 @@ element, accepted filter event, byte, millisecond, or source-level callback.
   lowering; no partial-result contract is introduced.
 - All loops in one export share one remaining count: scalar/record reductions,
   reduction/output cohorts, `fold_until`, `iterate`, stream materialization, SIMD loops,
-  and nested traversals. Entering a nested loop does not reset the count.
+  native ordering materialization/merge passes/run dispatch/row copies, and nested
+  traversals. Entering a nested loop does not reset the count.
 - Empty loops and inactive branches spend no units. A successful early-exit step
   is charged, but there is no extra charge to discover that the loop has ended.
   A dense `count` that lowers to an extent query has no loop and spends nothing.

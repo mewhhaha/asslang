@@ -1,5 +1,11 @@
 // Canonical examples, language-pattern inspirations, and app-like fixtures.
 export const expandedCorpus = [
+  {id:'native-nearest',path:'case-studies/ordering/nearest.ass',name:'nearest',
+    args:[[7,10,4,7,5],5],expected:[5,4,7,7,10],
+    inspiration:'native stable key ordering with bounded invocation scratch',kind:'case-study'},
+  {id:'native-ranked-readings',path:'case-studies/ordering/ranked_readings.ass',name:'rank_readings',
+    args:[[7,10,4,7,5],5],expected:{values:[5,4,7,7,10],positions:[4,2,0,3,1]},
+    inspiration:'strict record materialization, stable provenance data and projected outputs',kind:'case-study'},
   {id:'vertical-threshold',path:'case-studies/vertical/threshold.ass',name:'reach_target',
     args:[[2,3,100],5],expected:{total:5,visited:2,reached:true},
     inspiration:'vertical stopping pipeline and a named local result pattern',kind:'case-study'},

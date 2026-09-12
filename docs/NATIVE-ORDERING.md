@@ -2,6 +2,80 @@
 
 [Partition experiment](PARTITION-RECURSION.md) · [Documentation](README.md)
 
+## Use it in a pipeline
+
+The following is implemented source, not the recursive proposal from PR #30.
+The key, sort, and downstream projections all run inside the emitted Wasm module.
+No sorting function is imported from JavaScript.
+
+<!-- native-example: nearest -->
+```ass
+// Stable ties: equal-distance readings retain their input order.
+export fn nearest = (readings:[Num]) -> (center:Num) ->
+  readings
+  |> sort_by (reading -> abs (reading-center));
+```
+
+For readings `[7,10,4,7,5]` and center 5 the result is `[5,4,7,7,10]`.
+The two equally distant 7s retain their input order. Finite keys are required;
+empty input calls no key function, even when the captured center is nonfinite.
+A caller needing an unconditional center check should `require` it explicitly.
+
+When position matters, carry it as data through the new ordering domain:
+
+<!-- native-example: ranked_readings -->
+```ass
+// Preserve provenance as data while a sort creates a new iteration domain.
+export fn rank_readings = (readings:[Num]) -> (center:Num) -> do {
+  let ranked =
+    readings
+    |> zip_checked (range (count readings)) (value -> position -> {value, position})
+    |> sort_by (reading -> abs (reading.value-center));
+
+  {
+    values: ranked |> map (reading -> reading.value),
+    positions: ranked |> map (reading -> reading.position),
+  }
+};
+```
+
+The positions are `[4,2,0,3,1]`. The two projections share one materialized order,
+not two sorts. Record rows stay internal; separately owned scalar arrays cross
+the normal value ABI. A later `map`, `filter`, `scan`, fold, or `at` can consume
+that same sorted stream. An unused sort is not executed, but `count ordered`
+fully demands it: a bad later key cannot be hidden by asking for only a prefix.
+
+```sh
+npm run example:native-ordering
+npm run test:native-ordering
+npm run bench:native-ordering
+node src/cli.mjs examples/case-studies/ordering/nearest.ass --run nearest --args '[[7,10,4,7,5],5]'
+```
+
+For explicit capacities, compile the ranking source and use the existing host
+adapter with the new scratch argument:
+
+```js
+const compiled = compile(source, {maxLoopIterations: 39});
+const runtime = await createRuntime(compiled, {pages: 1});
+const result = runtime.call('rank_readings', [[7,10,4,7,5],5], {
+  scratchBytes: 240,
+  outputBytes: 80,
+});
+```
+
+The complete import/read/compile/execute version is
+[examples/interop/native-ordering.mjs](../examples/interop/native-ordering.mjs).
+That program verifies the positions and checks that a 38-unit compilation traps.
+There are no scratch variables in Asslang source: the host owns the capacity,
+and the compiler owns disjoint reservations within it. ASABI 2 modules need the
+updated adapter; old modules keep their byte-identical ASABI 1 convention.
+
+This step does not implement `partition_rec` or infer a quicksort proof from
+arbitrary source. It supplies the native materialization, storage, reordering and
+metering boundary that the earlier proposal was missing. It uses a stable merge
+backend rather than claiming a special-case quicksort rewrite.
+
 ## Design before implementation
 
 PR #30 tested a host lowering target; it did not implement sorting in Asslang.
@@ -14,7 +88,7 @@ readings |> sort_by (reading -> abs (reading-center))
 `sort_by : [a] -> (a -> Num) -> [a]` stably orders finite keys, with scalar
 Num/Bool or nested scalar-record payloads (at most 32 leaves). It is a closed
 compiler builtin, not a runtime host callback. Arrows, pipes and application
-retain their existing rules. This is the native storage/reordering substrate,
+retain their existing rules. `sort_by` is now a reserved builtin name. This is the native storage/reordering substrate,
 NOT the proposed `partition_rec` checker, unrestricted recursion, an automatic
 quicksort recognition pass, or a new sorting algorithm.
 
@@ -194,3 +268,8 @@ https://www.cs.cmu.edu/~scandal/nesl.html
 
 Sources checked September 12, 2026. No historical novelty, automatic algorithm
 proof synthesis, parallel speedup, proof assistant or audited sandbox is claimed.
+
+## Executed evidence
+
+[Validation](NATIVE-ORDERING-VALIDATION.md) records independent stable-order checks,
+raw memory tests, exact metering, original-binary comparisons and benchmark limits.

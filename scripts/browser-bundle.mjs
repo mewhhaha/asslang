@@ -7,7 +7,7 @@ export async function browserBundle({ benchmark = false } = {}) {
     .replace(/^import .*?;\n/gm,'').replace(/^export \{.*?;\n/gm,'').replace(/^export /gm,'');
   const specs=[
     ['recordKeys','src/record-keys.mjs','','symbolKey,isSymbolKey,displayRecordKey'],
-    ['abiSchema','src/abi-schema.mjs','','ABI_VERSION,alignTo,layout,flatTypes,isScalarSchema'],
+    ['abiSchema','src/abi-schema.mjs','','ABI_VERSION,SCRATCH_ABI_VERSION,alignTo,layout,flatTypes,isScalarSchema'],
     ['diagnostics','src/diagnostics.mjs','','diagnosticFromError,formatDiagnostic'],
     ['navigation','web/diagnostic-navigation.mjs','','selectDiagnostic'],
     ['diagnosticCases','test/diagnostic-cases.mjs','','diagnosticCases'],
@@ -16,14 +16,16 @@ export async function browserBundle({ benchmark = false } = {}) {
     ['reverse','src/reverse.mjs','const {numericLeaves,prepareDifferential}=modules.differential;','reverseVJP,reusablePullback'],
     ['intrinsics','src/intrinsics.mjs','const {reverseVJP,reusablePullback}=modules.reverse;const {forwardLinearize,reusableLinearize,valueAndGradient,stopGradient}=modules.differential;','intrinsicArities,inferIntrinsic,stageIntrinsic'],
     ['frontend','src/frontend.mjs','const {symbolKey,displayRecordKey}=modules.recordKeys;const {intrinsicArities,inferIntrinsic}=modules.intrinsics;const {createUnaryParser}=modules.unary;const {diagnosticFromError}=modules.diagnostics;','CompileError,fail,tokenize,parse,prune,showType,builtinNames,builtinArities,infer'],
-    ['jte','src/jte.mjs','const {isSymbolKey,displayRecordKey}=modules.recordKeys;const {intrinsicArities,stageIntrinsic}=modules.intrinsics;const {fail,prune,showType,builtinArities}=modules.frontend;const {flatTypes,isScalarSchema}=modules.abiSchema;','verifyCertificate,schemaOfType,stage'],
+    ['ordering','src/ordering.mjs','','collectOrderings'],
+    ['orderWasm','src/order-wasm.mjs','','createOrderEmitter'],
+    ['jte','src/jte.mjs','const {collectOrderings}=modules.ordering;const {isSymbolKey,displayRecordKey}=modules.recordKeys;const {intrinsicArities,stageIntrinsic}=modules.intrinsics;const {fail,prune,showType,builtinArities}=modules.frontend;const {flatTypes,isScalarSchema}=modules.abiSchema;','verifyCertificate,schemaOfType,stage'],
     ['fusion','src/fusion.mjs','','planReductionFusion'],
     ['outputFusion','src/output-fusion.mjs','const {layout}=modules.abiSchema;','planOutputFusion'],
     ['outputChecks','test/output-fusion-browser.mjs','','runOutputFusionBrowserChecks'],
     ['simd','src/simd.mjs','','SIMD_OPS,planSIMD,supportsSIMD'],
     ['expandedCorpus','examples/expanded-corpus.mjs','','expandedCorpus'],
     ['unsupportedCorpus','examples/unsupported-corpus.mjs','','unsupportedCorpus'],
-    ['wasm','src/wasm.mjs','const {ABI_VERSION,layout,flatTypes}=modules.abiSchema;const {planReductionFusion}=modules.fusion;const {planOutputFusion}=modules.outputFusion;const {planSIMD,SIMD_OPS}=modules.simd;','uleb,emitModule'],
+    ['wasm','src/wasm.mjs','const {createOrderEmitter}=modules.orderWasm;const {ABI_VERSION,SCRATCH_ABI_VERSION,layout,flatTypes}=modules.abiSchema;const {planReductionFusion}=modules.fusion;const {planOutputFusion}=modules.outputFusion;const {planSIMD,SIMD_OPS}=modules.simd;','uleb,emitModule'],
     ['reconstruction','src/reconstruction.mjs','','planReconstruction,reconstructionSource'],
     ['descentCodegen','src/descent-codegen.mjs','','emitDescentSource'],
     ['descent','src/descent.mjs','const {emitDescentSource}=modules.descentCodegen;const {planReconstruction}=modules.reconstruction;','planDescent,verifyDescent,descentSource'],
@@ -50,7 +52,7 @@ export async function browserBundle({ benchmark = false } = {}) {
     ['calibrationModel','examples/case-studies/workflows/calibration-model.mjs','const {record,finite}=modules.workflowCommon;','scaledCoordinates,calibrationModel,calibrationModelSource'],
     ['workflowRelease','examples/case-studies/workflows/release-kernel.mjs','const {createEvidenceAlgebra}=modules.compiler;','releaseKernel'],
     ['workflowChecks','test/workflows-browser.mjs','const {calibrationSource}=modules.workflowCalibration;const {releaseKernel}=modules.workflowRelease;','runWorkflowBrowserChecks'],
-    ['abi','src/abi.mjs','const {ABI_VERSION,alignTo,layout,flatTypes,isScalarSchema}=modules.abiSchema;','ABIError,Arena,readABI,createRuntime,createCapability,prepareCall'],
+    ['abi','src/abi.mjs','const {ABI_VERSION,SCRATCH_ABI_VERSION,alignTo,layout,flatTypes,isScalarSchema}=modules.abiSchema;','ABIError,Arena,readABI,createRuntime,createCapability,prepareCall'],
     ['calibrationHost','examples/case-studies/workflows/calibration.mjs','const {compileSources}=modules.compiler;const {createRuntime}=modules.abi;const {calibrationSource}=modules.workflowCalibration;const {scaledCoordinates,calibrationModel,calibrationModelSource}=modules.calibrationModel;const {record,finite,integer,samples,lowering,RUNTIME_PAGES}=modules.workflowCommon;','fitCalibration,predictCalibration'],
     ['calibrationChecks','test/calibration-coordinates-browser.mjs','const {fitCalibration,predictCalibration}=modules.calibrationHost;const {calibrationModelSource}=modules.calibrationModel;','runCalibrationCoordinatesBrowserChecks'],
     ['localPatternCases','test/local-patterns-cases.mjs','','localPatternCases'],
@@ -58,6 +60,7 @@ export async function browserBundle({ benchmark = false } = {}) {
     ['partitionOrder','examples/research/partition-order.mjs','','partitionOrder,verifyOrder'],
     ['partitionKeys','examples/research/partition-keys.mjs','','partitionKeySource'],
     ['partitionChecks','test/partition-order-browser.mjs','const {partitionOrder,verifyOrder}=modules.partitionOrder;const {partitionKeySource}=modules.partitionKeys;','runPartitionOrderBrowserChecks'],
+    ['nativeOrderingChecks','test/native-ordering-browser.mjs','','runNativeOrderingBrowserChecks'],
     ['unaryCases','test/unary-cases.mjs','','unaryCases'],
     ['reference','test/reference.mjs','const {parse,builtinArities}=modules.frontend;','reference'],
     ['corpus','examples/corpus.mjs','const {expandedCorpus}=modules.expandedCorpus;const {unsupportedCorpus}=modules.unsupportedCorpus;','unsupportedCorpus,corpus,baselines,benchmarkArguments,expansionSource,exampleSource'],
@@ -70,7 +73,7 @@ export async function browserBundle({ benchmark = false } = {}) {
   if(benchmark) {
     code+=`const report=await modules.benchmark.runBenchmarks({loadSource:async path=>globalThis.asslangSources[path],compileSamples:15,samples:11});report.environment={engine:navigator.userAgent};return report;`;
   } else {
-    code+='const {runPartitionOrderBrowserChecks}=modules.partitionChecks;const {runLocalPatternBrowserChecks}=modules.localPatternChecks;const {runCalibrationCoordinatesBrowserChecks}=modules.calibrationChecks;const {runOutputFusionBrowserChecks}=modules.outputChecks;const {runWorkflowBrowserChecks}=modules.workflowChecks;const {unaryCases}=modules.unaryCases;const {createEvidenceAlgebra,compile,compileSources,check,checkSources,formatDiagnostic,createCompiler,instantiate,supportsSIMD,planReconstruction,reconstructionSource,planDescentExtension,descentCountermodel,descentExtensionSource,planDescentQuery,verifyDescentQuery,verifyDescentQueryCost,descentQuerySource,planDescentBatch,verifyDescentBatch,descentBatchSource}=modules.compiler;const {runEvidencePresentationBrowserChecks}=modules.presentationChecks;const {runEvidenceTransportBrowserChecks}=modules.transportChecks;const {runEvidenceRefinementBrowserChecks}=modules.refinementChecks;const {runEvidenceInterfaceBrowserChecks}=modules.interfaceChecks;const {runDescentBatchBrowserChecks}=modules.batchChecks;const {runDescentQueryBrowserChecks}=modules.queryChecks;const {runDescentExtensionBrowserChecks}=modules.extensionChecks;const {diagnosticCases}=modules.diagnosticCases;const {selectDiagnostic}=modules.navigation;const {createRuntime,createCapability}=modules.abi;const {reference}=modules.reference;const {corpus,unsupportedCorpus,exampleSource}=modules.corpus;\n';
+    code+='const {runNativeOrderingBrowserChecks}=modules.nativeOrderingChecks;const {runPartitionOrderBrowserChecks}=modules.partitionChecks;const {runLocalPatternBrowserChecks}=modules.localPatternChecks;const {runCalibrationCoordinatesBrowserChecks}=modules.calibrationChecks;const {runOutputFusionBrowserChecks}=modules.outputChecks;const {runWorkflowBrowserChecks}=modules.workflowChecks;const {unaryCases}=modules.unaryCases;const {createEvidenceAlgebra,compile,compileSources,check,checkSources,formatDiagnostic,createCompiler,instantiate,supportsSIMD,planReconstruction,reconstructionSource,planDescentExtension,descentCountermodel,descentExtensionSource,planDescentQuery,verifyDescentQuery,verifyDescentQueryCost,descentQuerySource,planDescentBatch,verifyDescentBatch,descentBatchSource}=modules.compiler;const {runEvidencePresentationBrowserChecks}=modules.presentationChecks;const {runEvidenceTransportBrowserChecks}=modules.transportChecks;const {runEvidenceRefinementBrowserChecks}=modules.refinementChecks;const {runEvidenceInterfaceBrowserChecks}=modules.interfaceChecks;const {runDescentBatchBrowserChecks}=modules.batchChecks;const {runDescentQueryBrowserChecks}=modules.queryChecks;const {runDescentExtensionBrowserChecks}=modules.extensionChecks;const {diagnosticCases}=modules.diagnosticCases;const {selectDiagnostic}=modules.navigation;const {createRuntime,createCapability}=modules.abi;const {reference}=modules.reference;const {corpus,unsupportedCorpus,exampleSource}=modules.corpus;\n';
     code+='document.body.innerHTML="<pre id=report></pre>";document.body.dataset.result="pending";globalThis.asslangEngineOnly=true;\n';
     code+=await read('test/browser.mjs');
     code+='\nawait modules.descentChecks.runDescentBrowserChecks(modules.compiler,modules.abi.createRuntime,report);\ndocument.querySelector("#report").textContent=JSON.stringify(report,null,2);\n';
