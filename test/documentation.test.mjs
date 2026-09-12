@@ -12,7 +12,7 @@ import { createRuntime, createCapability } from '../src/abi.mjs';
 const exec = promisify(execFile);
 const root = fileURLToPath(new URL('../', import.meta.url));
 const tutorialPaths = ['README.md', 'docs/GETTING-STARTED.md', 'docs/LANGUAGE-TOUR.md', 'docs/CATEGORY-THEORY.md'];
-const navigationPaths = ['docs/OUTPUT-FUSION.md', 'docs/OUTPUT-FUSION-VALIDATION.md', 'docs/CASE-STUDIES.md', 'docs/CASE-STUDIES-VALIDATION.md', 'examples/case-studies/workflows/README.md', 'docs/README.md', 'docs/EVIDENCE.md', 'docs/EVIDENCE-RESIDUALS.md', 'docs/DOCUMENTATION-VALIDATION.md'];
+const navigationPaths = ['docs/CALIBRATION-COORDINATES.md', 'docs/CALIBRATION-COORDINATES-VALIDATION.md', 'docs/OUTPUT-FUSION.md', 'docs/OUTPUT-FUSION-VALIDATION.md', 'docs/CASE-STUDIES.md', 'docs/CASE-STUDIES-VALIDATION.md', 'examples/case-studies/workflows/README.md', 'docs/README.md', 'docs/EVIDENCE.md', 'docs/EVIDENCE-RESIDUALS.md', 'docs/DOCUMENTATION-VALIDATION.md'];
 const pages = new Map(await Promise.all([...tutorialPaths, ...navigationPaths].map(async path => [path, await readFile(resolve(root, path), 'utf8')])));
 const examples = [];
 for (const path of tutorialPaths) for (const m of pages.get(path).matchAll(/<!-- example: ([a-z0-9-]+) -->\n```(js|ass)\n([\s\S]*?)\n```/g))

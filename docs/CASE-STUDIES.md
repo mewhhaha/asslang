@@ -88,6 +88,11 @@ do not persist, so each evaluation supplies both coefficients. Lease disposal
 happens in `finally` before prediction. See [source](../examples/case-studies/workflows/calibration-kernel.mjs)
 and [orchestration](../examples/case-studies/workflows/calibration.mjs).
 
+For large predictor offsets or unit scales, opt into `coordinates:'scaled'`.
+The [scaled-coordinate guide](CALIBRATION-COORDINATES.md) shows the original stall,
+an unchanged-loss repair, and saved-model prediction on new points. Its tolerance
+is explicitly in optimizer coordinates; raw mode remains unchanged by default.
+
 ### Check current release receipts
 
 <!-- workflow-example: release -->

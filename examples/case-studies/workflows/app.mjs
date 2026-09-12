@@ -1,11 +1,15 @@
 // Fixed workflow registry. No paths, expressions or compiler flags from JSON.
 import { runMonitor } from './monitor.mjs';
-import { fitCalibration } from './calibration.mjs';
+import { fitCalibration, predictCalibration } from './calibration.mjs';
 import { evaluateRelease } from './release.mjs';
-import { json } from './common.mjs';
+import { json, record } from './common.mjs';
 
-const workflows = new Map([['monitor', runMonitor], ['calibration', fitCalibration], ['release', evaluateRelease]]);
-const usage = 'Usage: node examples/case-studies/workflows/app.mjs monitor|calibration|release [--simd] < request.json';
+const predictRequest = async (input, options) => {
+  record(input, ['model', 'x'], 'prediction request');
+  return { predictions: await predictCalibration(input.model, input.x, options) };
+};
+const workflows = new Map([['monitor', runMonitor], ['calibration', fitCalibration], ['calibration-predict', predictRequest], ['release', evaluateRelease]]);
+const usage = 'Usage: node examples/case-studies/workflows/app.mjs monitor|calibration|calibration-predict|release [--simd] < request.json';
 async function main() {
   const args = process.argv.slice(2);
   if (args.length === 1 && args[0] === '--help') { console.log(usage); return; }
