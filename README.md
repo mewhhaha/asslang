@@ -51,7 +51,8 @@ export fn gradient = (point: {x: Num, y: Num}) ->
 Call `prefixes` with `[1,2,3]` to get `[1,3,6]`, or `gradient` with `{x:3,y:4}`
 to get `{x:6,y:8}` (JS values).
 Functions use `x -> body`; `f x y` applies one argument at a time.
-[More examples and calling conventions →](docs/LANGUAGE-TOUR.md)
+[More examples and calling conventions →](docs/LANGUAGE-TOUR.md) ·
+[Tasks written top to bottom →](docs/VERTICAL-COMPOSITION.md)
 
 ## Category theory you can run
 

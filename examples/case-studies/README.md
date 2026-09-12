@@ -1,5 +1,9 @@
 # App-like case studies
 
+[Vertical task examples](../../docs/VERTICAL-COMPOSITION.md) show stopping, shared
+causal reports and paired error summaries using local result patterns. They use
+the same argument-array CLI below.
+
 For end-to-end hosts, checkpoints, fitting and receipt validation, see the
 [new practical workflows](workflows/README.md). The smaller kernels below remain
 independently runnable; their CLI takes argument arrays, while the workflow CLI

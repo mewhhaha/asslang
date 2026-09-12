@@ -137,3 +137,25 @@ computed expression. Symbol and ordinary fields are distinct; `record.name` is
 not `record[name]`. Symbols are not values and cannot cross ASABI. See
 [record symbols and their memory contract](RECORD-SYMBOLS.md) for scope, protocol
 abstraction, demand, and explicit boundary projection.
+
+## Local patterns and vertical composition
+
+Canonical `let` now accepts the same record/tuple binder forms as functions:
+
+```text
+let {value: loss, gradient: {gain: dg, bias: db}} = calculation;
+let (first, second) = pair;
+let (weight: Num) = expression;
+```
+
+Names enter scope together after the initializer and retain ordinary let
+polymorphism. Duplicate local names are errors. The initializer uses the preceding
+environment, and an inner block can shadow outer names. Product shape and
+annotation checks happen even when a bound field is unused; pure runtime demand
+is unchanged. Binding `valid` does not assert it. `require valid value` still does.
+Typed `perform` bindings retain the direct host-call and capability boundary.
+
+No token, precedence or newline rule changes. Record labels/renames and typed
+binders reuse `:` in their existing contexts; `_` remains an ordinary name.
+Read [the vertical task examples and syntax review](VERTICAL-COMPOSITION.md) for
+pipeline argument order, callback grouping, type constraints, lowering and limits.

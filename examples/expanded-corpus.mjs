@@ -1,5 +1,14 @@
 // Canonical examples, language-pattern inspirations, and app-like fixtures.
 export const expandedCorpus = [
+  {id:'vertical-threshold',path:'case-studies/vertical/threshold.ass',name:'reach_target',
+    args:[[2,3,100],5],expected:{total:5,visited:2,reached:true},
+    inspiration:'vertical stopping pipeline and a named local result pattern',kind:'case-study'},
+  {id:'vertical-shared-report',path:'case-studies/vertical/shared_report.ass',name:'running_report',
+    args:[[1,2,3],{start:0,alert:3}],expected:{values:[1,3,6],alerts:[false,true,true],final:6},
+    inspiration:'one causal history, named configuration, multiple materialized results',kind:'case-study'},
+  {id:'vertical-paired-error',path:'case-studies/vertical/paired_error.ass',name:'error_summary',
+    args:[[2,5,8],[1,5,6]],expected:{count:3,rms:Math.sqrt(5/3),maximum:2},
+    inspiration:'checked positional alignment, record-state reduction and a named report',kind:'case-study'},
   {id:'resumable-monitor',path:'case-studies/workflows/monitor.ass',name:'monitor_chunk',
     args:[[0,8,8,0,0],{seen:0,mean:0,alarm:false,raised:0,cleared:0},{alpha:0.5,low:3,high:6}],
     expected:{state:{seen:5,mean:1.5,alarm:false,raised:1,cleared:1},smoothed:[0,4,6,3,1.5],alarms:[false,false,true,false,false]},

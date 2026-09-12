@@ -1,3 +1,4 @@
+import { runLocalPatternBrowserChecks } from './local-patterns-browser.mjs';
 import { runCalibrationCoordinatesBrowserChecks } from './calibration-coordinates-browser.mjs';
 import { runOutputFusionBrowserChecks } from './output-fusion-browser.mjs';
 import { runWorkflowBrowserChecks } from './workflows-browser.mjs';
@@ -302,6 +303,7 @@ try {
   await runWorkflowBrowserChecks({compileSources},createRuntime,report);
   await runOutputFusionBrowserChecks({compile,createCompiler},createRuntime,report);
   await runCalibrationCoordinatesBrowserChecks({compileSources},createRuntime,report);
+  await runLocalPatternBrowserChecks({compile,check},createRuntime,report);
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {

@@ -70,7 +70,7 @@ export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, n
   }
 
   // A pattern supplies a shape constraint and projections from one bound value.
-  function pattern(names = new Set(), path = []) {
+  function pattern(names = new Set(), path = [], terminator = '->') {
     return bounded(() => {
       const pos = peek().pos;
       if (isName(peek().text)) {
@@ -82,38 +82,47 @@ export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, n
       if (eat('(')) {
         if (eat(')')) return { type: tuple([]), leaves: [] };
         // Parse at the same path first: only a comma makes this a tuple.
-        const first = pattern(names, path);
-        if (eat(':')) first.annotation = annotation();
+        const first = pattern(names, path, terminator);
+        if (eat(':')) {
+          (first.constraints ??= []).push({ path, type: first.annotation ?? first.type, pos });
+          first.annotation = annotation();
+        }
         if (!eat(',')) { need(')'); return first; }
         const elements = [first];
         while (!at(')')) {
-          const value = pattern(names, path);
-          if (eat(':')) value.annotation = annotation();
+          const value = pattern(names, path, terminator);
+          if (eat(':')) {
+            (value.constraints ??= []).push({ path, type: value.annotation ?? value.type, pos });
+            value.annotation = annotation();
+          }
           elements.push(value); if (!eat(',')) break;
         }
         need(')');
         return { type: tuple(elements.map(p => p.annotation ?? p.type)),
+          constraints: elements.flatMap((p, i) => (p.constraints ?? []).map(c => ({ ...c,
+            path: [...path, `_${i}`, ...c.path.slice(path.length)] }))),
           leaves: elements.flatMap((p, i) => p.leaves.map(leaf => ({ ...leaf,
             path: [...path, `_${i}`, ...leaf.path.slice(path.length)] }))) };
       }
       if (eat('{')) {
-        const fields = new Map(), leaves = [];
+        const fields = new Map(), leaves = [], constraints = [];
         if (!at('}')) do {
           const field = at('[') ? readSymbolKey() : identifier();
           if (fields.has(field.text)) fail('Duplicate record field', field, 'E_NAME');
           let value;
-          if (field.symbol) { need(':'); value = pattern(names, [...path, field.text]); }
-          else if (eat(':')) value = pattern(names, [...path, field.text]);
+          if (field.symbol) { need(':'); value = pattern(names, [...path, field.text], terminator); }
+          else if (eat(':')) value = pattern(names, [...path, field.text], terminator);
           else {
             if (names.has(field.text)) fail('Duplicate pattern binding', field, 'E_NAME');
             names.add(field.text);
             value = { type: hole(), leaves: [{ name: field.text, path: [...path, field.text], pos: field.pos }] };
           }
           fields.set(field.text, value.annotation ?? value.type); leaves.push(...value.leaves);
+          constraints.push(...(value.constraints ?? []));
         } while (eat(',') && !at('}'));
-        need('}'); return { type: product(fields, hole()), leaves };
+        need('}'); return { type: product(fields, hole()), leaves, constraints };
       }
-      fail('Expected a value, tuple, or record pattern before ->', peek(), 'E_PARSE');
+      fail(`Expected a value, tuple, or record pattern before ${terminator}`, peek(), 'E_PARSE');
     });
   }
   function lambda() {
@@ -127,22 +136,56 @@ export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, n
     return node('lambda', token.pos, { params: [name], annotations: [p.annotation ?? p.type],
       unpack, boundNames: p.leaves.map(leaf => leaf.name), body: expression() });
   }
+  // A pattern is checked in an ordinary lambda, then generalized by the outer
+  // let. Never put the continuation inside that lambda: it would monomorphize
+  // destructured functions. Hidden names cannot be spelled by source identifiers.
+  function localPattern(p, value, pos) {
+    const arg = `$local${fresh++}`;
+    const project = (path, at) => {
+      let result = node('name', at, { name: arg });
+      for (const name of path) result = node('field', at, { value: result, name });
+      return result;
+    };
+    const checks = (p.constraints ?? []).map(c => {
+      const name = `$shape${fresh++}`;
+      const identity = node('lambda', c.pos, { params: [name], annotations: [c.type],
+        body: node('name', c.pos, { name }) });
+      return { name, value: call(identity, project(c.path, c.pos), c.pos) };
+    });
+    const fields = p.leaves.map(leaf => ({ name: leaf.name, value: project(leaf.path, leaf.pos) }));
+    const checked = node('lambda', pos, { params: [arg], annotations: [p.annotation ?? p.type],
+      body: withBindings(checks, node('record', pos, { fields })) });
+    const name = `$pattern${fresh++}`;
+    return [{ name, value: call(checked, value, pos) }, ...p.leaves.map(leaf => ({ name: leaf.name,
+      value: node('field', leaf.pos, { value: node('name', leaf.pos, { name }), name: leaf.name }) }))];
+  }
   function block(token, effect = false) {
     need('{'); const bindings = [], names = new Set();
+    const bind = (binding, performed = false) => bindings.push({ ...binding, ...(effect ? { performed } : {}) });
     while (at('let') || effect && at('perform')) {
-      let name = null;
-      if (eat('let')) { name = identifier().text; need('='); }
+      let p = null, pos = peek().pos;
+      if (eat('let')) { pos = peek().pos; p = pattern(new Set(), [], '='); need('='); }
       const performed = effect && Boolean(eat('perform'));
       let value = expression(); need(';');
-      if (name && names.has(name)) fail('Duplicate local binding', token, 'E_NAME');
-      if (name) names.add(name);
+      for (const leaf of p?.leaves ?? []) {
+        if (names.has(leaf.name)) fail('Duplicate local binding', leaf, 'E_NAME');
+        names.add(leaf.name);
+      }
       if (performed) {
-        // Host authority requires a direct saturated call, never a closure.
+        // Keep a direct saturated host call separate from any pure unpacking.
         const args = []; let callee = value;
         while (callee.kind === 'call') { args.unshift(...callee.args); callee = callee.callee; }
         if (args.length) value = node('call', value.pos, { callee, args });
       }
-      bindings.push({ name, value, ...(effect ? { performed } : {}) });
+      if (!p || p.simple && !p.annotation && !(p.constraints?.length)) {
+        bind({ name: p?.simple ?? null, value }, performed);
+      } else {
+        if (performed) {
+          const name = `$performed${fresh++}`;
+          bind({ name, value }, true); value = node('name', pos, { name });
+        }
+        for (const binding of localPattern(p, value, pos)) bind(binding);
+      }
     }
     const result = expression(); eat(';'); need('}');
     return node(effect ? 'effect' : 'block', token.pos, { bindings, result });
