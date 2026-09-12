@@ -57,6 +57,12 @@ These are explicit models and generated protocols, not inferred laws about arbit
 | What additional evidence handles every promised alternative? | [Conditional evidence and Heyting implication](EVIDENCE-RESIDUALS.md); bounded teaching example. |
 | What laws hold between public flags, and can those laws repair conditional transport? | [Law-aware evidence presentations](EVIDENCE-PRESENTATIONS.md). |
 
+## Language design experiments
+
+[Elegant partition recursion](PARTITION-RECURSION.md) tests a stable, bounded host
+backend and proposes a checked recursive source form. Sorting remains a host
+experiment, not an implemented Asslang primitive.
+
 ## Contribute and assess the evidence
 
 Follow [AGENTS.md](../AGENTS.md): document semantics and invariants before changing

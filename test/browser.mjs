@@ -1,3 +1,4 @@
+import { runPartitionOrderBrowserChecks } from './partition-order-browser.mjs';
 import { runLocalPatternBrowserChecks } from './local-patterns-browser.mjs';
 import { runCalibrationCoordinatesBrowserChecks } from './calibration-coordinates-browser.mjs';
 import { runOutputFusionBrowserChecks } from './output-fusion-browser.mjs';
@@ -304,6 +305,7 @@ try {
   await runOutputFusionBrowserChecks({compile,createCompiler},createRuntime,report);
   await runCalibrationCoordinatesBrowserChecks({compileSources},createRuntime,report);
   await runLocalPatternBrowserChecks({compile,check},createRuntime,report);
+  await runPartitionOrderBrowserChecks({compile},createRuntime,report);
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {
