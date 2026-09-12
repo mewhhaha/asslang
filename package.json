@@ -60,6 +60,8 @@
     "example:output-fusion": "node examples/interop/output-fusion.mjs",
     "test:output-fusion": "node --test test/output-fusion.test.mjs",
     "example:calibration-coordinates": "node examples/interop/calibration-coordinates.mjs",
-    "test:calibration-coordinates": "node --test test/calibration-coordinates.test.mjs"
+    "test:calibration-coordinates": "node --test test/calibration-coordinates.test.mjs",
+    "example:vertical-composition": "node examples/interop/vertical-composition.mjs",
+    "test:local-patterns": "node --test test/local-patterns.test.mjs"
   }
 }

@@ -1,0 +1,16 @@
+// Branch one causal history into separately owned arrays and its final value.
+export fn running_report = (samples:[Num]) -> (settings:{start:Num,alert:Num}) -> do {
+  let {start, alert} = settings;
+  let history =
+    samples
+    |> scan start (total -> sample -> do {
+      let next = total+sample;
+      require (sample-sample == 0 && next-next == 0) next
+    });
+
+  require (start-start == 0 && alert-alert == 0) {
+    values: history,
+    alerts: history |> map (total -> total >= alert),
+    final: history |> fold start (previous -> next -> next),
+  }
+};

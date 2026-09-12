@@ -2,6 +2,123 @@
 
 [Language syntax](SYNTAX.md) · [Practical workflows](CASE-STUDIES.md)
 
+## See the problem solved in source
+
+Run these complete kernels from the repository root:
+
+```sh
+npm run example:vertical-composition
+npm run test:local-patterns
+node examples/case-studies/app.mjs vertical-threshold <<<'[[2,3,-99],5]'
+```
+
+The last line uses Bash input redirection. The example driver runs all three
+kernels, compares each with explicit local projections, and asserts identical
+Wasm bytes and results. These tasks need no extra source library or runtime object.
+
+### Stop when enough evidence has arrived
+
+Accumulate nonnegative samples until their sum reaches a target. Return the
+result with names that describe the task, not an opaque temporary's field chain.
+`[2,3,-99]` with limit 5 yields `{total:5,visited:2,reached:true}`: the invalid
+suffix is never read by the causal transition. Invalid data *before* stopping
+still traps. Empty input returns `{total:0,visited:0,reached:false}`; limit must
+be finite and positive. Overflow of an accumulated total is rejected.
+
+<!-- vertical-example: threshold -->
+```ass
+// Stop before touching the suffix: [2,3,-99] reaches 5 after two samples.
+export fn reach_target = (samples:[Num]) -> (limit:Num) -> do {
+  let {state: total, steps: visited, done: reached} =
+    samples
+    |> scan 0 (total -> sample -> do {
+      let next = total+sample;
+      require (sample >= 0 && sample-sample == 0 && next-next == 0) next
+    })
+    |> fold_until 0 (previous -> total -> {
+      state: total,
+      done: total >= limit,
+    });
+
+  require (limit > 0 && limit-limit == 0) {total, visited, reached}
+};
+```
+
+The pipeline is a vertical spine. `let {state: total, ...}` names its output at
+the place where it becomes useful. Semicolons end bindings; a newline alone does
+not. This is the same stopping primitive and loop budget as before.
+
+### Branch one history into a useful report
+
+A shared history produces running totals, alert flags and its final value. With
+samples `[1,2,3]` and settings `{start:0,alert:3}`, the report contains values
+`[1,3,6]`, alerts `[false,true,true]`, and final value 6. Local destructuring does
+not create a second scan or change the settings' ABI.
+
+<!-- vertical-example: shared_report -->
+```ass
+// Branch one causal history into separately owned arrays and its final value.
+export fn running_report = (samples:[Num]) -> (settings:{start:Num,alert:Num}) -> do {
+  let {start, alert} = settings;
+  let history =
+    samples
+    |> scan start (total -> sample -> do {
+      let next = total+sample;
+      require (sample-sample == 0 && next-next == 0) next
+    });
+
+  require (start-start == 0 && alert-alert == 0) {
+    values: history,
+    alerts: history |> map (total -> total >= alert),
+    final: history |> fold start (previous -> next -> next),
+  }
+};
+```
+
+The default compiler emits one shared traversal for this record. Fusion disabled
+retains independent traversals. Both output arrays keep their separately owned
+storage; a source-level binding is not a global memo or allocation-free runtime.
+
+### Compare paired measurements and return named statistics
+
+Checked pairing makes alignment explicit. Reduce the differences to a small
+record and name its fields directly. For actual `[2,5,8]` and expected `[1,5,6]`,
+the count is 3, RMS approximately 1.29099445, and maximum absolute error 2.
+Unequal lengths or nonfinite arithmetic fail; the explicit empty convention is
+zero count, RMS and maximum.
+
+<!-- vertical-example: paired_error -->
+```ass
+// Compare aligned readings; empty input has count=0, rms=0 and maximum=0.
+export fn error_summary = (actual:[Num]) -> (expected:[Num]) -> do {
+  let {count, squares, largest} =
+    actual
+    |> zip_checked expected (observed -> target ->
+      require (observed-observed == 0 && target-target == 0) (observed-target))
+    |> fold {count:0, squares:0, largest:0}
+      ({count, squares, largest} -> error -> {
+        count: count+1,
+        squares: squares+error*error,
+        largest: max largest (abs error),
+      });
+
+  let rms = if count == 0 then 0 else sqrt (squares/count);
+  require (rms-rms == 0) {count, rms, maximum:largest}
+};
+```
+
+The actual calibration workflow uses the same feature to unpack the product from
+`value_and_grad`, rather than repeatedly writing `result.gradient.gain`:
+
+```text
+let {value:sampleLoss, gradient:{gain:dg, bias:db}} =
+  value_and_grad objective {gain,bias};
+```
+
+Its fold is written as a `zip_checked` / `fold` pipeline. This is a source-level
+simplification; its emitted numerical operations, output fields and host API do
+not change. See [executed checks](VERTICAL-COMPOSITION-VALIDATION.md).
+
 ## Design before implementation
 
 The language already has a useful visual vocabulary: `->` introduces a function,

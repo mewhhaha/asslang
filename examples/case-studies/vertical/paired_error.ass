@@ -1,0 +1,16 @@
+// Compare aligned readings; empty input has count=0, rms=0 and maximum=0.
+export fn error_summary = (actual:[Num]) -> (expected:[Num]) -> do {
+  let {count, squares, largest} =
+    actual
+    |> zip_checked expected (observed -> target ->
+      require (observed-observed == 0 && target-target == 0) (observed-target))
+    |> fold {count:0, squares:0, largest:0}
+      ({count, squares, largest} -> error -> {
+        count: count+1,
+        squares: squares+error*error,
+        largest: max largest (abs error),
+      });
+
+  let rms = if count == 0 then 0 else sqrt (squares/count);
+  require (rms-rms == 0) {count, rms, maximum:largest}
+};

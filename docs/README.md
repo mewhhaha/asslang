@@ -10,6 +10,7 @@ The [repository README](../README.md) is the overview; this directory holds the 
 | [Getting started](GETTING-STARTED.md) | Node setup, CLI and JS calls, diagnostics, tests, limits. |
 | [Language tour](LANGUAGE-TOUR.md) | Canonical syntax, streams, derivatives, demand and effects. |
 | [Category theory in practice](CATEGORY-THEORY.md) | Choose a reconstruction/proof helper and run complete examples. |
+| [Vertical composition](VERTICAL-COMPOSITION.md) | Read pipelines top to bottom, unpack named results and retain checked behavior. |
 | [Practical workflows](CASE-STUDIES.md) | Resumable monitoring, robust calibration and law-aware release preflight. |
 | [Example corpus](../examples/README.md) | Algorithms, unsupported fixtures and app-like case studies. |
 | [Validation and provenance](EVIDENCE.md) | Revision-specific checks, measurements and limitations. |

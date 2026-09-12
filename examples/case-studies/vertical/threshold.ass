@@ -1,0 +1,15 @@
+// Stop before touching the suffix: [2,3,-99] reaches 5 after two samples.
+export fn reach_target = (samples:[Num]) -> (limit:Num) -> do {
+  let {state: total, steps: visited, done: reached} =
+    samples
+    |> scan 0 (total -> sample -> do {
+      let next = total+sample;
+      require (sample >= 0 && sample-sample == 0 && next-next == 0) next
+    })
+    |> fold_until 0 (previous -> total -> {
+      state: total,
+      done: total >= limit,
+    });
+
+  require (limit > 0 && limit-limit == 0) {total, visited, reached}
+};
