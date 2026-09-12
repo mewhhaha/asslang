@@ -30,6 +30,7 @@ The [repository README](../README.md) is the overview; this directory holds the 
 
 | Task | Contract |
 | --- | --- |
+| Fit data with a large predictor origin | [Scaled calibration and saved models](CALIBRATION-COORDINATES.md). |
 | Understand differentiation and demand | [Differential staging](DIFFERENTIAL-STAGING.md). |
 | Scalar objectives over numeric products | [Gradients](GRADIENTS.md). |
 | Reuse forward derivatives across directions | [Linearization](LINEARIZE.md). |

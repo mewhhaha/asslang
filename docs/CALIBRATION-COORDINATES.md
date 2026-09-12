@@ -2,6 +2,53 @@
 
 [Practical workflows](CASE-STUDIES.md) · [Documentation](README.md)
 
+## Try the large-origin example
+
+```sh
+npm run example:calibration-coordinates
+npm run test:calibration-coordinates
+node examples/case-studies/workflows/app.mjs calibration < examples/case-studies/workflows/inputs/calibration-offset.json
+node examples/case-studies/workflows/app.mjs calibration-predict < examples/case-studies/workflows/inputs/calibration-predict.json
+```
+
+The comparison keeps the data, Huber delta, iteration limit and line search fixed.
+Only `coordinates` changes. The raw run stalls at loss 6.1 before any accepted
+update; the scaled fixture converges to loss 3.875. Its model has center 1e9,
+scale 2, gain approximately 4, and bias 1.25. These are normalized model parameters,
+not a slope of 4 per original input unit. The second CLI command demonstrates
+prediction from a saved, exact fixture model on new inputs.
+
+Save this JS in the repository root:
+
+<!-- calibration-example -->
+```js
+import { fitCalibration, predictCalibration } from './examples/case-studies/workflows/calibration.mjs';
+
+const fit = await fitCalibration({
+  x: [999999998, 999999999, 1000000000, 1000000001, 1000000002],
+  y: [-3, -1, 21, 3, 5],
+  coordinates: 'scaled', loss: 'huber', delta: 1,
+});
+const saved = JSON.parse(JSON.stringify(fit.model));
+const predictions = await predictCalibration(saved, [1000000000, 1000000003]);
+console.log(JSON.stringify({status: fit.status, model: saved, predictions: Array.from(predictions)}));
+```
+
+The new-point predictions are approximately `[1.25, 7.25]`. Keep `model` for
+prediction, not just the convenience `coefficients` projection: a large raw
+intercept can lose meaningful precision. `predictCalibration` validates the model
+and compiles a checked Wasm predictor per call; it is not a cached batch service.
+The pure host fitter and predictor also run directly in the browser test harness.
+
+`coordinates` accepts only `'raw'` or `'scaled'`; it is a request field, not a
+compiler flag. Raw remains the default. Scaled `gradient` is transported back to
+raw coefficient units; `optimizerGradient` is the gradient used for stopping.
+Either raw coefficient/gradient projection can be null when not representable
+as finite f64 values, without invalidating a finite primary model. Even a finite
+projection can lose precision or underflow. Model JSON persistence is ordinary
+finite-number serialization, not an authentication or arbitrary signed-zero
+bit-preservation guarantee.
+
 ## Pain point and compatibility
 
 The existing bounded fitter can stall solely because a predictor has a large
@@ -129,3 +176,8 @@ numerical techniques. References checked September 12, 2026:
 These sources motivate the approach, not the correctness of this code. NumPy and
 SciPy are not dependencies. The algebraic argument and finite validation do not
 constitute proof-assistant verification or an independent numerical audit.
+
+## Executed evidence
+
+See [the validation report](CALIBRATION-COORDINATES-VALIDATION.md) for actual runs,
+independent gradient checks, raw-baseline comparisons and numerical limitations.

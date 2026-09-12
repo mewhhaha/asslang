@@ -1,3 +1,4 @@
+import { runCalibrationCoordinatesBrowserChecks } from './calibration-coordinates-browser.mjs';
 import { runOutputFusionBrowserChecks } from './output-fusion-browser.mjs';
 import { runWorkflowBrowserChecks } from './workflows-browser.mjs';
 import { runEvidencePresentationBrowserChecks } from './evidence-presentation-browser.mjs';
@@ -300,6 +301,7 @@ try {
   await runEvidencePresentationBrowserChecks({createEvidenceAlgebra,compileSources},createRuntime,report);
   await runWorkflowBrowserChecks({compileSources},createRuntime,report);
   await runOutputFusionBrowserChecks({compile,createCompiler},createRuntime,report);
+  await runCalibrationCoordinatesBrowserChecks({compileSources},createRuntime,report);
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {

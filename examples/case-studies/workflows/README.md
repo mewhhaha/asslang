@@ -27,6 +27,11 @@ returned bounded-fit result is not necessarily a converged fit.
 
 [The guide](../../../docs/CASE-STUDIES.md) explains request/response fields,
 embedding examples, mathematical invariants, reference expectations and limits.
+Large input offsets can stall raw fitting. [Scaled calibration](../../../docs/CALIBRATION-COORDINATES.md)
+adds an explicit `coordinates:'scaled'` request option and `predictCalibration`
+for saved centered models. Run `npm run example:calibration-coordinates` for the
+before/after case without changing the objective or search budgets.
+
 [Executed checks](../../../docs/CASE-STUDIES-VALIDATION.md) distinguish results
 from performance or production-readiness claims.
 

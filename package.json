@@ -58,6 +58,8 @@
     "example:workflows": "node examples/case-studies/workflows/run.mjs",
     "test:workflows": "node --test test/workflows.test.mjs",
     "example:output-fusion": "node examples/interop/output-fusion.mjs",
-    "test:output-fusion": "node --test test/output-fusion.test.mjs"
+    "test:output-fusion": "node --test test/output-fusion.test.mjs",
+    "example:calibration-coordinates": "node examples/interop/calibration-coordinates.mjs",
+    "test:calibration-coordinates": "node --test test/calibration-coordinates.test.mjs"
   }
 }
