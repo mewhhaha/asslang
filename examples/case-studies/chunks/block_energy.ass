@@ -1,0 +1,5 @@
+// One summary per nonempty block, including a short final block.
+export fn block_energy = (samples:[Num]) -> (width:Num) ->
+  samples
+  |> chunks width
+  |> map (block -> block |> map (x -> x*x) |> sum);

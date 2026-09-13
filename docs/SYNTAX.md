@@ -168,3 +168,12 @@ precedence, array literal or indentation rule. `split_at` and `concat` become
 reserved builtin names; existing user definitions with those names must be
 renamed. [Array composition](ARRAY-VIEWS.md) specifies the access restrictions,
 cut bounds, alignment recovery and examples with scans and zips.
+
+## Symbolic chunk families
+
+`xs |> chunks width |> map (block -> scan block 0 add) |> flatten` uses ordinary
+applications and helpers. `chunks` and `flatten` are newly reserved builtin names;
+there is no new token, array literal or indentation rule. A short last block is
+retained. Scalar-valued block maps produce summaries without flattening.
+[Chunk composition](CHUNK-COMPOSITION.md) specifies positive widths, supported
+static families, exact local cover checks, reset semantics and access limits.

@@ -1,5 +1,14 @@
 // Canonical examples, language-pattern inspirations, and app-like fixtures.
 export const expandedCorpus = [
+  {id:'chunk-report',path:'case-studies/chunks/block_report.ass',name:'block_report',
+    args:[[1,2,3,4,5,6,7],3],expected:{local:[1,3,6,4,9,15,7],totals:[1,3,6,10,15,21,28],state:{local:7,total:28}},
+    inspiration:'symbolic blocks, local resets, restored zip alignment and a continuing global scan',kind:'case-study'},
+  {id:'chunk-energy',path:'case-studies/chunks/block_energy.ass',name:'block_energy',
+    args:[[1,2,3,4,5,6,7],3],expected:[14,77,49],
+    inspiration:'per-block summaries without arrays of block data',kind:'case-study'},
+  {id:'chunk-center',path:'case-studies/chunks/block_center.ass',name:'block_center',
+    args:[[1,2,3,4,5,6,7],3],expected:[-1,0,1,-1,0,1,0],
+    inspiration:'a block scan seed computes its mean once, then flattening reuses scalar state',kind:'case-study'},
   {id:'view-section-report',path:'case-studies/views/section_report.ass',name:'section_report',
     args:[[1,2,3,4],{cut:2,leftGain:10,rightGain:100}],
     expected:{values:[10,20,300,400],totals:[10,30,330,730],state:{value:400,total:730,correction:720}},

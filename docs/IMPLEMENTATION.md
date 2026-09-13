@@ -90,6 +90,17 @@ reassembled after maps. Reversal, independent cuts and positional zips do not
 forge that cover. Dense/seekable requirements exclude implicit causal replay.
 See [array views](ARRAY-VIEWS.md) for bounds, demand, output ownership and proofs.
 
+## Symbolic blocks and scoped flattening
+
+`src/chunk-views.mjs` represents `chunks` as one symbolic local array and a checked
+layout, never nested guest storage. Existing `map` either creates a scalar block
+summary stream or preserves the local array cover. `flatten` erases that cover
+through integer coordinate substitution and restores the source domain. Local
+scans receive fresh identities and scalar reset predicates; checkpoint guards
+run at visited block boundaries. Substitution protects nested loop binders.
+All machine-root walkers include reset/checkpoint expressions. See
+[chunk composition](CHUNK-COMPOSITION.md) for limitations and cost examples.
+
 ## Native finite ordering
 
 `sort_by` introduces a strict finite materialization boundary and a fresh dense,

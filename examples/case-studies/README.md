@@ -1,5 +1,8 @@
 # App-like case studies
 
+[Block processing](../../docs/CHUNK-COMPOSITION.md) shows local/global scans,
+block summaries and mean removal without nested block buffers.
+
 [Native ordering](../../docs/NATIVE-ORDERING.md) adds `native-nearest` and
 `native-ranked-readings`: stable key sorting inside Wasm, with bounded scratch
 and record-payload projection. Both use the existing argument-array CLI.

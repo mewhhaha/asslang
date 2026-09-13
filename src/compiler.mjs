@@ -64,6 +64,7 @@ export function compile(source, options = {}) {
         stagingWork: staged.work, proofSteps: staged.certificate.steps.length,
         staticZips: staged.staticZips, stagedCheckedZips: staged.checkedZips,
         ...((staged.arrayViews.splits || staged.arrayViews.concats) ? {arrayViews:{scope:'staging',...staged.arrayViews}} : {}),
+        ...(staged.chunkViews.chunks ? {chunkViews:{scope:'staging',...staged.chunkViews}} : {}),
         wasmBytes: module.bytes.length, abiMetadataBytes: module.abiMetadataBytes, needsMemory: module.needsMemory,
         kernelHeapAllocationSites: 0, intermediateBufferBytes: module.scratchSites ? null : 0,
         ...(module.scratchSites ? {scratchReservationSites:module.scratchSites} : {}),

@@ -30,7 +30,7 @@ export function planReductionFusion(root, steps, cached) {
     // Transitions ARE strict: inspect their complete schedule, even for count.
     const machines = s.machines ?? [];
     const roots = [node.initial, node.body, s.extent, s.mask, ...s.guards,
-      ...machines.flatMap(m => [m.initial, m.body, m.outputs, m.emission, m.gate])].flat();
+      ...machines.flatMap(m => [m.initial, m.body, m.outputs, m.emission, m.gate, m.reset, ...(m.checks??[])])].flat();
     if (roots.some(blocked)) continue;
     const domain = steps[s.proof]?.domain;
     if (!Number.isInteger(domain)) throw new Error('Fusion needs a checked stream domain');

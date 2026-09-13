@@ -47,7 +47,7 @@ export function planOutputFusion(value, schema, steps, completed) {
   }
   // Transitions are strict; ignoring folds do not force their unused stream.item.
   const roots = [stream.extent, ...guards, ...sinks.flatMap(s => s.roots),
-    ...stream.machines.flatMap(m => [...m.initial, ...m.body, ...m.outputs, m.emission, m.gate])];
+    ...stream.machines.flatMap(m => [...m.initial, ...m.body, ...m.outputs, m.emission, m.gate, m.reset, ...(m.checks??[])])];
   if (!roots.every(safe)) return null;
   return { stream, guards, arrays, reductions: [...reductions.values()], domain: fact.domain };
 }

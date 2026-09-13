@@ -2,6 +2,85 @@
 
 [Array views](ARRAY-VIEWS.md) · [Vertical composition](VERTICAL-COMPOSITION.md)
 
+## Write the block operation, not boundary bookkeeping
+
+```sh
+npm run example:chunk-composition
+npm run test:chunk-composition
+printf '[[1,2,3,4,5,6,7],3]' | node examples/case-studies/app.mjs chunk-report
+```
+
+### Local resets and a continuing global scan
+
+<!-- chunk-example: block_report -->
+```ass
+// A local scan resets per block; the global scan continues through all blocks.
+fn running_block = block -> block |> scan 0 (subtotal -> x -> subtotal+x);
+export fn block_report = (samples:[Num]) -> (width:Num) -> do {
+  let within = samples |> chunks width |> map running_block |> flatten;
+  let initial = {local:0, total:0};
+  let history =
+    zip samples within (sample -> local -> {sample, local})
+    |> scan initial (state -> row -> {local:row.local, total:state.total+row.sample});
+  {
+    local: history |> map (state -> state.local),
+    totals: history |> map (state -> state.total),
+    state: history |> fold initial (previous -> next -> next),
+  }
+};
+```
+
+For `[1,2,3,4,5,6,7]` and width 3, local totals are `[1,3,6,4,9,15,7]`;
+global totals are `[1,3,6,10,15,21,28]`. The last block contains just 7.
+Default fusion emits one loop and two scalar machines (three state slots), with
+zero runtime zip checks. There are no intermediate block or boundary buffers.
+Seven events require seven loop units; the two final arrays occupy 112 output
+bytes, apart from the descriptor. Disabling fusion retains three consumer loops.
+This does not promise faster wall-clock execution than an expert handwritten loop.
+
+### One energy summary per block
+
+<!-- chunk-example: block_energy -->
+```ass
+// One summary per nonempty block, including a short final block.
+export fn block_energy = (samples:[Num]) -> (width:Num) ->
+  samples
+  |> chunks width
+  |> map (block -> block |> map (x -> x*x) |> sum);
+```
+
+The same input yields `[14,77,49]`. One outer block loop and an inner reduction
+use ten loop units (seven samples plus three blocks), and 24 final output bytes.
+No block data array is created between them.
+
+### Remove the mean with one summary computation per block
+
+<!-- chunk-example: block_center -->
+```ass
+// The scan seed computes the mean once per block, not once per sample.
+fn centered_block = block ->
+  block
+  |> scan {mean:sum block / count block, value:0}
+    (state -> x -> {mean:state.mean, value:x-state.mean})
+  |> map (state -> state.value);
+export fn block_center = (samples:[Num]) -> (width:Num) ->
+  samples |> chunks width |> map centered_block |> flatten;
+```
+
+The result is `[-1,0,1,-1,0,1,0]`. The seed visits each block once to compute
+its mean; the scan then visits it once to emit centered values. This is fourteen
+loop units and 56 final output bytes, not a one-pass claim. Empty input evaluates
+no mean and performs no division by an empty block count.
+
+A simpler-looking `map block (x -> x - sum block / count block)` can recompute the
+sum per sample. Block-invariant memoization is not implemented by this pass.
+The explicit seed makes the intended work visible while reusing ordinary scan.
+
+The driver also reads the final block length of a virtual billion-element range
+with zero loops and no linear-memory import. It does not allocate a billion values.
+[Executed validation](CHUNK-COMPOSITION-VALIDATION.md) separates these native
+resource checks from performance and proof-assistant claims.
+
 ## Design before implementation
 
 PR #33 gave the language two-part indexed covers. The next gap is a runtime
@@ -96,7 +175,10 @@ visited event and at each reset, before its normal simultaneous update. A
 block-level structural guard is a zero-state checkpoint machine placed before
 local transitions. Nested blocks combine reset boundaries, so a short outer tail
 does not accidentally carry inner state from a previous outer block. Input-index
-substitution, reduction dependencies, ordering discovery and fusion safety scans
+substitution must replace only free coordinates: nested reductions/iterations
+keep their own bound cursors and accumulators, even when a scan seed consumes
+the same local source. Substitution uses a separate cache per binding scope.
+Reduction dependencies, ordering discovery and fusion safety scans
 must inspect reset predicates and checkpoint guards as well as old machine roots.
 Older machines have neither field and keep their original emitted instructions.
 

@@ -291,7 +291,7 @@ export function showType(type, curried = false) {
   return show(type);
 }
 
-export const builtinArities = Object.freeze({ ...intrinsicArities, range: 1, map: 2, filter: 2, sort_by: 2, split_at: 2, concat: 2, scan: 3,
+export const builtinArities = Object.freeze({ ...intrinsicArities, range: 1, map: 2, filter: 2, sort_by: 2, split_at: 2, concat: 2, chunks: 2, flatten: 1, scan: 3,
   transduce: 3, iterate: 3, zip: 3, zip_checked: 3, sum: 1, count: 1, fold: 3,
   fold_until: 3, sqrt: 1, abs: 1, min: 2, max: 2, floor: 1, at: 2,
   byte_length: 1, utf8: 1, byte_values: 1, require: 2 });
@@ -401,6 +401,8 @@ export function infer(program) {
     const a = variable(), b = variable(), c = variable();
     switch (name) {
       case 'range': return fn([Num], stream(Num));
+      case 'chunks': return fn([stream(a), Num], stream(stream(a)));
+      case 'flatten': return fn([stream(stream(a))], stream(a));
       case 'map': return fn([stream(a), fn([a], b)], stream(b));
       case 'filter': return fn([stream(a), fn([a], Bool)], stream(a));
       case 'split_at': return fn([stream(a), Num], { tag: 'Record',
