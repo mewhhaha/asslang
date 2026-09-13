@@ -1,0 +1,4 @@
+// Three-tap smoothing on complete windows, without a window matrix.
+export fn smooth = (samples:[Num]) ->
+  samples
+  |> window_map 3 1 (w -> (at w 0 + 2*at w 1 + at w 2)/4);

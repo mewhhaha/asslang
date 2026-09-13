@@ -1,5 +1,14 @@
 // Canonical examples, language-pattern inspirations, and app-like fixtures.
 export const expandedCorpus = [
+  {id:'window-smooth',path:'case-studies/windows/smooth.ass',name:'smooth',
+    args:[[2,4,8,4,2]],expected:[4.5,6,4.5],libraries:['../lib/windows.ass'],
+    inspiration:'read-only overlapping neighborhoods without a window matrix',kind:'case-study'},
+  {id:'window-correlate',path:'case-studies/windows/correlate.ass',name:'correlate',
+    args:[[1,2,3,4,5],[1,0,-1],1],expected:[-2,-2,-2],libraries:['../lib/windows.ass'],
+    inspiration:'source-library window views composed with checked zip and ordered reduction',kind:'case-study'},
+  {id:'window-report',path:'case-studies/windows/neighborhood_report.ass',name:'neighborhood_report',
+    args:[[2,4,8,4,2]],expected:{slopes:[3,0,-3],totals:[3,3,0],state:{slope:-3,total:0}},libraries:['../lib/windows.ass'],
+    inspiration:'overlapping reads, one output domain and a shared causal report',kind:'case-study'},
   {id:'chunk-block-report',path:'case-studies/chunks/block_report.ass',name:'block_report',
     args:[[10,13,20,18,30],2],expected:{relative:[0,3,0,-2,0],totals:[0,3,3,1,1],state:{value:0,total:1,original:91}},
     inspiration:'arithmetic chunk covers, aligned flattening and continuous scan',kind:'case-study'},

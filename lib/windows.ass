@@ -1,0 +1,16 @@
+// Complete, read-only overlapping windows. No nested arrays are materialized.
+// Width/stride are positive integers; callbacks retain their own work/demand.
+fn window_map = xs -> width -> stride -> f -> do {
+  let n = count xs;
+  let valid = width > 0 && width <= 2147483647 && width == floor width
+    && stride > 0 && stride <= 2147483647 && stride == floor stride;
+  let size = if n < width then 0 else 1 + floor ((n-width)/stride);
+  require valid (
+    range size
+    |> map (i -> do {
+      let {right: tail} = split_at xs (i*stride);
+      let {left: window} = split_at tail width;
+      f window
+    })
+  )
+};

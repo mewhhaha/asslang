@@ -2,6 +2,25 @@
 
 [Array views](ARRAY-VIEWS.md) · [Documentation](README.md)
 
+## Use the neighborhood, not a matrix of copied windows
+
+For samples `[2,4,8,4,2]`, the three-tap smoother below returns `[4.5,6,4.5]`.
+For samples `[1,2,3,4,5]`, weights `[1,0,-1]` and stride 1, the correlation
+returns `[-2,-2,-2]`. Width determines the neighborhood; stride determines how
+far its origin moves. Windows that would run past the input are omitted.
+
+```sh
+npm run example:window-maps
+npm run test:window-maps
+printf '[[2,4,8,4,2]]' | node examples/case-studies/app.mjs window-smooth
+```
+
+The complete source programs are below. Embed them by passing `lib/windows.ass`
+and the chosen example to `compileSources`; the registered CLI does that linking
+for you. `window_map` is a source-library function, not an implicit import or
+reserved intrinsic. Two checked views construct each read-only neighborhood and
+stage away; overlapping windows are never copied into a matrix.
+
 ## Contract before implementation
 
 Add a source library `window_map xs width stride f` for complete overlapping
@@ -74,7 +93,7 @@ algorithms are optimal or that arbitrary map callbacks run in linear time.
 
 Keep `src/`, the parser, ABI, effects, compiler options, dependencies and workflow
 permissions unchanged. Add the library, complete registered smoothing/correlation/
-report examples and an executable comparison with explicit indexing. Include
+report examples and an executable driver with exact loop/output bounds. Include
 window source in normal corpus/browser discovery using the existing linked-source
 mechanism. Keep the root README short; link this guide from the docs index.
 
@@ -83,7 +102,7 @@ width/stride combinations, all eight lowering modes, gaps/overlap/tails/empty,
 invalid parameters, polymorphic helpers, selected late windows at INT32_MAX,
 callbacks with local state and reductions, strict versus lazy demand, provenance,
 source-local errors, exact loop/output budgets, raw canaries, leases and effects.
-Compare f64 order and fixed-tap bytes against explicit indexing without claiming
+Compare f64 order and representative map-composition bytes without claiming
 universal byte equality. Run the full suite, host/reducer examples and browser
 engine checks. Also test the new library atop the repaired #35 compiler locally.
 Report only completed checks and preserve original benchmark/validation reports.
@@ -98,8 +117,117 @@ new primitive; it does not claim a historically new window algorithm or theorem.
 Sources checked September 13, 2026:
 
 - https://doc.rust-lang.org/stable/core/primitive.slice.html#method.windows
-- https://numpy.org/doc/stable/reference/generated/numpy.lib.stride_tricks/sliding_window_view.html
+- https://numpy.org/doc/stable/reference/generated/numpy.lib.stride_tricks.sliding_window_view.html
 
 No throughput benchmark, user study, proof assistant or independent formal audit
 is claimed. Complete windows are not same-sized padded convolution, and the
 correlation example does not reverse coefficients as mathematical convolution does.
+
+## Executable examples
+
+<!-- window-example: smooth -->
+```ass
+// Three-tap smoothing on complete windows, without a window matrix.
+export fn smooth = (samples:[Num]) ->
+  samples
+  |> window_map 3 1 (w -> (at w 0 + 2*at w 1 + at w 2)/4);
+```
+
+<!-- window-example: correlate -->
+```ass
+// Complete-window cross-correlation; coefficients are NOT reversed.
+export fn correlate = (samples:[Num]) -> (weights:[Num]) -> (stride:Num) ->
+  samples
+  |> window_map (count weights) stride (w ->
+    zip_checked w weights (sample -> weight -> sample*weight) |> sum);
+```
+
+<!-- window-example: neighborhood_report -->
+```ass
+// Compute a neighborhood slope, then share one cumulative reporting history.
+export fn neighborhood_report = (samples:[Num]) -> do {
+  let history =
+    samples
+    |> window_map 3 1 (w -> (at w 2 - at w 0)/2)
+    |> scan {slope:0, total:0} (state -> slope -> {
+      slope,
+      total: state.total+slope,
+    });
+  {
+    slopes: history |> map (state -> state.slope),
+    totals: history |> map (state -> state.total),
+    state: history |> fold {slope:0, total:0} (previous -> next -> next),
+  }
+};
+```
+
+## Executed validation
+
+September 13, 2026; Node v22.16.0, Linux x64, Chromium 144. Source base is main
+`ec52b05814523289005cf6cd3a22f473b812ee00`, tree
+`877e6017f3dca0ef05798f7f23873e9abf4b72bf`. This source library is independent
+of PR #35. No file under `src/`, runtime adapter, ABI, permission, dependency,
+compiler option or historical validation report changes. The short README is
+unchanged; the three examples are linked through the existing corpus registry.
+
+| Check | Executed result |
+| --- | --- |
+| Full default-concurrency `npm test` | 1,468 passed; no failures/skips |
+| Focused window suite | 21 passed |
+| Documentation suite | 26 passed |
+| Chromium engine suite | 1,885 core + 276 experiment checks passed |
+| Combined checkout with repaired PR #35 | 1,504 tests passed |
+| Actual-main compatibility | 848 binaries, ABI objects and certificates identical |
+| Host, reducer and case-study example runners | Passed |
+| HTTP browser path | Attempted; policy blocked navigation |
+
+The existing browser corpus paths execute all three linked examples in normal,
+fused and scalar/SIMD configurations, adding twelve assertions. The browser run
+is not a worker/module-loading or other-engine result. HTTP navigation failed
+with `net::ERR_BLOCKED_BY_ADMINISTRATOR`; no policy was changed or bypassed.
+Remote CI status belongs to the PR, not this local report.
+
+All 106 existing corpus entries retain identical Wasm, ABI objects and JTE
+certificates across eight lowering configurations against the actual main compiler.
+There is no core compiler change in this project.
+
+An independent slice-based oracle covers 8,192 exhaustive input/width/stride
+cases and 480 seeded cases. The focused tests exercise all eight lowering
+configurations, nested window maps in chunk callbacks, local scan/stopping-fold
+state, invalid parameters on empty/count demand, selected-window demand, borrowed
+Bool/record rows, source-local errors, typed rejection, effect authority, native
+sort scratch, cache isolation, prepared snapshots and recovery after traps.
+INT32_MAX virtual-window endpoints are compared with BigInt arithmetic and execute
+with zero loops or memory import; no enormous input array is allocated.
+
+Raw tests preserve chosen signed-zero, NaN and infinity payload bits through
+constant-tap reads, protect canaries and reject input/output overlap without writes.
+Representative map-composition programs emit identical binaries across eight
+settings; this is not an all-program optimizer proof. The library does not invent
+source-alignment evidence for overlapping neighborhoods or independent maps.
+
+On the documented fixtures, the executable driver checks these exact allowances
+and verifies that one fewer unit or output byte traps:
+
+| Kernel | Loop sites | Loop units | Intermediate buffer bytes | Final array bytes | Wasm bytes |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Three-tap smoothing | 1 | 3 | 0 | 24 | 1,856 |
+| Three-coefficient correlation | 2 | 12 | 0 | 24 | 1,858 |
+| Shared slope/total report | 1 | 3 | 0 | 48 | 2,742 |
+
+Wasm sizes include the stated loop allowance. Output bytes exclude descriptors,
+input storage and host copies. The report returns slopes `[3,0,-3]`, totals
+`[3,3,0]`, and final state `{slope:-3,total:0}`. Disabling output fusion retains
+three traversals and nine units with the same values. This reuse belongs to the
+existing compiler, not a newly introduced fusion pass.
+
+The correlation visits three values in each of three windows plus three window
+events: twelve loop units. Zero window buffers do not remove repeated reads.
+A cancellation regression on `[1e16,1,1]` yields window sums `[1e16,2]`; a prefix
+sum subtraction yields 0 for the second window instead. The implementation keeps
+ordered per-window arithmetic rather than silently changing the numeric contract.
+
+No throughput advantage, universal complexity inference, new window algorithm,
+proof-assistant verification or independent formal audit is claimed. This project
+adds a useful checked source abstraction and executable composition evidence,
+not another compiler primitive or a claim of historical novelty.

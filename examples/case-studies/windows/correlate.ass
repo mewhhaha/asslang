@@ -1,0 +1,5 @@
+// Complete-window cross-correlation; coefficients are NOT reversed.
+export fn correlate = (samples:[Num]) -> (weights:[Num]) -> (stride:Num) ->
+  samples
+  |> window_map (count weights) stride (w ->
+    zip_checked w weights (sample -> weight -> sample*weight) |> sum);

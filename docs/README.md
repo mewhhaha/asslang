@@ -95,3 +95,6 @@ implementation, then reconcile the documents with actual tests. See the
 revisions. Old benchmark files and `history/` are historical evidence, not current
 performance promises. A mathematical derivation and finite test suite do not
 establish worldwide novelty or substitute for a proof-assistant check.
+
+[Neighborhood maps](WINDOW-MAPS.md) use overlapping read-only views for smoothing,
+correlation and local summaries without a window matrix or a new compiler primitive.

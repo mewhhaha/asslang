@@ -1,0 +1,15 @@
+// Compute a neighborhood slope, then share one cumulative reporting history.
+export fn neighborhood_report = (samples:[Num]) -> do {
+  let history =
+    samples
+    |> window_map 3 1 (w -> (at w 2 - at w 0)/2)
+    |> scan {slope:0, total:0} (state -> slope -> {
+      slope,
+      total: state.total+slope,
+    });
+  {
+    slopes: history |> map (state -> state.slope),
+    totals: history |> map (state -> state.total),
+    state: history |> fold {slope:0, total:0} (previous -> next -> next),
+  }
+};
