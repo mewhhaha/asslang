@@ -37,7 +37,7 @@ export function planOutputFusion(value, schema, steps, completed) {
       t.machines.some((m, i) => m !== stream.machines[i]) || !equal(s.guards, guards);
   })) return null;
 
-  const blocked = new Set(['reduce', 'reduce_group', 'reduce_until', 'iterate_group', 'host_call']);
+  const blocked = new Set(['reduce', 'reduce_group', 'reduce_until', 'iterate_group', 'host_call', 'order']);
   const seen = new Set();
   function safe(node) {
     if (!node || seen.has(node.id)) return true;

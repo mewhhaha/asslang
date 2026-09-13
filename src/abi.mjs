@@ -1,5 +1,5 @@
-import { ABI_VERSION, alignTo, layout, flatTypes, isScalarSchema } from './abi-schema.mjs';
-export { ABI_VERSION, layout } from './abi-schema.mjs';
+import { ABI_VERSION, SCRATCH_ABI_VERSION, alignTo, layout, flatTypes, isScalarSchema } from './abi-schema.mjs';
+export { ABI_VERSION, SCRATCH_ABI_VERSION, layout } from './abi-schema.mjs';
 
 /** Stable-ASABI framing error. Guest traps remain WebAssembly.RuntimeError. */
 export class ABIError extends Error {
@@ -34,7 +34,7 @@ export function readABI(moduleOrBytes) {
   if (sections.length !== 1 || sections[0].byteLength > 1_000_000) bad('Exactly one bounded asslang.abi section is required', 'E_ABI_VERSION');
   let abi;
   try { abi = JSON.parse(decoder.decode(sections[0])); } catch { bad('Malformed ABI metadata', 'E_ABI_SCHEMA'); }
-  if (abi.version !== ABI_VERSION || abi.addressBits !== 32 || abi.byteOrder !== 'little') bad('Unsupported ASABI version or memory model', 'E_ABI_VERSION');
+  if (![ABI_VERSION, SCRATCH_ABI_VERSION].includes(abi.version) || abi.addressBits !== 32 || abi.byteOrder !== 'little') bad('Unsupported ASABI version or memory model', 'E_ABI_VERSION');
   if (!Array.isArray(abi.exports) || !Array.isArray(abi.hosts) || abi.exports.length > 1024 || abi.hosts.length > 256) bad('Invalid ABI function tables', 'E_ABI_SCHEMA');
   const names = new Set();
   for (const h of abi.hosts) {
@@ -54,8 +54,16 @@ export function readABI(moduleOrBytes) {
     const indirect = !isScalarSchema(f.result.schema);
     if (f.result.mode !== (indirect ? 'indirect' : 'scalar') || JSON.stringify(f.result.layout) !== JSON.stringify(layout(f.result.schema)) ||
         JSON.stringify(f.result.slots) !== JSON.stringify(indirect ? [slot,slot+1,slot+2] : [])) bad('Result layout or slots do not match schema', 'E_ABI_SCHEMA');
+    if (f.scratch !== undefined) {
+      const start = slot + (indirect ? 3 : 0);
+      if (abi.version !== SCRATCH_ABI_VERSION || f.scratch?.version !== 1 ||
+          JSON.stringify(f.scratch.slots) !== JSON.stringify([start, start+1]))
+        bad('Invalid scratch convention or slots', 'E_ABI_SCHEMA');
+    }
     f.effects.forEach((e,i) => { if(e.sequence !== i || !abi.hosts.some(h => h.name === e.name)) bad('Invalid effect trace', 'E_ABI_SCHEMA'); });
   }
+  if (abi.version === SCRATCH_ABI_VERSION && !abi.exports.some(f => f.scratch))
+    bad('ASABI 2 requires a scratch-using export', 'E_ABI_VERSION');
   return abi;
 }
 
@@ -187,17 +195,29 @@ export function liftResult(memory,schema,pointer) {
 /** Lower a complete call once. Useful for low-level hosts and kernel benchmarks.
  * The caller owns arena lifetime, exclusive access and post-call lifting.
  */
-export function prepareCall(arena,contract,args,{outputBytes}={}) {
+export function prepareCall(arena,contract,args,{outputBytes,scratchBytes}={}) {
   if(!Array.isArray(args) || args.length!==contract.parameters.length)bad('Incorrect export argument count');
+  if(scratchBytes!==undefined && (!contract.scratch || !integer(scratchBytes)))
+    bad('scratchBytes requires a scratch export and a nonnegative integer capacity');
   const slots=contract.parameters.flatMap((p,i)=>lowerValue(arena,p.schema,args[i]));
   let resultPointer=null, outputStart=null, capacity=0;
   if(contract.result.mode==='indirect') {
     const l=layout(contract.result.schema);resultPointer=arena.allocate(l.size,l.align);
+  }
+  let scratchStart=null, scratchCapacity=0;
+  if(contract.scratch) {
+    const available=arena.memory.buffer.byteLength-alignTo(arena.offset,8);
+    scratchCapacity=scratchBytes ?? Math.floor(available/(resultPointer===null?8:16))*8;
+    scratchStart=arena.allocate(scratchCapacity,8);
+  }
+  if(contract.result.mode==='indirect') {
     outputStart=arena.allocate(0,8);
     capacity=outputBytes ?? arena.memory.buffer.byteLength-outputStart;
     arena.allocate(capacity,8);slots.push(resultPointer,outputStart,capacity);
   }
+  if(contract.scratch)slots.push(scratchStart,scratchCapacity);
   return {slots,resultPointer,outputStart,capacity,
+    ...(contract.scratch?{scratchStart,scratchCapacity}:{}),
     lift(raw) {
       if(resultPointer===null)return scalarFromWire(contract.result.schema,raw);
       if(!integer(raw,0xffffffff) || raw<outputStart || raw>outputStart+capacity)bad('Invalid output cursor','E_ABI_BOUNDS');
@@ -275,13 +295,13 @@ export async function createRuntime(compiledOrBytes,{pages=1}={}) {
      * No borrowed JS view escapes. Scalar parameters may be overridden per run.
      * dispose() invalidates the handle and clears all retained memory.
      */
-    prepare(name,args=[],{outputBytes}={}) {
+    prepare(name,args=[],{outputBytes,scratchBytes}={}) {
       if(busy || preparedLease)bad('Runtime already has an active call or input lease','E_LEASE_BUSY');
       const contract=exports.get(name);if(!contract)bad(`Unknown export '${name}'`);
       if(contract.effects.length)bad('Prepared calls are pure-only; effects need an explicit per-call capability','E_LEASE_EFFECT');
       busy=true;
       let frame;
-      try {frame=prepareCall(arena,contract,args,{outputBytes});}
+      try {frame=prepareCall(arena,contract,args,{outputBytes,scratchBytes});}
       catch(error){arena.reset({scrub:true});throw error;}
       finally{busy=false;}
       const epoch=++leaseGeneration,identity={};preparedLease=identity;
@@ -304,7 +324,8 @@ export async function createRuntime(compiledOrBytes,{pages=1}={}) {
             return frame.lift(instance.exports[name](...slots));
           } finally {
             // Preserve the pinned inputs, not stale result descriptors or output.
-            if(frame.resultPointer!==null)new Uint8Array(memory.buffer,frame.resultPointer).fill(0);
+            const clearFrom=frame.resultPointer ?? frame.scratchStart;
+            if(clearFrom!==undefined && clearFrom!==null)new Uint8Array(memory.buffer,clearFrom).fill(0);
             busy=false;
           }
         },
@@ -316,7 +337,7 @@ export async function createRuntime(compiledOrBytes,{pages=1}={}) {
         get disposed(){return disposed;},
       });
     },
-    call(name,args=[],{capability,maxHostCalls=32,outputBytes}={}) {
+    call(name,args=[],{capability,maxHostCalls=32,outputBytes,scratchBytes}={}) {
       if(busy)bad('Reentrant invocation is forbidden','E_EFFECT_REENTRANCY');
       if(preparedLease)bad('Dispose the prepared input lease before a normal call','E_LEASE_BUSY');
       if(!integer(maxHostCalls))bad('Invalid per-invocation host-call budget','E_EFFECT_BUDGET');
@@ -335,7 +356,7 @@ export async function createRuntime(compiledOrBytes,{pages=1}={}) {
       busy=true;if(state)state.inUse=true;
       active={contract,grant:state,sequence:0,remaining:maxHostCalls};
       try {
-        const frame=prepareCall(arena,contract,args,{outputBytes});
+        const frame=prepareCall(arena,contract,args,{outputBytes,scratchBytes});
         const raw=instance.exports[name](...frame.slots);
         if(active.sequence!==contract.effects.length)bad('Incomplete effect trace','E_EFFECT_TOKEN');
         return frame.lift(raw);

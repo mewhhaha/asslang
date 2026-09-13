@@ -1,4 +1,9 @@
 > Subsequent stopping-kernel and source-composition changes are documented in
+
+For native sorting, [ASABI 2 scratch](NATIVE-ORDERING.md#scratch-abi-opt-in-version-unchanged-old-programs)
+extends the call convention without changing these value layouts. Existing
+non-sorting modules remain version 1; the current adapter accepts both.
+
 > [COMPOSABILITY.md](COMPOSABILITY.md), with [current validation](COMPOSABILITY-VALIDATION.md).
 
 # ASABI 1: stable JavaScript / Wasm memory contract

@@ -1,5 +1,9 @@
 # App-like case studies
 
+[Native ordering](../../docs/NATIVE-ORDERING.md) adds `native-nearest` and
+`native-ranked-readings`: stable key sorting inside Wasm, with bounded scratch
+and record-payload projection. Both use the existing argument-array CLI.
+
 [Vertical task examples](../../docs/VERTICAL-COMPOSITION.md) show stopping, shared
 causal reports and paired error summaries using local result patterns. They use
 the same argument-array CLI below.

@@ -1,6 +1,8 @@
 // ASABI 1 is a project ABI, not the WebAssembly Component Model Canonical ABI.
 // Schema field order is ASCII-lexical, independent of source/object insertion order.
 export const ABI_VERSION = 1;
+// New modules needing invocation scratch use v2; all old value layouts stay v1.
+export const SCRATCH_ABI_VERSION = 2;
 export const alignTo = (n, alignment) => Math.ceil(n / alignment) * alignment;
 export function layout(schema) {
   switch (schema.kind) {

@@ -57,11 +57,17 @@ These are explicit models and generated protocols, not inferred laws about arbit
 | What additional evidence handles every promised alternative? | [Conditional evidence and Heyting implication](EVIDENCE-RESIDUALS.md); bounded teaching example. |
 | What laws hold between public flags, and can those laws repair conditional transport? | [Law-aware evidence presentations](EVIDENCE-PRESENTATIONS.md). |
 
+## Native finite ordering
+
+[Stable ordering and scratch ownership](NATIVE-ORDERING.md) describes `sort_by`,
+strict finite materialization, new event provenance, and the opt-in ASABI 2
+scratch convention. Existing non-sorting modules stay ASABI 1.
+
 ## Language design experiments
 
 [Elegant partition recursion](PARTITION-RECURSION.md) tests a stable, bounded host
-backend and proposes a checked recursive source form. Sorting remains a host
-experiment, not an implemented Asslang primitive.
+backend and proposes a checked recursive source form. That recursive form remains
+proposed; the subsequent native `sort_by` substrate is documented separately above.
 
 ## Contribute and assess the evidence
 

@@ -1,3 +1,4 @@
+import { collectOrderings } from './ordering.mjs';
 import { isSymbolKey, displayRecordKey } from './record-keys.mjs';
 import { intrinsicArities, stageIntrinsic } from './intrinsics.mjs';
 import { flatTypes, isScalarSchema } from './abi-schema.mjs';
@@ -21,6 +22,10 @@ export function verifyCertificate(steps) {
     switch (step.rule) {
       case 'source':
         arity(0); fact = { domain: step.id, dense: true, seekable: true }; break;
+      case 'order':
+        arity(1);
+        if (step.obligation !== 'finite-stable-materialization') throw new Error('JTE: missing ordering obligation');
+        fact = { domain: step.id, dense: true, seekable: true }; break;
       case 'map':
         arity(1); fact = { ...parents[0] }; break;
       case 'scan':
@@ -72,7 +77,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
   const steps = [], kernels = [], nodes = [], intern = new Map();
   let work = 0, staticZips = 0, checkedZips = 0;
   let activeIndices = new Set();
-  let nextMachine = 0;
+  let nextMachine = 0, activeLoops = 0;
   if((program.hosts?.length??0)>256 || program.definitions.filter(d=>d.exported).length>1024 || [...program.definitions,...(program.hosts??[])].some(d=>d.params.length>128))fail('ABI function table resource limit exceeded',null,'E_ABI');
   const hostDeclarations = (program.hosts ?? []).map((h,index) => ({name:h.name,index,
     parameters:h.annotations.map(t=>schemaOfType(t,h)),result:schemaOfType(h.resultAnnotation,h)}));
@@ -96,8 +101,8 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
   function record(rule, parents = [], extra = {}) {
     const id = steps.length, pp = parents.map(p => steps[p.proof]);
     const domain = rule === 'reduce' ? null : ['map', 'zip', 'scan'].includes(rule) ? pp[0].domain : id;
-    const dense = rule==='choose' ? pp.every(p=>p.dense) : ['source', 'zip_checked'].includes(rule) || ['map', 'zip', 'scan'].includes(rule) && pp[0].dense;
-    const seekable = rule === 'source' || ['map','zip','choose','zip_checked'].includes(rule) && pp.every(p=>p.seekable);
+    const dense = rule==='choose' ? pp.every(p=>p.dense) : ['source', 'zip_checked', 'order'].includes(rule) || ['map', 'zip', 'scan'].includes(rule) && pp[0].dense;
+    const seekable = ['source', 'order'].includes(rule) || ['map','zip','choose','zip_checked'].includes(rule) && pp.every(p=>p.seekable);
     const step = { id, rule, seekable: Boolean(seekable), parents: parents.map(p => p.proof), domain, dense: Boolean(dense), ...extra };
     steps.push(step); return id;
   }
@@ -154,7 +159,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
         return replacements.get(n.data.differentialSeed);
       if(cache.has(n.id)) return cache.get(n.id);
       // An issued effect result is an atomic binding, never a replayable graph.
-      if(['wire','index','acc','cell','const','host_call'].includes(n.op)) return n;
+      if(['wire','index','acc','cell','const','host_call','order'].includes(n.op)) return n;
       const r=scalar(n.op,n.type,n.args.map(visit),n.data,['reduce','reduce_group','reduce_until','iterate_group'].includes(n.op)); cache.set(n.id,r);
       if(n.op==='reduce') Object.assign(r,{stream:visitPlan(n.stream),initial:visit(n.initial),acc:n.acc,body:visit(n.body)});
       if(n.op==='reduce_group' || n.op==='reduce_until') {
@@ -182,7 +187,8 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
   function iteration(plans,run) {
     const previous=activeIndices;
     activeIndices=new Set([...previous,...plans.flatMap(p=>p.indices.map(i=>i.id))]);
-    try{return run();}finally{activeIndices=previous;}
+    activeLoops++;
+    try{return run();}finally{activeIndices=previous;activeLoops--;}
   }
   function source(extent, item, index, name) {
     const proof = record('source', [], { name });
@@ -240,7 +246,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     if(name==='iterate') {
       const initial=leaves(args[0],at), acc=initial.map(v=>scalar('acc',v.type,[],null,true));
       let cursor=0;const state=shape(args[0],()=>acc[cursor++]);
-      const transition=invoke(args[2],[state],at), next=transition.fields.get('state');
+      const transition=iteration([],()=>invoke(args[2],[state],at)), next=transition.fields.get('state');
       const body=leaves(next,at), done=requireScalar(transition.fields.get('done'),at);
       if(body.length!==initial.length || body.some((v,i)=>v.type!==initial[i].type))fail('Iteration state changed representation',at,'E_LOWER');
       const group=scalar('iterate_group','Group',[],null,true);
@@ -250,7 +256,23 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
         ['steps',scalar('iterate_field','Num',[group],body.length)],
         ['done',scalar('iterate_field','Bool',[group],body.length+1)]])};
     }
+    if (name === 'sort_by' && activeLoops)
+      fail('Construct sort_by outside runtime callbacks; bind and reuse an invariant ordered stream', at, 'E_ORDER_SCOPE');
     const input = scopedPlan(requireStream(args[0], at));
+    if (name === 'sort_by') {
+      const payload = leaves(input.item, at);
+      if (!payload.length || payload.length > 32 || payload.some(v => !['Num', 'Bool'].includes(v.type)))
+        fail('sort_by needs 1 to 32 Num/Bool payload leaves', at, 'E_ORDER_TYPE');
+      const key = requireScalar(iteration([input], () => invoke(args[1], [input.item], at)), at);
+      const order = scalar('order', 'I32', [], null, true);
+      Object.assign(order, { stream: input, key, payload, stride: 8*(payload.length+1), pos: at.pos });
+      const index = scalar('index', 'I32', [], null, true);
+      let field = 0;
+      return { kind: 'stream', proof: record('order', [input], { obligation: 'finite-stable-materialization' }),
+        extent: scalar('order_count', 'I32', [order]), indices: [index], mask: null, guards: [], machines: [],
+        item: shape(input.item, v => scalar('order_load', v.type, [order, index], 8*(++field))) };
+    }
+
     if (name==='at') {
       if (input.mask) fail('at requires a dense stream; filtered random access needs materialization',at,'E_DENSE');
       if(!steps[input.proof].seekable)fail('at cannot seek through evolving state. Traverse the stream, or materialize it across an ABI boundary first',at,'E_CAUSAL_ACCESS');
@@ -439,7 +461,11 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     } else result=expression(d.body,env);
     const outputSlots=indirect?[abi.length,abi.length+1,abi.length+2]:[];
     if(indirect) abi.push('I32','I32','I32'); // result descriptor, output start, output byte capacity
-    kernels.push({name:d.name,parameters,inputLeaves,abi,resultSchema,resultType,result,indirect,outputSlots,effects});
+    const orders = collectOrderings([result, ...effects]);
+    if (orders.length > 32) fail('At most 32 native ordering sites per export', d, 'E_LIMIT');
+    const scratchSlots = orders.length ? [abi.length, abi.length+1] : [];
+    if (orders.length) abi.push('I32', 'I32');
+    kernels.push({name:d.name,parameters,inputLeaves,abi,resultSchema,resultType,result,indirect,outputSlots,effects,orders,scratchSlots});
   }
   if (!kernels.length) fail('At least one export fn is required', null, 'E_ABI');
   function observe(value) {
@@ -453,5 +479,5 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
   }
   const observations=Object.fromEntries(kernels.map(k=>[k.name,observe(k.result)]));
   verifyCertificate(steps);
-  return { kernels, observations, hostDeclarations, certificate: { version: 'jte-1-causal', steps }, nodes: nodes.length, work, staticZips, checkedZips };
+  return { kernels, observations, hostDeclarations, certificate: { version: steps.some(s=>s.rule==='order') ? 'jte-2-ordering' : 'jte-1-causal', steps }, nodes: nodes.length, work, staticZips, checkedZips };
 }

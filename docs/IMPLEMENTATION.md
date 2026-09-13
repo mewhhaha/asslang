@@ -80,6 +80,20 @@ requires a direct, fully applied declared host call in an exported effect body.
 Partial application must not hide, duplicate, or defer a host effect. Inference
 and staging retain this explicit boundary independently of call punctuation.
 
+## Native finite ordering
+
+`sort_by` introduces a strict finite materialization boundary and a fresh dense,
+seekable JTE domain. Invocation-closed order nodes cache scalar-record payloads
+and finite numeric keys; `src/order-wasm.mjs` emits stable iterative merges into
+two bounded scratch buffers. Downstream reads share a completed order. Runtime
+nested sort construction is rejected until scoped scratch lifetimes exist.
+
+Modules requiring scratch explicitly use ASABI 2, appending pointer/capacity slots
+only on affected exports. The managed adapter owns that separate region. Existing
+non-sorting modules remain ASABI 1, with unchanged bytes and value layouts.
+Runtime-sized intermediate storage is reported, not counted as zero. See
+[native ordering](NATIVE-ORDERING.md) for strict demand, memory and work contracts.
+
 ## Optional runtime loop budgets
 
 `maxLoopIterations` adds one private i32 local per exported invocation and a

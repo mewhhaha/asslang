@@ -36,6 +36,15 @@ export function reference(source, name, args, {hosts={}}={}) {
       });
       case 'map': return stream(() => xs().map(x => memo(() => invoke(thunks[1](), [x]))));
       case 'filter': return stream(() => xs().filter(x => invoke(thunks[1](), [x])));
+      case 'sort_by': return stream(() => {
+        const rows=xs().map((x,index)=>{
+          const value=snapshot(x()), key=invoke(thunks[1](),[constant(value)]);
+          if(!Number.isFinite(key))throw new RangeError('sort_by requires finite keys');
+          return {value,key,index};
+        });
+        rows.sort((a,b)=>a.key<b.key?-1:a.key>b.key?1:a.index-b.index);
+        return rows.map(row=>constant(row.value));
+      });
       case 'zip': case 'zip_checked': return stream(() => {
         const a = xs(), b = thunks[1]().items();
         if (a.length !== b.length) throw new RangeError('Mismatched extents');

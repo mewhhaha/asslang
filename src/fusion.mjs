@@ -19,7 +19,7 @@ export function planReductionFusion(root, steps, cached) {
     if (!node) return false;
     if (inspected.has(node.id)) return inspected.get(node.id);
     const result = reductions.has(node.op) || node.op === 'iterate_group' || node.op === 'reduce_until' ||
-      node.op === 'host_call' || node.args.some(blocked);
+      node.op === 'host_call' || node.op === 'order' || node.args.some(blocked);
     inspected.set(node.id, result);
     return result;
   }

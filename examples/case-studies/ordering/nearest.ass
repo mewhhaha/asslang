@@ -1,0 +1,4 @@
+// Stable ties: equal-distance readings retain their input order.
+export fn nearest = (readings:[Num]) -> (center:Num) ->
+  readings
+  |> sort_by (reading -> abs (reading-center));
