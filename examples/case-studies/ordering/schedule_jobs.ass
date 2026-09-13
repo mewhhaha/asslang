@@ -1,0 +1,11 @@
+// Highest priority first, then shortest duration; identical keys stay stable.
+export fn schedule_jobs = (priorities:[Num]) -> (durations:[Num]) -> do {
+  let ranked =
+    priorities
+    |> zip_checked durations (priority -> duration -> {priority, duration})
+    |> zip_checked (range (count priorities))
+      ({priority, duration} -> position -> {priority, duration, position})
+    |> sort_by ({priority, duration} -> (-priority, duration));
+
+  ranked |> map (job -> job.position)
+};

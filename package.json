@@ -68,6 +68,8 @@
     "bench:partition-order": "node scripts/bench-partition-order.mjs",
     "example:native-ordering": "node examples/interop/native-ordering.mjs",
     "test:native-ordering": "node --test test/native-ordering.test.mjs",
-    "bench:native-ordering": "node scripts/bench-native-ordering.mjs"
+    "bench:native-ordering": "node scripts/bench-native-ordering.mjs",
+    "example:lexicographic-keys": "node examples/interop/lexicographic-keys.mjs",
+    "test:lexicographic-keys": "node --test test/lexicographic-keys.test.mjs"
   }
 }

@@ -1,4 +1,4 @@
-import { collectOrderings } from './ordering.mjs';
+import { collectOrderings, orderingKeyLeaves } from './ordering.mjs';
 import { isSymbolKey, displayRecordKey } from './record-keys.mjs';
 import { intrinsicArities, stageIntrinsic } from './intrinsics.mjs';
 import { flatTypes, isScalarSchema } from './abi-schema.mjs';
@@ -263,11 +263,11 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
       const payload = leaves(input.item, at);
       if (!payload.length || payload.length > 32 || payload.some(v => !['Num', 'Bool'].includes(v.type)))
         fail('sort_by needs 1 to 32 Num/Bool payload leaves', at, 'E_ORDER_TYPE');
-      const key = requireScalar(iteration([input], () => invoke(args[1], [input.item], at)), at);
+      const keys = orderingKeyLeaves(iteration([input], () => invoke(args[1], [input.item], at)), at, fail);
       const order = scalar('order', 'I32', [], null, true);
-      Object.assign(order, { stream: input, key, payload, stride: 8*(payload.length+1), pos: at.pos });
+      Object.assign(order, { stream: input, key: keys[0], keys, payload, stride: 8*(payload.length+keys.length), pos: at.pos });
       const index = scalar('index', 'I32', [], null, true);
-      let field = 0;
+      let field = keys.length-1;
       return { kind: 'stream', proof: record('order', [input], { obligation: 'finite-stable-materialization' }),
         extent: scalar('order_count', 'I32', [order]), indices: [index], mask: null, guards: [], machines: [],
         item: shape(input.item, v => scalar('order_load', v.type, [order, index], 8*(++field))) };

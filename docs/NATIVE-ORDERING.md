@@ -2,6 +2,13 @@
 
 [Partition experiment](PARTITION-RECURSION.md) · [Documentation](README.md)
 
+## Multi-key extension
+
+`sort_by` also accepts nonempty nested tuples of numeric keys, in left-to-right
+priority order. See [tuple priorities](LEXICOGRAPHIC-KEYS.md) for complete examples,
+16-key/16-level limits, strict key demand and generalized scratch sizing. Scalar
+keys retain the original contract and emitted path described below.
+
 ## Use it in a pipeline
 
 The following is implemented source, not the recursive proposal from PR #30.

@@ -1,0 +1,4 @@
+// Nearest first; break equal-distance ties by the reading, then original order.
+export fn nearest_ties = (readings:[Num]) -> (center:Num) ->
+  readings
+  |> sort_by (reading -> (abs (reading-center), reading));

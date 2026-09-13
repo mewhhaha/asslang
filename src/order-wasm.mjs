@@ -12,7 +12,7 @@ export function createOrderEmitter(orders, scratch, api) {
   const increment = local => { get(local); i32(1); emit(0x6a); set(local); };
   const loopEnd = () => emit(0x0c, 0, 0x0b, 0x0b);
   function materialize(node, ctx) {
-    const frame = frames.get(node.id), { stream, payload, key, stride } = node;
+    const frame = frames.get(node.id), { stream, payload, keys, stride } = node;
     if (!frame) throw new Error('Unregistered ordering site');
     get(frame.flag); emit(0x45, 0x04, 0x40);
     // A private completion flag is necessary even when another branch or a
@@ -32,19 +32,21 @@ export function createOrderEmitter(orders, scratch, api) {
     invalidateBindings(body, stream.indices.map(n => n.id));
     for (const identity of stream.indices) body.indices.set(identity.id, index);
     const machines = prepareMachines(stream, body);
-    planLoopMemo([stream.mask, ...payload, key, ...machineRoots(stream)], outer, body);
+    planLoopMemo([stream.mask, ...payload, ...keys, ...machineRoots(stream)], outer, body);
     loopHeader(() => { get(index); get(extent); emit(0x4f); });
     stepMachines(machines, body);
     if (stream.mask) { load(stream.mask, body); emit(0x04, 0x40); }
-    // Strict rows, then one cached key. Consumer projection cannot silently skip
+    // Strict rows, then a cached key tuple. Consumer projection cannot silently skip
     // payload validation at the materialization barrier.
     const values = payload.map(n => evaluate(n, body));
-    const keyValue = evaluate(key, body);
-    get(keyValue); get(keyValue); emit(0xa1); f64(0); emit(0x61); trapUnless();
-    address(frame.pointer, frame.count, stride); get(keyValue); emit(0x39, 3, 0);
+    keys.forEach((key, i) => {
+      const keyValue = evaluate(key, body);
+      get(keyValue); get(keyValue); emit(0xa1); f64(0); emit(0x61); trapUnless();
+      address(frame.pointer, frame.count, stride); get(keyValue); emit(0x39, 3, ...api.uleb(8*i));
+    });
     values.forEach((value, i) => {
       address(frame.pointer, frame.count, stride); get(value);
-      const offset = 8*(i+1);
+      const offset = 8*(i+keys.length);
       api.store(payload[i].type, offset);
       if (payload[i].type === 'Bool') {
         address(frame.pointer, frame.count, stride); i32(0); api.store('Bool', offset+4);
@@ -74,9 +76,23 @@ export function createOrderEmitter(orders, scratch, api) {
     loopHeader(() => { get(out); get(end); emit(0x4f); });
     get(left); get(middle); emit(0x49, 0x04, 0x40);
       get(right); get(end); emit(0x49, 0x04, 0x40);
-        address(frame.pointer, left, stride); emit(0x2b, 3, 0);
-        address(frame.pointer, right, stride); emit(0x2b, 3, 0);
-        emit(0x65, 0x04, 0x40); // key[left] <= key[right]: left bias preserves ties.
+        // Compare cached components only. All key expressions and finite checks
+        // already ran at the materialization barrier, including later keys.
+        function lessEqual(component) {
+          const offset = api.uleb(8*component);
+          address(frame.pointer, left, stride); emit(0x2b, 3, ...offset);
+          if (component === keys.length-1) {
+            address(frame.pointer, right, stride); emit(0x2b, 3, ...offset);
+            emit(0x65); // Scalar/singleton path retains its original instructions.
+            return;
+          }
+          const a = allocate('Num'), b = allocate('Num'); set(a);
+          address(frame.pointer, right, stride); emit(0x2b, 3, ...offset); set(b);
+          get(a); get(b); emit(0x61, 0x04, 0x7f);
+          lessEqual(component+1);
+          emit(0x05); get(a); get(b); emit(0x65, 0x0b);
+        }
+        lessEqual(0); emit(0x04, 0x40); // Left bias preserves complete-key ties.
         takeLeft(); emit(0x05); takeRight(); emit(0x0b);
       emit(0x05); takeLeft(); emit(0x0b);
     emit(0x05); takeRight(); emit(0x0b);

@@ -300,6 +300,24 @@ export function infer(program) {
   let next = 0, constraints = 0;
   const variable = () => ({ tag: 'Var', id: next++ });
   const schemes = new Map(), active = new Set();
+  // Representation predicates travel with key types through HM instantiation.
+  // They are not runtime dictionaries or user-defined ordering instances.
+  const keyConstraints = new Map();
+  const constrainKey = (type, at, seen = new Set()) => {
+    type = prune(type);
+    if (seen.has(type)) return;
+    seen.add(type);
+    if (!keyConstraints.has(type)) keyConstraints.set(type, at);
+    // A constructed tuple can disappear from a helper's result type. Its
+    // component variables must still carry the restriction into callers.
+    if (type.tag === 'Record') {
+      let part = type;
+      while (part?.tag === 'Record') {
+        for (const value of part.fields.values()) constrainKey(value, at, seen);
+        part = part.tail && prune(part.tail);
+      }
+    }
+  };
   const definitions = new Map(program.definitions.map(d => [d.name, d]));
   const hosts = new Map((program.hosts ?? []).map(h => [h.name, h]));
   const occurs = (v, t) => free(t).has(v);
@@ -330,6 +348,8 @@ export function infer(program) {
     constraints++;
     a = prune(a); b = prune(b);
     if (a === b) return;
+    if (keyConstraints.has(a)) constrainKey(b, ast ?? keyConstraints.get(a));
+    if (keyConstraints.has(b)) constrainKey(a, ast ?? keyConstraints.get(b));
     if (a.tag === 'Var') {
       if (occurs(a, b)) fail('Infinite type: a value would contain its own type', ast, 'E_OCCURS');
       a.link = b; return;
@@ -349,7 +369,12 @@ export function infer(program) {
       const right = bb.length === count ? b.result : fn(bb.slice(count), b.result);
       unify(left, right, ast); return;
     }
-    if (a.tag === 'Record') { unifyRows(a,b,ast); return; }
+    if (a.tag === 'Record') {
+      unifyRows(a,b,ast);
+      if (keyConstraints.has(a)) constrainKey(a, ast ?? keyConstraints.get(a));
+      if (keyConstraints.has(b)) constrainKey(b, ast ?? keyConstraints.get(b));
+      return;
+    }
     const aa = children(a), bb = children(b);
     aa.forEach((t, i) => unify(t, bb[i], ast));
   }
@@ -358,25 +383,27 @@ export function infer(program) {
     for (const s of env.values()) for (const v of free(s.type)) if (!s.vars.has(v)) vars.delete(v);
     return { type, vars };
   }
-  function instantiate(s) {
+  function instantiate(s, at) {
     const substitution = new Map([...s.vars].map(v => [v, variable()]));
     function copy(t) {
       t = prune(t);
-      if (t.tag === 'Var') return substitution.get(t) ?? t;
-      if (t.tag === 'Stream') return stream(copy(t.element));
-      if (t.tag === 'Fn') return fn(t.args.map(copy), copy(t.result));
-      if (t.tag === 'Record') return {tag:'Record',fields:new Map([...t.fields].map(([k,v])=>[k,copy(v)])),tail:t.tail && copy(t.tail)};
-      return t;
+      let result = t;
+      if (t.tag === 'Var') result = substitution.get(t) ?? t;
+      else if (t.tag === 'Stream') result = stream(copy(t.element));
+      else if (t.tag === 'Fn') result = fn(t.args.map(copy), copy(t.result));
+      else if (t.tag === 'Record') result = {tag:'Record',fields:new Map([...t.fields].map(([k,v])=>[k,copy(v)])),tail:t.tail && copy(t.tail)};
+      if (keyConstraints.has(t)) constrainKey(result, at ?? keyConstraints.get(t));
+      return result;
     }
     return copy(s.type);
   }
-  const builtin = name => {
+  const builtin = (name, at) => {
     const a = variable(), b = variable(), c = variable();
     switch (name) {
       case 'range': return fn([Num], stream(Num));
       case 'map': return fn([stream(a), fn([a], b)], stream(b));
       case 'filter': return fn([stream(a), fn([a], Bool)], stream(a));
-      case 'sort_by': return fn([stream(a), fn([a], Num)], stream(a));
+      case 'sort_by': constrainKey(b, at); return fn([stream(a), fn([a], b)], stream(a));
       case 'zip': case 'zip_checked': return fn([stream(a), stream(b), fn([a, b], c)], stream(c));
       case 'sum': return fn([stream(Num)], Num);
       case 'count': return fn([stream(a)], Num);
@@ -452,8 +479,8 @@ export function infer(program) {
       }
       case 'name':
         if (!env.has(ast.name) && (hosts.has(ast.name) || definitions.get(ast.name)?.body.kind==='effect')) fail('Host functions are impure; use perform inside an export effect block',ast,'E_EFFECT');
-        type = env.has(ast.name) ? instantiate(env.get(ast.name)) :
-        builtin(ast.name) ?? instantiate(definition(ast.name, ast)); break;
+        type = env.has(ast.name) ? instantiate(env.get(ast.name), ast) :
+        builtin(ast.name, ast) ?? instantiate(definition(ast.name, ast), ast); break;
       case 'lambda': {
         const local = new Map(env), args = ast.params.map(() => variable());
         ast.params.forEach((p, i) => local.set(p, { type: args[i], vars: new Set() }));
@@ -499,5 +526,27 @@ export function infer(program) {
   }
   for (const h of hosts.values()) if (builtinNames.includes(h.name) || h.name === 'memory') fail('Reserved host name',h,'E_NAME');
   for (const d of program.definitions) definition(d.name, d);
+  const exportedVariables = new Set(program.definitions.filter(d => d.exported)
+    .flatMap(d => [...free(schemes.get(d.name).type)]));
+  function validateKey(type, at, state = { leaves: 0 }, depth = 0) {
+    type = prune(type);
+    if (type.tag === 'Var' || type.tag === 'Num') {
+      if (++state.leaves > 16) fail('sort_by accepts at most 16 numeric key leaves', at, 'E_LIMIT');
+      // Preserve scalar inference at concrete export boundaries. Generic helper
+      // variables remain constrained and are independently copied at each use.
+      if (type.tag === 'Var' && exportedVariables.has(type)) unify(type, Num, at);
+      return;
+    }
+    if (type.tag !== 'Record') fail('sort_by keys must be Num or nonempty positional tuples of Num', at, 'E_TYPE');
+    if (depth >= 16) fail('sort_by key nesting exceeds 16', at, 'E_LIMIT');
+    const { fields, tail } = row(type);
+    if ([...fields.keys()].some(k => !/^_(0|[1-9][0-9]*)$/.test(k)))
+      fail('sort_by key priorities use tuples, not named or symbol fields', at, 'E_TYPE');
+    if (!tail && (!fields.size || [...Array(fields.size).keys()].some(i => !fields.has(`_${i}`))))
+      fail('sort_by key tuples must be nonempty and contiguous from _0', at, 'E_TYPE');
+    for (const [, value] of [...fields].sort(([a], [b]) => Number(a.slice(1))-Number(b.slice(1))))
+      validateKey(value, at, state, depth+1);
+  }
+  for (const [type, at] of keyConstraints) validateKey(type, at);
   return { schemes, constraints, variables: next, signatures: Object.fromEntries([...schemes].map(([k, s]) => [k, showType(s.type, definitions.get(k)?.syntax === 'unary')])) };
 }

@@ -2,6 +2,64 @@
 
 [Native ordering](NATIVE-ORDERING.md) · [Vertical composition](VERTICAL-COMPOSITION.md)
 
+## See the priorities directly
+
+Choose the nearest reading, then use the smaller reading to break distance ties:
+
+<!-- lexicographic-example: nearest_ties -->
+```ass
+// Nearest first; break equal-distance ties by the reading, then original order.
+export fn nearest_ties = (readings:[Num]) -> (center:Num) ->
+  readings
+  |> sort_by (reading -> (abs (reading-center), reading));
+```
+
+`[7,3,6,4,7,5]` around center 5 becomes `[5,4,6,3,7,7]`. The two 7s remain in
+source order. No multiplier encodes priority and no host comparison is invoked.
+
+For an application-shaped example, put jobs in descending priority and ascending
+duration, keeping original order when both agree:
+
+<!-- lexicographic-example: schedule_jobs -->
+```ass
+// Highest priority first, then shortest duration; identical keys stay stable.
+export fn schedule_jobs = (priorities:[Num]) -> (durations:[Num]) -> do {
+  let ranked =
+    priorities
+    |> zip_checked durations (priority -> duration -> {priority, duration})
+    |> zip_checked (range (count priorities))
+      ({priority, duration} -> position -> {priority, duration, position})
+    |> sort_by ({priority, duration} -> (-priority, duration));
+
+  ranked |> map (job -> job.position)
+};
+```
+
+For priorities `[2,1,2,3,2]` and durations `[9,1,4,8,4]`, the original positions
+are `[3,2,4,0,1]`. `zip_checked` enforces input alignment. This only computes an
+ordering, not a scheduler or a proof that those priorities meet a domain policy.
+
+```sh
+npm run example:lexicographic-keys
+npm run test:lexicographic-keys
+printf '[[2,1,2,3,2],[9,1,4,8,4]]' | node examples/case-studies/app.mjs lexicographic-jobs
+```
+
+The comparison compiles the same job example both ways. Its tuple-key version
+has one ordering, reserves 400 scratch bytes for five rows, and needs exactly
+34 loop units. Two explicit scalar sorts (duration first, priority second) need
+640 bytes and 63 units. Both return the same positions. These are measured
+artifact/resource counts, not wall-clock promises. The new expression avoids
+one complete sort; it does not turn mergesort itself into a single-pass algorithm.
+
+A key helper is an ordinary staged function. Include a nested helper result as
+one component to reuse a priority group, for example `(geographicKey row, -row.priority)`.
+Grouping nested numeric tuples preserves their left-to-right priority. Named
+payload fields need not be reordered to select a different priority order.
+
+[Executed validation](LEXICOGRAPHIC-KEYS-VALIDATION.md) records finite oracles,
+scalar compatibility, browser execution, resource limits and remaining boundaries.
+
 ## Design before implementation
 
 On merged main `186fb5cadaf93389b060f1ae7509f15a6c443907` (tree
@@ -69,7 +127,9 @@ preserve previous scalar-inferred exports; do not guess a tuple arity or default
 unrelated polymorphic fields. Internal generic helper signatures may show a key
 variable; this does not promise arbitrary key representations, just as numeric
 product differentiation has representation restrictions beyond its HM skeleton.
-Staging rechecks the actual key shape before emission.
+Staging rechecks the actual key shape and aggregate leaf/depth bounds after
+helper specialization, before emission. This is a fixed-shape key per site, not
+a heterogeneous sequence of differently shaped keys.
 
 Once an ordering is demanded, every accepted payload and EVERY numeric key
 component is evaluated and checked for finiteness in numeric tuple order before
@@ -99,7 +159,7 @@ Key expressions may contain their own metered work or captured order dependencie
 collect every component's dependencies, including those after the first key.
 
 With m accepted rows and h=ceil(log2(max(1,m))), at most K*m*h component comparisons
-are needed. Loop units remain bounded by N+h+2*m*h before producer/key/downstream
+are needed (a component comparison uses at most two numeric instructions). Loop units remain bounded by N+h+2*m*h before producer/key/downstream
 work, because K comparisons and P+K row copies are bounded straight-line code.
 Primitive work is O(N + (P+K)*m log(m+1)) plus key production. This is one ordering,
 not one total traversal: stable bottom-up merges still take multiple passes.
