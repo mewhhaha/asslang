@@ -38,11 +38,23 @@ export function reference(source, name, args, {hosts={}}={}) {
       case 'filter': return stream(() => xs().filter(x => invoke(thunks[1](), [x])));
       case 'sort_by': return stream(() => {
         const rows=xs().map((x,index)=>{
-          const value=snapshot(x()), key=invoke(thunks[1](),[constant(value)]);
-          if(!Number.isFinite(key))throw new RangeError('sort_by requires finite keys');
-          return {value,key,index};
+          const value=snapshot(x()), key=snapshot(invoke(thunks[1](),[constant(value)]));
+          const flatten=value=>{
+            if(typeof value==='number' && Number.isFinite(value))return [value];
+            if(!value?.[recordTag])throw new RangeError('sort_by requires finite numeric keys');
+            const names=Object.keys(value);
+            if(!names.length || names.some((_,i)=>!Object.hasOwn(value,`_${i}`)))throw new TypeError('Expected tuple key');
+            return names.flatMap((_,i)=>flatten(value[`_${i}`]));
+          };
+          return {value,key:flatten(key),index};
         });
-        rows.sort((a,b)=>a.key<b.key?-1:a.key>b.key?1:a.index-b.index);
+        rows.sort((a,b)=>{
+          for(let i=0;i<a.key.length;i++) {
+            if(a.key[i]<b.key[i])return -1;
+            if(a.key[i]>b.key[i])return 1;
+          }
+          return a.index-b.index;
+        });
         return rows.map(row=>constant(row.value));
       });
       case 'zip': case 'zip_checked': return stream(() => {

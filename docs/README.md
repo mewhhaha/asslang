@@ -27,6 +27,11 @@ The [repository README](../README.md) is the overview; this directory holds the 
 | Diagnostics | [Non-executing checks and source locations](DIAGNOSTICS.md). |
 | Lowering | [Implementation](IMPLEMENTATION.md), [ordered SIMD](EXAMPLES-SIMD.md), [reduction fusion](REDUCTION-FUSION.md), [causal output fusion](OUTPUT-FUSION.md), [integration history](INTEGRATION.md). |
 
+## Ordering by several priorities
+
+[Tuple keys](LEXICOGRAPHIC-KEYS.md) express primary and tie-breaking priorities
+in one native stable sort, including reusable nested subkeys.
+
 ## Numerical differentiation
 
 | Task | Contract |

@@ -654,7 +654,7 @@ export function emitModule(staged, options = {}) {
     ...(executionLimits ? { executionLimits } : {}),
     functions:kernels.map((k,i)=>({name:k.name,
       ...(k.orders.length ? {ordering:{algorithm:'stable-bottom-up-merge',sites:k.orders.map(n=>({id:n.id,
-        payloadLeaves:n.payload.length,rowBytes:n.stride,scratchBytesPerSourceEvent:2*n.stride}))}} : {}),
+        payloadLeaves:n.payload.length,keyLeaves:n.keys.length,rowBytes:n.stride,scratchBytesPerSourceEvent:2*n.stride}))}} : {}),
       ...(bodies[i].loopBudget ? { loopBudget: bodies[i].loopBudget } : {}),loops:bodies[i].loops,wasmLocals:bodies[i].locals,wasmLocalDeclarationGroups:bodies[i].localGroups,
       wasmLocalValueBytes:bodies[i].localBytes,runtimeZipChecks:bodies[i].zipChecks,runtimeStreamChecks:bodies[i].runtimeChecks,
       outputStoreSites:bodies[i].stores,hostCallSites:k.effects.length,memoizedReductions:bodies[i].memoizedReductions,stateMachines:bodies[i].stateMachines,stateSlots:bodies[i].stateSlots,boundedIterations:bodies[i].boundedIterations,shortCircuitFolds:bodies[i].shortCircuitFolds,simd:bodies[i].simd,reductionFusion:bodies[i].reductionFusion,outputFusion:bodies[i].outputFusion}))};

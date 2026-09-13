@@ -1,3 +1,4 @@
+import { runLexicographicKeyBrowserChecks } from './lexicographic-keys-browser.mjs';
 import { runNativeOrderingBrowserChecks } from './native-ordering-browser.mjs';
 import { runPartitionOrderBrowserChecks } from './partition-order-browser.mjs';
 import { runLocalPatternBrowserChecks } from './local-patterns-browser.mjs';
@@ -308,6 +309,7 @@ try {
   await runLocalPatternBrowserChecks({compile,check},createRuntime,report);
   await runPartitionOrderBrowserChecks({compile},createRuntime,report);
   await runNativeOrderingBrowserChecks({compile},createRuntime,report);
+  await runLexicographicKeyBrowserChecks({compile},createRuntime,report);
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {

@@ -1,5 +1,11 @@
 // Canonical examples, language-pattern inspirations, and app-like fixtures.
 export const expandedCorpus = [
+  {id:'lexicographic-nearest',path:'case-studies/ordering/nearest_ties.ass',name:'nearest_ties',
+    args:[[7,3,6,4,7,5],5],expected:[5,4,6,3,7,7],
+    inspiration:'explicit distance and tie-breaking priorities in one native tuple key',kind:'case-study'},
+  {id:'lexicographic-jobs',path:'case-studies/ordering/schedule_jobs.ass',name:'schedule_jobs',
+    args:[[2,1,2,3,2],[9,1,4,8,4]],expected:[3,2,4,0,1],
+    inspiration:'descending priority, ascending duration, and stable ties without packed scores',kind:'case-study'},
   {id:'native-nearest',path:'case-studies/ordering/nearest.ass',name:'nearest',
     args:[[7,10,4,7,5],5],expected:[5,4,7,7,10],
     inspiration:'native stable key ordering with bounded invocation scratch',kind:'case-study'},
