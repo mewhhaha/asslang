@@ -9,7 +9,7 @@ export function collectOrderings(roots) {
     if (value.kind === 'record') { value.fields.forEach(visit); return; }
     if (value.kind === 'stream') {
       visit([value.extent, value.item, value.mask, ...value.guards]);
-      value.machines.forEach(m => visit([...m.initial, ...m.body, ...m.outputs, m.emission, m.gate, m.reset, ...(m.checks??[])]));
+      value.machines.forEach(m => visit([...m.initial, ...m.body, ...m.outputs, m.emission, m.gate]));
       return;
     }
     if (value.kind === 'blob') { visit([value.pointer, value.extent]); return; }

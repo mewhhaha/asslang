@@ -1,13 +1,26 @@
-// A local scan resets per block; the global scan continues through all blocks.
-fn running_block = block -> block |> scan 0 (subtotal -> x -> subtotal+x);
-export fn block_report = (samples:[Num]) -> (width:Num) -> do {
-  let within = samples |> chunks width |> map running_block |> flatten;
-  let initial = {local:0, total:0};
+// Reset the reference in each block, then carry one state across all blocks.
+export fn block_report = (readings:[Num]) -> (width:Num) -> do {
+  let relative =
+    readings
+    |> chunks width
+    |> map (block -> do {
+      let first = at block 0;
+      block |> map (reading -> do {
+        let value = reading-first;
+        require (value-value == 0) value
+      })
+    })
+    |> flatten;
+  let initial = {value:0, total:0, original:0};
   let history =
-    zip samples within (sample -> local -> {sample, local})
-    |> scan initial (state -> row -> {local:row.local, total:state.total+row.sample});
+    zip readings relative (reading -> value -> {reading, value})
+    |> scan initial (state -> row -> {
+      value: row.value,
+      total: state.total+row.value,
+      original: state.original+row.reading,
+    });
   {
-    local: history |> map (state -> state.local),
+    relative: history |> map (state -> state.value),
     totals: history |> map (state -> state.total),
     state: history |> fold initial (previous -> next -> next),
   }

@@ -30,22 +30,26 @@ export function verifyCertificate(steps) {
         fact = { domain: step.id, dense: true, seekable: true }; break;
       case 'chunks':
         arity(1);
-        if (!parents[0].dense || !parents[0].seekable || step.obligation !== 'positive-integer-width')
-          throw new Error('JTE: chunks requires indexed input and a positive checked width');
-        fact = {domain:step.id,dense:true,seekable:true,layout:{id:step.id,parent:parents[0]}}; break;
-      case 'chunk_items': {
-        arity(2); const layout = parents[1].layout;
-        if (!layout || layout.id !== step.parents[1] || layout.parent !== parents[0])
-          throw new Error('JTE: block items require their exact layout and source');
-        fact = {domain:step.id,dense:true,seekable:true,block:{layout:layout.id,root:step.id}}; break;
-      }
+        if (!parents[0].dense || !parents[0].seekable || step.obligation !== 'positive-width-ordered-cover')
+          throw new Error('JTE: chunks require indexed input and a positive checked width');
+        fact = { domain: step.id, dense: true, seekable: true,
+          chunkFamily: { outer: step.id, source: parents[0] } }; break;
+      case 'chunk':
+        arity(1);
+        if (!parents[0].chunkFamily || parents[0].domain !== parents[0].chunkFamily.outer)
+          throw new Error('JTE: chunk requires its complete family');
+        fact = { domain: step.id, dense: true, seekable: true, chunkMember: parents[0].chunkFamily }; break;
+      case 'select_block':
+        arity(2);
+        if (!parents[0].dense || !parents[0].seekable || step.obligation !== 'checked-block-index')
+          throw new Error('JTE: selected block needs an indexed outer stream');
+        fact = { domain: step.id, dense: parents[1].dense, seekable: parents[1].seekable }; break;
       case 'flatten_chunks': {
-        arity(3); const layout = parents[0].layout, local = parents[1];
-        if (!layout || !local.block || local.block.root !== step.parents[1] ||
-            local.block.layout !== layout.id || !parents[0].dense || !parents[2].dense ||
-            parents[2].domain !== local.domain || step.obligation !== 'same-local-event-cover')
-          throw new Error('JTE: flatten requires the exact block cover, not equal lengths');
-        fact = {...layout.parent,seekable:parents[2].seekable}; break;
+        arity(2); const family = parents[0].chunkFamily;
+        if (!family || parents[0].domain !== family.outer || parents[1].chunkMember !== family ||
+            !parents.every(p => p.dense && p.seekable) || step.obligation !== 'ordered-chunk-cover')
+          throw new Error('JTE: flatten requires the same ordered chunk cover in both dimensions');
+        fact = { ...family.source }; break;
       }
       case 'split_left':
         arity(1);
@@ -138,6 +142,8 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
       if (a.op === 'const' && a.data === 0) return b;
       if (b.op === 'const' && b.data === 0) return a;
       if (a.op === 'index_sub' && a.args[1] === b) return a.args[0];
+      if (a.op === 'index_mul' && a.args[0].op === 'index_div' && b.op === 'index_rem' &&
+          a.args[0].args[0] === b.args[0] && a.args[1] === b.args[1] && a.args[0].args[1] === b.args[1]) return b.args[0];
     }
     if (op === 'index_sub') {
       const [a, b] = args;
@@ -159,7 +165,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
   function record(rule, parents = [], extra = {}) {
     const id = steps.length, pp = parents.map(p => steps[p.proof]);
     const domain = rule === 'reduce' ? null : ['map', 'zip', 'scan'].includes(rule) ? pp[0].domain : id;
-    const viewRule = ['split_left', 'split_right', 'concat', 'rejoin', 'chunks', 'chunk_items'].includes(rule);
+    const viewRule = ['split_left', 'split_right', 'concat', 'rejoin', 'chunks', 'chunk', 'flatten_chunks'].includes(rule);
     const dense = rule==='choose' ? pp.every(p=>p.dense) : viewRule || ['source', 'zip_checked', 'order'].includes(rule) || ['map', 'zip', 'scan'].includes(rule) && pp[0].dense;
     const seekable = viewRule || ['source', 'order'].includes(rule) || ['map','zip','choose','zip_checked'].includes(rule) && pp.every(p=>p.seekable);
     const step = { id, rule, seekable: Boolean(seekable), parents: parents.map(p => p.proof), domain, dense: Boolean(dense), ...extra };
@@ -185,7 +191,6 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
   }
   const callable = value => ['closure','builtin','callable_choice','guarded_callable','linearized_callable'].includes(value.kind);
   function choose(condition,yes,no,at) {
-    if (yes.kind==='chunks' || no.kind==='chunks') fail('Select an indexed source before chunks, not between chunk families',at,'E_CHUNK_USE');
     if (callable(yes) && callable(no)) return {kind:'callable_choice',condition,yes,no};
     if(yes.kind==='blob' && no.kind==='blob')return {kind:'blob',type:yes.type,
       pointer:scalar('if','I32',[condition,yes.pointer,no.pointer]),extent:scalar('if','I32',[condition,yes.extent,no.extent])};
@@ -202,29 +207,21 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
   }
   function guardValue(condition,value,at) {
     if (callable(value)) return {kind:'guarded_callable',condition,value};
-    if(value.kind==='chunks') return {...value,outer:{...value.outer,guards:union(value.outer.guards,[condition])}};
     if(value.kind==='stream') return {...value,guards:union(value.guards,[condition])};
     if(value.kind==='record') return shape(value,v=>guardValue(condition,v,at));
     if(value.kind==='blob') return {...value,pointer:scalar('guard','I32',[condition,value.pointer]),extent:scalar('guard','I32',[condition,value.extent])};
     return scalar('guard',requireScalar(value,at).type,[condition,value]);
   }
   // Substitute a dense stream cursor, including captures in nested reductions.
-  function substitute(value,replacements,protectBindings=false,cache=new Map()) {
+  function substitute(value,replacements) {
+    const cache=new Map();
     const visitValue=v=>v.kind==='record' ? shape(v,visitValue) : v.kind==='stream' ? visitPlan(v) : visit(v);
-    const visitPlan=(p,child=visitValue,outer=child)=>({...p,item:child(p.item),extent:outer(p.extent),
-      mask:p.mask&&child(p.mask),guards:p.guards.map(outer),
-      machines:p.machines.map(m=>({...m,initial:m.initial.map(child),body:m.body.map(child),
-        outputs:m.outputs.map(child),emission:child(m.emission),gate:m.gate&&child(m.gate),
-        ...(m.reset ? {reset:child(m.reset)} : {}),...(m.checks ? {checks:m.checks.map(child)} : {})}))});
-    // Chunk flattening replaces an outer block/item coordinate, not the bound
-    // cursor of a reduction inside a scan seed. A distinct cache belongs to
-    // each substitution scope; aliases within that scope still share nodes.
-    function underBindings(bindings) {
-      if (!protectBindings || !bindings.some(n=>replacements.has(n.id))) return visitValue;
-      const bound=new Set(bindings.map(n=>n.id)),local=new Map([...replacements].filter(([id])=>!bound.has(id)));
-      const localCache=new Map();
-      return value=>substitute(value,local,true,localCache);
-    }
+    const visitPlan=p=>({...p,
+      ...(p.chunkLayout ? {chunkLayout: {...p.chunkLayout, sourceExtent:visit(p.chunkLayout.sourceExtent),
+        innerExtent:visit(p.chunkLayout.innerExtent),count:visit(p.chunkLayout.count),width:visit(p.chunkLayout.width)}} : {}),
+      item:visitValue(p.item),extent:visit(p.extent),mask:p.mask&&visit(p.mask),guards:p.guards.map(visit),
+      machines:p.machines.map(m=>({...m,initial:m.initial.map(visit),body:m.body.map(visit),
+        outputs:m.outputs.map(visit),emission:visit(m.emission),gate:m.gate&&visit(m.gate)}))});
     function visit(n) {
       if(replacements.has(n.id)) return replacements.get(n.id);
       if(n.data?.differentialSeed!==undefined && replacements.has(n.data.differentialSeed))
@@ -233,18 +230,12 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
       // An issued effect result is an atomic binding, never a replayable graph.
       if(['wire','index','acc','cell','const','host_call','order'].includes(n.op)) return n;
       const r=scalar(n.op,n.type,n.args.map(visit),n.data,['reduce','reduce_group','reduce_until','iterate_group'].includes(n.op)); cache.set(n.id,r);
-      if(['reduce','reduce_group','reduce_until'].includes(n.op)) {
-        const child=underBindings([...n.stream.indices,...(Array.isArray(n.acc)?n.acc:[n.acc]),
-          ...n.stream.machines.flatMap(m=>[...m.acc,...m.cells])]);
-        Object.assign(r,{stream:visitPlan(n.stream,child,visitValue),acc:n.acc,
-          initial:Array.isArray(n.initial)?n.initial.map(visit):visit(n.initial),
-          body:Array.isArray(n.body)?n.body.map(child):child(n.body)});
-        if(n.op==='reduce_until') r.done=child(n.done);
+      if(n.op==='reduce') Object.assign(r,{stream:visitPlan(n.stream),initial:visit(n.initial),acc:n.acc,body:visit(n.body)});
+      if(n.op==='reduce_group' || n.op==='reduce_until') {
+        Object.assign(r,{stream:visitPlan(n.stream),initial:n.initial.map(visit),acc:n.acc,body:n.body.map(visit)});
+        if(n.op==='reduce_until') r.done=visit(n.done);
       }
-      if(n.op==='iterate_group') {
-        const child=underBindings(n.acc);
-        Object.assign(r,{initial:n.initial.map(visit),acc:n.acc,body:n.body.map(child),limit:visit(n.limit),done:child(n.done)});
-      }
+      if(n.op==='iterate_group') Object.assign(r,{initial:n.initial.map(visit),acc:n.acc,body:n.body.map(visit),limit:visit(n.limit),done:visit(n.done)});
       return r;
     }
     return visitValue(value);
@@ -257,10 +248,11 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     for(const m of plan.machines)for(const n of [...m.acc,...m.cells])replacements.set(n.id,scalar(n.op,n.type,[],null,true));
     const visit=n=>substitute(n,replacements);
     return {...plan,indices:plan.indices.map(i=>replacements.get(i.id)),
+      ...(plan.chunkLayout ? {chunkLayout: {...plan.chunkLayout,sourceExtent:visit(plan.chunkLayout.sourceExtent),
+        innerExtent:visit(plan.chunkLayout.innerExtent),count:visit(plan.chunkLayout.count),width:visit(plan.chunkLayout.width)}} : {}),
       item:substitute(plan.item,replacements),mask:plan.mask&&visit(plan.mask),
       machines:plan.machines.map(m=>({...m,id:nextMachine++,initial:m.initial.map(visit),body:m.body.map(visit),
         outputs:m.outputs.map(visit),emission:visit(m.emission),gate:m.gate&&visit(m.gate),
-        ...(m.reset ? {reset:visit(m.reset)} : {}),...(m.checks ? {checks:m.checks.map(visit)} : {}),
         acc:m.acc.map(n=>replacements.get(n.id)),cells:m.cells.map(n=>replacements.get(n.id))}))};
   }
   function iteration(plans,run) {
@@ -274,8 +266,11 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     return { kind: 'stream', proof, extent, item, indices: [index], mask: null, guards: [], machines: [] };
   }
   const arrayViews = createArrayViews({scalar,int,substitute,record,steps,fail});
-  const chunkViews = createChunkViews({scalar,num,int,boolean,substitute:(v,replacements)=>substitute(v,replacements,true),record,steps,fail,
-    scopedPlan,iteration,invoke,leaves,guardValue,machineId:()=>nextMachine++});
+  const chunkViews = createChunkViews({scalar,int,boolean,substitute,record,steps,leaves,fail});
+  function mappedItem(item, inputs, at) {
+    if (item.kind === 'stream' && inputs.some(p => p.item.kind === 'stream')) leaves(item.item, at);
+    else leaves(item, at);
+  }
   function invoke(callee, args, at) {
     if (++work > maxExpansion) fail('Staging expansion limit exceeded; recursive/expansive abstraction is not supported', at, 'E_LIMIT');
     if (callee.kind === 'callable_choice') {
@@ -340,15 +335,9 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     }
     if (name === 'sort_by' && activeLoops)
       fail('Construct sort_by outside runtime callbacks; bind and reuse an invariant ordered stream', at, 'E_ORDER_SCOPE');
-    if (args[0]?.kind === 'chunks') {
-      if (name === 'map') return chunkViews.map(args[0],args[1],at);
-      if (name === 'count') return chunkViews.count(args[0],at);
-      if (name === 'flatten') return chunkViews.flatten(args[0],at);
-      fail('Chunk families support map, count and flatten; consume them before this operation',at,'E_CHUNK_USE');
-    }
-    if (name === 'flatten') fail('flatten requires a compiler-known chunk family',at,'E_CHUNK_SHAPE');
     const input = scopedPlan(requireStream(args[0], at));
-    if (name === 'chunks') return chunkViews.chunks(input,requireScalar(args[1],at),at);
+    if (name === 'chunks') return chunkViews.chunks(input, requireScalar(args[1], at), at);
+    if (name === 'flatten') return chunkViews.flatten(input, at);
     if (name === 'split_at') return arrayViews.splitAt(input, requireScalar(args[1], at), at);
     if (name === 'concat') return arrayViews.concat(input, scopedPlan(requireStream(args[1], at)), at);
     if (name === 'sort_by') {
@@ -370,6 +359,9 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
       if(!steps[input.proof].seekable)fail('at cannot seek through evolving state. Traverse the stream, or materialize it across an ABI boundary first',at,'E_CAUSAL_ACCESS');
       const index=scalar('checked_index','I32',[requireScalar(args[1],at),input.extent]);
       let item=substitute(input.item,new Map(input.indices.map(i=>[i.id,index])));
+      if (item.kind === 'stream') item = {...item, proof:record('select_block',[input,item], {
+        obligation:'checked-block-index', dense:steps[item.proof].dense, seekable:steps[item.proof].seekable,
+      })};
       // The bound check is demanded even when a mapped value ignores its index.
       const valid=scalar('index_valid','Bool',[index]);
       for(const guard of [...input.guards,valid]) item=guardValue(guard,item,at);
@@ -377,7 +369,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     }
     if (name === 'map') {
       const item = iteration([input],()=>invoke(args[1], [input.item], at));
-      leaves(item,at);
+      mappedItem(item,[input],at);
       return { ...input, item, proof: record('map', [input]) };
     }
     if(name==='scan' || name==='transduce') {
@@ -417,7 +409,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
         checkedZips++;
       }
       const item = iteration([input,other],()=>invoke(args[2], [input.item, other.item], at));
-      leaves(item,at);
+      mappedItem(item,[input,other],at);
       const proof = record(name, [input, other], name === 'zip_checked' ? { obligation: 'equal-extent-before-iteration' } : {});
       return { ...input, item, proof, guards, machines:union(input.machines,other.machines), indices: union(input.indices, other.indices),
         ...((input.viewDepth || other.viewDepth) ? {viewDepth:Math.max(input.viewDepth??0,other.viewDepth??0)} : {}) };
@@ -572,5 +564,5 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
   }
   const observations=Object.fromEntries(kernels.map(k=>[k.name,observe(k.result)]));
   verifyCertificate(steps);
-  return { kernels, observations, hostDeclarations, certificate: { version: chunkViews.stats.chunks ? 'jte-4-chunks' : arrayViews.stats.splits || arrayViews.stats.concats ? 'jte-3-views' : steps.some(s=>s.rule==='order') ? 'jte-2-ordering' : 'jte-1-causal', steps }, arrayViews: arrayViews.stats, chunkViews: chunkViews.stats, nodes: nodes.length, work, staticZips, checkedZips };
+  return { kernels, observations, hostDeclarations, certificate: { version: chunkViews.stats.chunks || chunkViews.stats.flattens ? 'jte-4-chunks' : arrayViews.stats.splits || arrayViews.stats.concats ? 'jte-3-views' : steps.some(s=>s.rule==='order') ? 'jte-2-ordering' : 'jte-1-causal', steps }, arrayViews: arrayViews.stats, chunkViews: chunkViews.stats, nodes: nodes.length, work, staticZips, checkedZips };
 }

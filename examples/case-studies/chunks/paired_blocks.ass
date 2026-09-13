@@ -1,0 +1,6 @@
+// One dot product per block, with checked pairing at both levels.
+export fn paired_blocks = (left:[Num]) -> (right:[Num]) -> (width:Num) ->
+  left
+  |> chunks width
+  |> zip_checked (chunks right width) (a -> b ->
+    zip_checked a b (x -> y -> x*y) |> sum);

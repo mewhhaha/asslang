@@ -401,9 +401,9 @@ export function infer(program) {
     const a = variable(), b = variable(), c = variable();
     switch (name) {
       case 'range': return fn([Num], stream(Num));
+      case 'map': return fn([stream(a), fn([a], b)], stream(b));
       case 'chunks': return fn([stream(a), Num], stream(stream(a)));
       case 'flatten': return fn([stream(stream(a))], stream(a));
-      case 'map': return fn([stream(a), fn([a], b)], stream(b));
       case 'filter': return fn([stream(a), fn([a], Bool)], stream(a));
       case 'split_at': return fn([stream(a), Num], { tag: 'Record',
         fields: new Map([['left', stream(a)], ['right', stream(a)]]), tail: null });

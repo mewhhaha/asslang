@@ -90,16 +90,16 @@ reassembled after maps. Reversal, independent cuts and positional zips do not
 forge that cover. Dense/seekable requirements exclude implicit causal replay.
 See [array views](ARRAY-VIEWS.md) for bounds, demand, output ownership and proofs.
 
-## Symbolic blocks and scoped flattening
+## Arithmetic chunk families
 
-`src/chunk-views.mjs` represents `chunks` as one symbolic local array and a checked
-layout, never nested guest storage. Existing `map` either creates a scalar block
-summary stream or preserves the local array cover. `flatten` erases that cover
-through integer coordinate substitution and restores the source domain. Local
-scans receive fresh identities and scalar reset predicates; checkpoint guards
-run at visited block boundaries. Substitution protects nested loop binders.
-All machine-root walkers include reset/checkpoint expressions. See
-[chunk composition](CHUNK-COMPOSITION.md) for limitations and cost examples.
+`src/chunk-views.mjs` represents fixed-width chunks by one symbolic outer cursor,
+one inner cursor and checked arithmetic, not per-chunk data/descriptor buffers.
+Block callbacks use existing scalar/record reductions and causal schedules.
+Cover-preserving `flatten` substitutes quotient/remainder coordinates and restores
+source event alignment. Independent block selection issues a fresh domain.
+Structural block guards use a metered preflight; costly flattened reductions and
+causal inner flattening are rejected rather than silently replayed. The existing
+value ABI still rejects nested arrays. See [chunk views](CHUNK-VIEWS.md).
 
 ## Native finite ordering
 

@@ -169,11 +169,12 @@ reserved builtin names; existing user definitions with those names must be
 renamed. [Array composition](ARRAY-VIEWS.md) specifies the access restrictions,
 cut bounds, alignment recovery and examples with scans and zips.
 
-## Symbolic chunk families
+## Chunk families and existing higher-order functions
 
-`xs |> chunks width |> map (block -> scan block 0 add) |> flatten` uses ordinary
-applications and helpers. `chunks` and `flatten` are newly reserved builtin names;
-there is no new token, array literal or indentation rule. A short last block is
-retained. Scalar-valued block maps produce summaries without flattening.
-[Chunk composition](CHUNK-COMPOSITION.md) specifies positive widths, supported
-static families, exact local cover checks, reset semantics and access limits.
+`xs |> chunks width |> map sum` computes one sum per nonempty block. The last
+block may be shorter. `map` and `zip` callbacks receiving block streams can return
+another stream; `flatten` accepts a checked complete, ordered chunk cover after
+pointwise transforms. It does not allocate an array of arrays. Nested streams
+remain compiler-only and cannot cross the value ABI. The builtin names `chunks`
+and `flatten` are newly reserved; no punctuation, precedence or layout rule changes.
+See [chunk programs and their explicit limits](CHUNK-VIEWS.md).

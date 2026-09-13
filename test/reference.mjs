@@ -38,13 +38,10 @@ export function reference(source, name, args, {hosts={}}={}) {
         const items=xs(), width=thunks[1]();
         if (!Number.isInteger(width) || width<=0 || width>2147483647) throw new RangeError('Invalid chunk width');
         const blocks=[];
-        for(let start=0;start<items.length;start+=width) {
-          const saved=items.slice(start,start+width);
-          blocks.push(constant(stream(()=>saved)));
-        }
+        for(let start=0;start<items.length;start+=width) blocks.push(constant(stream(()=>items.slice(start,start+width))));
         return blocks;
       });
-      case 'flatten': return stream(() => xs().flatMap(block=>block().items()));
+      case 'flatten': return stream(() => xs().flatMap(block => block().items()));
       case 'map': return stream(() => xs().map(x => memo(() => invoke(thunks[1](), [x]))));
       case 'filter': return stream(() => xs().filter(x => invoke(thunks[1](), [x])));
       case 'split_at': {

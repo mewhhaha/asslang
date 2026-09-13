@@ -1,8 +1,0 @@
-// The scan seed computes the mean once per block, not once per sample.
-fn centered_block = block ->
-  block
-  |> scan {mean:sum block / count block, value:0}
-    (state -> x -> {mean:state.mean, value:x-state.mean})
-  |> map (state -> state.value);
-export fn block_center = (samples:[Num]) -> (width:Num) ->
-  samples |> chunks width |> map centered_block |> flatten;

@@ -16,7 +16,7 @@ checks and regression runs for this change.
 
 | Area | Executed validation |
 | --- | --- |
-| Symbolic blocks and flattening | [Chunk composition](CHUNK-COMPOSITION-VALIDATION.md). |
+| Arithmetic chunk covers | [Block programs without nested-array buffers](CHUNK-VIEWS-VALIDATION.md). |
 | Cut-cover array views | [No-buffer composition and recovered alignment](ARRAY-VIEWS-VALIDATION.md). |
 | Tuple ordering keys | [Native lexicographic priorities](LEXICOGRAPHIC-KEYS-VALIDATION.md). |
 | Native finite ordering | [Scratch ownership, stable merges and native execution](NATIVE-ORDERING-VALIDATION.md). |

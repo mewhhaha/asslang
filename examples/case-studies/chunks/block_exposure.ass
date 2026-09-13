@@ -1,0 +1,8 @@
+// Sum running totals independently inside each block, including the short tail.
+export fn block_exposure = (readings:[Num]) -> (width:Num) ->
+  readings
+  |> chunks width
+  |> map (block ->
+    block
+    |> scan 0 (total -> reading -> total+reading)
+    |> sum);

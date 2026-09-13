@@ -140,7 +140,7 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     if(node.op==='iterate_group')for(const a of node.acc)deps.delete(a.id);
     return deps;
   }
-  const machineRoots = stream => stream.machines.flatMap(m=>[...m.initial,...m.body,...m.outputs,m.emission,...(m.gate?[m.gate]:[]),...(m.reset?[m.reset]:[]),...(m.checks??[])]);
+  const machineRoots = stream => stream.machines.flatMap(m=>[...m.initial,...m.body,...m.outputs,m.emission,...(m.gate?[m.gate]:[])]);
   function scalarChildren(node) {
     if(node.op==='iterate_group')return [...node.initial,...node.body,node.done,node.limit];
     if(node.op==='reduce' || node.op==='reduce_group' || node.op==='reduce_until') {
@@ -196,7 +196,7 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
       for (const arg of plan.args) vectorValue(arg, ctx, memo);
       vectorOp(SIMD_OPS[node.op]);
     }
-    const local = allocate('V128'); set(local); memo.set(node.id, local); get(local);
+    const local = allocate('V128'); set(local); memo.set(plan.node.id, local); get(local);
   }
   function vectorLoop(index, extent, body) {
     vectorizedLoops++;
@@ -244,9 +244,9 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
       const left = evaluate(a[0], ctx), right = evaluate(a[1], ctx);
       get(left); i32(2147483647); get(right); emit(0x6b, 0x4d); trapUnless();
       get(left); get(right); emit(0x6a);
-    } else if (['index_add', 'index_sub', 'index_lt', 'index_mul', 'index_div', 'index_rem', 'index_eq'].includes(node.op)) {
+    } else if (['index_add', 'index_sub', 'index_lt'].includes(node.op)) {
       load(a[0], ctx); load(a[1], ctx);
-      emit({index_add:0x6a,index_sub:0x6b,index_lt:0x49,index_mul:0x6c,index_div:0x6e,index_rem:0x70,index_eq:0x46}[node.op]);
+      emit(node.op === 'index_add' ? 0x6a : node.op === 'index_sub' ? 0x6b : 0x49);
     } else if (node.op === 'const') {
       node.type === 'Num' ? f64(node.data) : i32(node.data);
     } else if (node.op === 'if' || node.op === '&&' || node.op === '||') {
@@ -260,6 +260,23 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
       else if (node.op === '||') loadRegion(a[1], no);
       else i32(0);
       emit(0x0b);
+    } else if (node.op === 'chunk_width') {
+      const n = evaluate(a[0], ctx);
+      get(n); f64(0); emit(0x64); trapUnless();
+      get(n); f64(2147483647); emit(0x65); trapUnless();
+      get(n); get(n); emit(0x9c,0x61); trapUnless();
+      get(n); emit(0xab);
+    } else if (node.op === 'chunk_count') {
+      const n = evaluate(a[0], ctx), width = evaluate(a[1], ctx);
+      get(n); emit(0x04,0x7f);
+      get(n); i32(1); emit(0x6b); get(width); emit(0x6e); i32(1); emit(0x6a);
+      emit(0x05); i32(0); emit(0x0b);
+    } else if (['index_mul','index_div','index_rem','index_min'].includes(node.op)) {
+      const left = evaluate(a[0], ctx), right = evaluate(a[1], ctx);
+      get(left); get(right);
+      if (node.op === 'index_min') {
+        emit(0x49,0x04,0x7f); get(left); emit(0x05); get(right); emit(0x0b);
+      } else emit({index_mul:0x6c,index_div:0x6e,index_rem:0x70}[node.op]);
     } else if (node.op === 'extent') {
       const n = evaluate(a[0], ctx);
       get(n); f64(0); emit(0x66); trapUnless(); // n >= 0, also rejects NaN
@@ -357,11 +374,8 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
       if(m.gate){load(m.gate,ctx);emit(0x04,0x40);}
       // No cache entry made in a conditional step escapes its scope.
       const step=copyContext(ctx);
-      get(flag);emit(0x45);
-      if(m.reset){load(m.reset,step);emit(0x72);}
-      emit(0x04,0x40);
+      get(flag);emit(0x45,0x04,0x40);
       const init=copyContext(step);
-      for(const guard of m.checks??[]){load(guard,init);trapUnless();noteGuard(guard);}
       m.initial.forEach((n,i)=>{load(n,init);set(state[i]);});i32(1);set(flag);emit(0x0b);
       const next=m.body.map(n=>{const t=allocate(n.type);load(n,step);set(t);return t;});
       load(m.emission,step);set(cells.at(-1));
