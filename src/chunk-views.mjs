@@ -1,7 +1,7 @@
 // Arithmetic chunk families are compiler plans, never arrays of descriptors.
 // Flattening consumes an ordered cover witness, not a guessed equal length.
-export function createChunkViews({ scalar, int, boolean, substitute, record, steps, leaves, fail }) {
-  const stats = { chunks: 0, flattens: 0, structuralPasses: 0 };
+export function createChunkViews({ scalar, int, boolean, substitute, substituteScoped, machineId, record, steps, leaves, fail }) {
+  const stats = { chunks: 0, flattens: 0, structuralPasses: 0, resetMachines: 0 };
   const union = (a, b) => [...new Set([...a, ...b])];
   function indexed(input, at) {
     if (!steps[input.proof].dense || input.mask)
@@ -48,7 +48,8 @@ export function createChunkViews({ scalar, int, boolean, substitute, record, ste
     const layout = input.chunkLayout, inner = input.item;
     if (!layout || inner.kind !== 'stream' || steps[input.proof].domain !== layout.outerDomain || input.extent !== layout.count)
       fail('flatten requires the complete ordered family produced by chunks', at, 'E_CHUNK_COVER');
-    indexed(inner, at);
+    if (!steps[inner.proof].dense || inner.mask)
+      fail('Flattening requires dense complete block events', at, 'E_CHUNK_DENSE');
     if (steps[inner.proof].domain !== layout.innerDomain || inner.extent !== layout.innerExtent)
       fail('flatten requires each whole block in its original order; preserve its cover with map or rejoin', at, 'E_CHUNK_COVER');
     leaves(inner.item, at);
@@ -56,12 +57,25 @@ export function createChunkViews({ scalar, int, boolean, substitute, record, ste
     if (viewDepth > 64) fail('Array view nesting exceeds 64', at, 'E_LIMIT');
     const seen = new Set();
     [inner.item, ...inner.guards].forEach(v => noRepeatedWork(v, at, seen));
+    // A seed is once per visited block; transition/output work is per item.
+    for (const m of inner.machines)
+      [...m.body, ...m.outputs, m.emission, ...(m.gate ? [m.gate] : []), ...(m.reset ? [m.reset] : [])]
+        .forEach(v => noRepeatedWork(v, at, seen));
     const index = scalar('index', 'I32', [], null, true);
     const quotient = scalar('index_div', 'I32', [index, layout.width]);
     const remainder = scalar('index_rem', 'I32', [index, layout.width]);
     const replacements = new Map([
       ...input.indices.map(i => [i.id, quotient]), ...inner.indices.map(i => [i.id, remainder]),
     ]);
+    // Fresh state identities prevent two separate flatten operations aliasing.
+    for (const m of inner.machines) for (const n of [...m.acc, ...m.cells])
+      replacements.set(n.id, scalar(n.op, n.type, [], null, true));
+    const transformed = inner.machines.length ? substituteScoped(inner, replacements) : null;
+    const boundary = scalar('index_eq', 'Bool', [remainder, int(0)]);
+    const machines = transformed ? transformed.machines.map(m => ({...m, id:machineId(),
+      acc:m.acc.map(n=>replacements.get(n.id)??n), cells:m.cells.map(n=>replacements.get(n.id)??n),
+      reset:m.reset ? scalar('||', 'Bool', [boundary, m.reset]) : boundary})) : [];
+    stats.resetMachines += machines.length;
     const guards = [...input.guards];
     if (inner.guards.length) {
       // Preflight structural obligations once per nonempty block, with the
@@ -76,8 +90,9 @@ export function createChunkViews({ scalar, int, boolean, substitute, record, ste
     stats.flattens++;
     return { kind: 'stream', proof: record('flatten_chunks', [input, inner], {
       obligation: 'ordered-chunk-cover', domain: layout.sourceDomain,
-    }), extent: layout.sourceExtent, item: substitute(inner.item, replacements),
-      indices: [index], guards, machines: [], mask: null, viewDepth,
+      seekable: steps[inner.proof].seekable,
+    }), extent: layout.sourceExtent, item: transformed ? transformed.item : substitute(inner.item, replacements),
+      indices: [index], guards, machines, mask: null, viewDepth,
       ...(layout.sourceCover ? { viewCover: layout.sourceCover } : {}) };
   }
   return { chunks, flatten, stats };

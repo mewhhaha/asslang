@@ -47,9 +47,9 @@ export function verifyCertificate(steps) {
       case 'flatten_chunks': {
         arity(2); const family = parents[0].chunkFamily;
         if (!family || parents[0].domain !== family.outer || parents[1].chunkMember !== family ||
-            !parents.every(p => p.dense && p.seekable) || step.obligation !== 'ordered-chunk-cover')
+            !parents.every(p => p.dense) || !parents[0].seekable || step.obligation !== 'ordered-chunk-cover')
           throw new Error('JTE: flatten requires the same ordered chunk cover in both dimensions');
-        fact = { ...family.source }; break;
+        fact = { ...family.source, seekable: parents[1].seekable }; break;
       }
       case 'split_left':
         arity(1);
@@ -213,15 +213,25 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     return scalar('guard',requireScalar(value,at).type,[condition,value]);
   }
   // Substitute a dense stream cursor, including captures in nested reductions.
-  function substitute(value,replacements) {
-    const cache=new Map();
+  function substitute(value,replacements,protectBindings=false,cache=new Map()) {
     const visitValue=v=>v.kind==='record' ? shape(v,visitValue) : v.kind==='stream' ? visitPlan(v) : visit(v);
-    const visitPlan=p=>({...p,
-      ...(p.chunkLayout ? {chunkLayout: {...p.chunkLayout, sourceExtent:visit(p.chunkLayout.sourceExtent),
-        innerExtent:visit(p.chunkLayout.innerExtent),count:visit(p.chunkLayout.count),width:visit(p.chunkLayout.width)}} : {}),
-      item:visitValue(p.item),extent:visit(p.extent),mask:p.mask&&visit(p.mask),guards:p.guards.map(visit),
-      machines:p.machines.map(m=>({...m,initial:m.initial.map(visit),body:m.body.map(visit),
-        outputs:m.outputs.map(visit),emission:visit(m.emission),gate:m.gate&&visit(m.gate)}))});
+    const visitPlan=(p,child=visitValue,outer=child)=>({...p,
+      ...(p.chunkLayout ? {chunkLayout: {...p.chunkLayout, sourceExtent:outer(p.chunkLayout.sourceExtent),
+        innerExtent:outer(p.chunkLayout.innerExtent),count:outer(p.chunkLayout.count),width:outer(p.chunkLayout.width)}} : {}),
+      item:child(p.item),extent:outer(p.extent),
+      mask:p.mask&&child(p.mask),guards:p.guards.map(outer),
+      machines:p.machines.map(m=>({...m,initial:m.initial.map(child),body:m.body.map(child),
+        outputs:m.outputs.map(child),emission:child(m.emission),gate:m.gate&&child(m.gate),
+        ...(m.reset ? {reset:child(m.reset)} : {}),...(m.checks ? {checks:m.checks.map(child)} : {})}))});
+    // Chunk flattening replaces an outer block/item coordinate, not the bound
+    // cursor of a reduction inside a scan seed. A distinct cache belongs to
+    // each substitution scope; aliases within that scope still share nodes.
+    function underBindings(bindings) {
+      if (!protectBindings || !bindings.some(n=>replacements.has(n.id))) return visitValue;
+      const bound=new Set(bindings.map(n=>n.id)),local=new Map([...replacements].filter(([id])=>!bound.has(id)));
+      const localCache=new Map();
+      return value=>substitute(value,local,true,localCache);
+    }
     function visit(n) {
       if(replacements.has(n.id)) return replacements.get(n.id);
       if(n.data?.differentialSeed!==undefined && replacements.has(n.data.differentialSeed))
@@ -230,12 +240,18 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
       // An issued effect result is an atomic binding, never a replayable graph.
       if(['wire','index','acc','cell','const','host_call','order'].includes(n.op)) return n;
       const r=scalar(n.op,n.type,n.args.map(visit),n.data,['reduce','reduce_group','reduce_until','iterate_group'].includes(n.op)); cache.set(n.id,r);
-      if(n.op==='reduce') Object.assign(r,{stream:visitPlan(n.stream),initial:visit(n.initial),acc:n.acc,body:visit(n.body)});
-      if(n.op==='reduce_group' || n.op==='reduce_until') {
-        Object.assign(r,{stream:visitPlan(n.stream),initial:n.initial.map(visit),acc:n.acc,body:n.body.map(visit)});
-        if(n.op==='reduce_until') r.done=visit(n.done);
+      if(['reduce','reduce_group','reduce_until'].includes(n.op)) {
+        const child=underBindings([...n.stream.indices,...(Array.isArray(n.acc)?n.acc:[n.acc]),
+          ...n.stream.machines.flatMap(m=>[...m.acc,...m.cells])]);
+        Object.assign(r,{stream:visitPlan(n.stream,child,visitValue),acc:n.acc,
+          initial:Array.isArray(n.initial)?n.initial.map(visit):visit(n.initial),
+          body:Array.isArray(n.body)?n.body.map(child):child(n.body)});
+        if(n.op==='reduce_until') r.done=child(n.done);
       }
-      if(n.op==='iterate_group') Object.assign(r,{initial:n.initial.map(visit),acc:n.acc,body:n.body.map(visit),limit:visit(n.limit),done:visit(n.done)});
+      if(n.op==='iterate_group') {
+        const child=underBindings(n.acc);
+        Object.assign(r,{initial:n.initial.map(visit),acc:n.acc,body:n.body.map(child),limit:visit(n.limit),done:child(n.done)});
+      }
       return r;
     }
     return visitValue(value);
@@ -253,6 +269,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
       item:substitute(plan.item,replacements),mask:plan.mask&&visit(plan.mask),
       machines:plan.machines.map(m=>({...m,id:nextMachine++,initial:m.initial.map(visit),body:m.body.map(visit),
         outputs:m.outputs.map(visit),emission:visit(m.emission),gate:m.gate&&visit(m.gate),
+        ...(m.reset ? {reset:visit(m.reset)} : {}),
         acc:m.acc.map(n=>replacements.get(n.id)),cells:m.cells.map(n=>replacements.get(n.id))}))};
   }
   function iteration(plans,run) {
@@ -266,7 +283,8 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     return { kind: 'stream', proof, extent, item, indices: [index], mask: null, guards: [], machines: [] };
   }
   const arrayViews = createArrayViews({scalar,int,substitute,record,steps,fail});
-  const chunkViews = createChunkViews({scalar,int,boolean,substitute,record,steps,leaves,fail});
+  const chunkViews = createChunkViews({scalar,int,boolean,substitute,
+    substituteScoped:(v,r)=>substitute(v,r,true),machineId:()=>nextMachine++,record,steps,leaves,fail});
   function mappedItem(item, inputs, at) {
     if (item.kind === 'stream' && inputs.some(p => p.item.kind === 'stream')) leaves(item.item, at);
     else leaves(item, at);
@@ -454,7 +472,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
         scalar('+', 'Num', [acc, name === 'count' ? num(1) : input.item]);
       const result = scalar('reduce', initial.type, [], null, true);
       result.stream = input; result.initial = initial; result.acc = acc; result.body = body;
-      record('reduce', [input]); return result;
+      record('reduce',[input]); return result;
     }
     fail(`Unknown builtin '${name}'`, at, 'E_NAME');
   }

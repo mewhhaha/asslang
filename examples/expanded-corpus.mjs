@@ -1,5 +1,14 @@
 // Canonical examples, language-pattern inspirations, and app-like fixtures.
 export const expandedCorpus = [
+  {id:'chunk-report',path:'case-studies/chunk-scans/block_report.ass',name:'block_report',
+    args:[[1,2,3,4,5,6,7],3],expected:{local:[1,3,6,4,9,15,7],totals:[1,3,6,10,15,21,28],state:{local:7,total:28}},
+    inspiration:'symbolic blocks, local resets, restored zip alignment and a continuing global scan',kind:'case-study'},
+  {id:'chunk-energy',path:'case-studies/chunk-scans/block_energy.ass',name:'block_energy',
+    args:[[1,2,3,4,5,6,7],3],expected:[14,77,49],
+    inspiration:'per-block summaries without arrays of block data',kind:'case-study'},
+  {id:'chunk-center',path:'case-studies/chunk-scans/block_center.ass',name:'block_center',
+    args:[[1,2,3,4,5,6,7],3],expected:[-1,0,1,-1,0,1,0],
+    inspiration:'a block scan seed computes its mean once, then flattening reuses scalar state',kind:'case-study'},
   {id:'chunk-block-report',path:'case-studies/chunks/block_report.ass',name:'block_report',
     args:[[10,13,20,18,30],2],expected:{relative:[0,3,0,-2,0],totals:[0,3,3,1,1],state:{value:0,total:1,original:91}},
     inspiration:'arithmetic chunk covers, aligned flattening and continuous scan',kind:'case-study'},

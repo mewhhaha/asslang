@@ -74,6 +74,8 @@
     "example:array-views": "node examples/interop/array-views.mjs",
     "test:array-views": "node --test test/array-views.test.mjs",
     "test:chunk-views": "node --test test/chunk-views.test.mjs",
-    "example:chunk-views": "node examples/interop/chunk-views.mjs"
+    "example:chunk-views": "node examples/interop/chunk-views.mjs",
+    "test:chunk-composition": "node --test test/chunk-composition.test.mjs",
+    "example:chunk-composition": "node examples/interop/chunk-composition.mjs"
   }
 }

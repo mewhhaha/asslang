@@ -140,7 +140,7 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     if(node.op==='iterate_group')for(const a of node.acc)deps.delete(a.id);
     return deps;
   }
-  const machineRoots = stream => stream.machines.flatMap(m=>[...m.initial,...m.body,...m.outputs,m.emission,...(m.gate?[m.gate]:[])]);
+  const machineRoots = stream => stream.machines.flatMap(m=>[...m.initial,...m.body,...m.outputs,m.emission,...(m.gate?[m.gate]:[]),...(m.reset?[m.reset]:[])]);
   function scalarChildren(node) {
     if(node.op==='iterate_group')return [...node.initial,...node.body,node.done,node.limit];
     if(node.op==='reduce' || node.op==='reduce_group' || node.op==='reduce_until') {
@@ -244,9 +244,9 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
       const left = evaluate(a[0], ctx), right = evaluate(a[1], ctx);
       get(left); i32(2147483647); get(right); emit(0x6b, 0x4d); trapUnless();
       get(left); get(right); emit(0x6a);
-    } else if (['index_add', 'index_sub', 'index_lt'].includes(node.op)) {
+    } else if (['index_add', 'index_sub', 'index_lt', 'index_eq'].includes(node.op)) {
       load(a[0], ctx); load(a[1], ctx);
-      emit(node.op === 'index_add' ? 0x6a : node.op === 'index_sub' ? 0x6b : 0x49);
+      emit(node.op === 'index_add' ? 0x6a : node.op === 'index_sub' ? 0x6b : node.op === 'index_eq' ? 0x46 : 0x49);
     } else if (node.op === 'const') {
       node.type === 'Num' ? f64(node.data) : i32(node.data);
     } else if (node.op === 'if' || node.op === '&&' || node.op === '||') {
@@ -374,7 +374,9 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
       if(m.gate){load(m.gate,ctx);emit(0x04,0x40);}
       // No cache entry made in a conditional step escapes its scope.
       const step=copyContext(ctx);
-      get(flag);emit(0x45,0x04,0x40);
+      get(flag);emit(0x45);
+      if(m.reset){load(m.reset,step);emit(0x72);}
+      emit(0x04,0x40);
       const init=copyContext(step);
       m.initial.forEach((n,i)=>{load(n,init);set(state[i]);});i32(1);set(flag);emit(0x0b);
       const next=m.body.map(n=>{const t=allocate(n.type);load(n,step);set(t);return t;});
