@@ -27,6 +27,11 @@ The [repository README](../README.md) is the overview; this directory holds the 
 | Diagnostics | [Non-executing checks and source locations](DIAGNOSTICS.md). |
 | Lowering | [Implementation](IMPLEMENTATION.md), [ordered SIMD](EXAMPLES-SIMD.md), [reduction fusion](REDUCTION-FUSION.md), [causal output fusion](OUTPUT-FUSION.md), [integration history](INTEGRATION.md). |
 
+## No-buffer array composition
+
+[Split and rejoin views](ARRAY-VIEWS.md) carry cut-cover alignment through maps,
+then feed zips and scans without intermediate guest arrays.
+
 ## Ordering by several priorities
 
 [Tuple keys](LEXICOGRAPHIC-KEYS.md) express primary and tie-breaking priorities

@@ -1,0 +1,28 @@
+// Adjust sections independently, then recover the original event alignment.
+fn section_finite = x -> x-x == 0;
+fn section_scale = gain -> x -> do {
+  let value = gain*x;
+  require (section_finite x && section_finite value) value
+};
+export fn section_report = (samples:[Num]) ->
+  (settings:{cut:Num,leftGain:Num,rightGain:Num}) -> do {
+  let checked = require (section_finite settings.leftGain && section_finite settings.rightGain) samples;
+  let {left, right} = checked |> split_at settings.cut;
+  let adjusted = concat
+    (left |> map (section_scale settings.leftGain))
+    (right |> map (section_scale settings.rightGain));
+  let initial = {value:0, total:0, correction:0};
+  let history =
+    zip samples adjusted (original -> value -> {original, value})
+    |> scan initial (state -> row -> do {
+      let total = state.total+row.value;
+      let correction = state.correction+(row.value-row.original);
+      require (section_finite total && section_finite correction)
+        {value:row.value, total, correction}
+    });
+  {
+    values: history |> map (state -> state.value),
+    totals: history |> map (state -> state.total),
+    state: history |> fold initial (previous -> next -> next),
+  }
+};

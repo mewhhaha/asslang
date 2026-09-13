@@ -1,0 +1,7 @@
+// Rotate the indexed source, then run ONE scan across the new boundary.
+export fn rotate_scan = (samples:[Num]) -> (cut:Num) -> do {
+  let {left, right} = samples |> split_at cut;
+  right
+  |> concat left
+  |> scan 0 (total -> sample -> total+sample)
+};

@@ -16,6 +16,7 @@ checks and regression runs for this change.
 
 | Area | Executed validation |
 | --- | --- |
+| Cut-cover array views | [No-buffer composition and recovered alignment](ARRAY-VIEWS-VALIDATION.md). |
 | Tuple ordering keys | [Native lexicographic priorities](LEXICOGRAPHIC-KEYS-VALIDATION.md). |
 | Native finite ordering | [Scratch ownership, stable merges and native execution](NATIVE-ORDERING-VALIDATION.md). |
 | Scaled numerical fitting | [Calibration coordinates and model prediction](CALIBRATION-COORDINATES-VALIDATION.md). |

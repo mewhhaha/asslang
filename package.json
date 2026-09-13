@@ -70,6 +70,8 @@
     "test:native-ordering": "node --test test/native-ordering.test.mjs",
     "bench:native-ordering": "node scripts/bench-native-ordering.mjs",
     "example:lexicographic-keys": "node examples/interop/lexicographic-keys.mjs",
-    "test:lexicographic-keys": "node --test test/lexicographic-keys.test.mjs"
+    "test:lexicographic-keys": "node --test test/lexicographic-keys.test.mjs",
+    "example:array-views": "node examples/interop/array-views.mjs",
+    "test:array-views": "node --test test/array-views.test.mjs"
   }
 }

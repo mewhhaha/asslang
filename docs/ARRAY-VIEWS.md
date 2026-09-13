@@ -2,6 +2,103 @@
 
 [Vertical composition](VERTICAL-COMPOSITION.md) · [Native ordering](NATIVE-ORDERING.md)
 
+## Use the structure, not index bookkeeping
+
+```sh
+npm run example:array-views
+npm run test:array-views
+printf '[[1,2,3,4],2]' | node examples/case-studies/app.mjs view-rotate-scan
+```
+
+### Different transforms, one aligned report
+
+Adjust the two sections independently. Rejoin them in source order, pair their
+values with the original readings using ordinary `zip`, and carry one scan state
+through the whole report. The cut witness, not a length comparison, supplies the
+alignment proof.
+
+<!-- array-view-example: section_report -->
+```ass
+// Adjust sections independently, then recover the original event alignment.
+fn section_finite = x -> x-x == 0;
+fn section_scale = gain -> x -> do {
+  let value = gain*x;
+  require (section_finite x && section_finite value) value
+};
+export fn section_report = (samples:[Num]) ->
+  (settings:{cut:Num,leftGain:Num,rightGain:Num}) -> do {
+  let checked = require (section_finite settings.leftGain && section_finite settings.rightGain) samples;
+  let {left, right} = checked |> split_at settings.cut;
+  let adjusted = concat
+    (left |> map (section_scale settings.leftGain))
+    (right |> map (section_scale settings.rightGain));
+  let initial = {value:0, total:0, correction:0};
+  let history =
+    zip samples adjusted (original -> value -> {original, value})
+    |> scan initial (state -> row -> do {
+      let total = state.total+row.value;
+      let correction = state.correction+(row.value-row.original);
+      require (section_finite total && section_finite correction)
+        {value:row.value, total, correction}
+    });
+  {
+    values: history |> map (state -> state.value),
+    totals: history |> map (state -> state.total),
+    state: history |> fold initial (previous -> next -> next),
+  }
+};
+```
+
+For `[1,2,3,4]` and `{cut:2,leftGain:10,rightGain:100}`, values are
+`[10,20,300,400]`, cumulative totals `[10,30,330,730]`, and total correction 720.
+The comparison asserts one loop, one causal machine, zero runtime zip checks,
+and zero intermediate-buffer bytes. Four input events need exactly four loop
+units under default fusion; with fusion disabled the three consumers need twelve.
+The two final numeric arrays occupy 64 output bytes, separately from their record
+descriptor. No array temporary is hidden in scratch or input storage.
+
+### Rotate first, scan once
+
+<!-- array-view-example: rotate_scan -->
+```ass
+// Rotate the indexed source, then run ONE scan across the new boundary.
+export fn rotate_scan = (samples:[Num]) -> (cut:Num) -> do {
+  let {left, right} = samples |> split_at cut;
+  right
+  |> concat left
+  |> scan 0 (total -> sample -> total+sample)
+};
+```
+
+At cut 2, `[1,2,3,4]` becomes a virtual `[3,4,1,2]`; the result is `[3,7,8,10]`.
+State does not restart at the join. The reversed halves have a NEW event domain;
+ordinary `zip` with the unrotated source correctly fails.
+
+### Compare adjacent measurements without creating two arrays
+
+<!-- array-view-example: adjacent_deltas -->
+```ass
+// Two overlapping views; pairing is intentionally positional, not same-event.
+export fn adjacent_deltas = (samples:[Num]) -> do {
+  let size = count samples;
+  let {left: earlier} = samples |> split_at (max 0 (size-1));
+  let {right: later} = samples |> split_at (min 1 size);
+  earlier |> zip_checked later (previous -> next -> next-previous)
+};
+```
+
+`[2,5,4,10]` gives `[3,-1,6]`; zero or one sample gives an empty result. These
+views intentionally refer to DIFFERENT events, so pairing is `zip_checked`, not
+an invented original-domain proof. It uses one loop, no causal state, and no
+intermediate data buffer. These are finite numerical examples, not time-series
+unit or timestamp validation services.
+
+The example driver also looks up a rotated billion-element `range` with zero
+loops and no linear-memory import. The range is a formula, not a billion-element
+allocation. Returning all of it would still require output space and work.
+
+[Executed checks](ARRAY-VIEWS-VALIDATION.md) report concrete results and limits.
+
 ## Design before implementation
 
 The previous passes made local products and priority keys compositional. Array
@@ -44,9 +141,11 @@ The cut is an integer in [0,n], inclusive; negative zero acts as zero. Fractions
 negative values, NaN, infinity, and oversized cuts trap. There is no clamping.
 An observed split side validates its source guards and cut, including on empty
 input and when only `count` is demanded. Concatenation validates the source guards
-of BOTH sides in left/right order and a nonoverflowing total extent <= INT32_MAX,
+of BOTH sides and a nonoverflowing total extent <= INT32_MAX,
 even when only its first item is selected. These are finite structural views, not
-lazy-list append whose right-hand shape is unobserved. Element expressions remain
+lazy-list append whose right-hand shape is unobserved. Existing consumer-specific
+pure guard scheduling is retained; the first trap and work before a failed call
+are not an ordering guarantee. Element expressions remain
 lazy: only the selected side's element runs, and `count` need not run map bodies.
 An unused view remains undemanded as a whole. Existing raw entry-span checks and
 explicit effect sequencing remain independent.
@@ -63,7 +162,9 @@ operations is claimed, and no intermediate array is promised for repeated access
 A whole `{left,right}` returned across ASABI is materialized into the ordinary
 separate output arrays. This is an internal no-copy view, NOT a borrowed alias
 escaping to JavaScript. Outputs keep their ownership and eight-byte alignment.
-Source inputs and prepared snapshots are not mutated. No scratch arguments or
+Source inputs and prepared snapshots are not mutated. `stats.arrayViews` reports STAGED split/concat counts, restored domains and the
+maximum flattened segment count (including staged unused bindings); it is not
+a runtime allocation counter. No scratch arguments or
 new memory imports are needed unless an existing operation already needs them.
 
 ## Representation and balanced concatenation
@@ -75,7 +176,9 @@ index dispatch. Within a segment, substitute `globalIndex - segmentStart` for it
 local cursor. Only that leaf's item graph is executed. Record items select each
 scalar leaf under the same branch conditions; no guest record object is created.
 
-Directly adjacent concatenations are flattened before dispatch, capped at 64
+Scalar prefix boundaries are evaluated with the structural guards before a
+consumer loop, not recomputed by a linear prefix walk for each element. Directly
+adjacent concatenations are flattened before dispatch, capped at 64
 segments; at most 64 nested view operations are supported. A map or another
 operation that changes the item graph is a boundary for this flattening, not an
 excuse to substitute stale segment metadata. For S directly flattened segments,
@@ -88,8 +191,9 @@ bounds do not imply O(1) evaluation of arbitrarily complex user callbacks.
 Two new checked scalar operations validate cut/total extents before i32 address
 arithmetic. Internal index addition/subtraction and comparison use i32, with
 bounds supplied by the view invariants. Simplify only exact integer identities
-such as `(i-k)+k=i`, not f64 user arithmetic. Equal rebased item nodes need no
-selection branch. An untouched split/rejoin can therefore remove its element
+such as `(i-k)+k=i`, not f64 user arithmetic. A certified rejoin can reuse the parent cursor identities; ordinary nested
+traversals still run the existing lexical cursor-renaming pass. Equal rebased
+item nodes need no selection branch. An untouched split/rejoin can therefore remove its element
 routing while retaining the mandatory cut guard. Source length does not determine
 view metadata size or guest scalar-local count.
 
@@ -141,7 +245,9 @@ Balanced comparison against the boundary at each internal split chooses the
 subtree containing that interval, even when some intervals are empty. The leaf
 uses 0<=i-p_j<length_j, so substituted loads stay inside their own source domains.
 Joining two validated nonnegative lengths checks a<=INT32_MAX-b before adding;
-all prefixes are then representable. Element branches remain conditional, not a
+all prefixes of a successful view are representable. Scalar prefix arithmetic
+may precede a guard in an extent-only consumer, but no item address is used before
+that consumer's structural checks succeed. Element branches remain conditional, not a
 speculative select that evaluates an out-of-range load from the inactive side.
 
 **Reassembly and maps.** If L/R are a checked cut and f/g are the selected pure

@@ -63,6 +63,7 @@ export function compile(source, options = {}) {
         inferenceConstraints: inferred.constraints, scalarNodes: staged.nodes,
         stagingWork: staged.work, proofSteps: staged.certificate.steps.length,
         staticZips: staged.staticZips, stagedCheckedZips: staged.checkedZips,
+        ...((staged.arrayViews.splits || staged.arrayViews.concats) ? {arrayViews:{scope:'staging',...staged.arrayViews}} : {}),
         wasmBytes: module.bytes.length, abiMetadataBytes: module.abiMetadataBytes, needsMemory: module.needsMemory,
         kernelHeapAllocationSites: 0, intermediateBufferBytes: module.scratchSites ? null : 0,
         ...(module.scratchSites ? {scratchReservationSites:module.scratchSites} : {}),
