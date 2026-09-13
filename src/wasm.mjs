@@ -234,6 +234,19 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
     } else if (node.op === 'order_load') {
       load(a[0], ctx); load(a[1], ctx); i32(a[0].stride); emit(0x6c, 0x6a);
       emit(node.type === 'Num' ? 0x2b : 0x28, node.type === 'Num' ? 3 : 2, ...uleb(node.data));
+    } else if (node.op === 'split_point') {
+      const n = evaluate(a[0], ctx), extent = evaluate(a[1], ctx);
+      get(n); f64(0); emit(0x66); trapUnless();
+      get(n); get(extent); emit(0xb8, 0x65); trapUnless();
+      get(n); get(n); emit(0x9c, 0x61); trapUnless();
+      get(n); emit(0xab);
+    } else if (node.op === 'concat_extent') {
+      const left = evaluate(a[0], ctx), right = evaluate(a[1], ctx);
+      get(left); i32(2147483647); get(right); emit(0x6b, 0x4d); trapUnless();
+      get(left); get(right); emit(0x6a);
+    } else if (['index_add', 'index_sub', 'index_lt'].includes(node.op)) {
+      load(a[0], ctx); load(a[1], ctx);
+      emit(node.op === 'index_add' ? 0x6a : node.op === 'index_sub' ? 0x6b : 0x49);
     } else if (node.op === 'const') {
       node.type === 'Num' ? f64(node.data) : i32(node.data);
     } else if (node.op === 'if' || node.op === '&&' || node.op === '||') {

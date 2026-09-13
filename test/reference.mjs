@@ -36,6 +36,21 @@ export function reference(source, name, args, {hosts={}}={}) {
       });
       case 'map': return stream(() => xs().map(x => memo(() => invoke(thunks[1](), [x]))));
       case 'filter': return stream(() => xs().filter(x => invoke(thunks[1](), [x])));
+      case 'split_at': {
+        const split = () => {
+          const items = xs(), cut = thunks[1]();
+          if (!Number.isInteger(cut) || cut < 0 || cut > items.length) throw new RangeError('Invalid cut');
+          return {items, cut};
+        };
+        return {[recordTag]:true,
+          left:stream(() => {const {items,cut}=split();return items.slice(0,cut);}),
+          right:stream(() => {const {items,cut}=split();return items.slice(cut);})};
+      }
+      case 'concat': return stream(() => {
+        const left = xs(), right = thunks[1]().items();
+        if (left.length+right.length > 2147483647) throw new RangeError('Concatenated extent overflows');
+        return left.concat(right);
+      });
       case 'sort_by': return stream(() => {
         const rows=xs().map((x,index)=>{
           const value=snapshot(x()), key=snapshot(invoke(thunks[1](),[constant(value)]));

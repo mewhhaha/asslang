@@ -1,0 +1,7 @@
+// Two overlapping views; pairing is intentionally positional, not same-event.
+export fn adjacent_deltas = (samples:[Num]) -> do {
+  let size = count samples;
+  let {left: earlier} = samples |> split_at (max 0 (size-1));
+  let {right: later} = samples |> split_at (min 1 size);
+  earlier |> zip_checked later (previous -> next -> next-previous)
+};

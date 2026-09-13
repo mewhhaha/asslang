@@ -159,3 +159,12 @@ No token, precedence or newline rule changes. Record labels/renames and typed
 binders reuse `:` in their existing contexts; `_` remains an ordinary name.
 Read [the vertical task examples and syntax review](VERTICAL-COMPOSITION.md) for
 pipeline argument order, callback grouping, type constraints, lowering and limits.
+
+## Array structure with ordinary applications
+
+`let {left,right} = xs |> split_at cut;` names two checked indexed views.
+`left |> concat right` concatenates them virtually. There is no new token,
+precedence, array literal or indentation rule. `split_at` and `concat` become
+reserved builtin names; existing user definitions with those names must be
+renamed. [Array composition](ARRAY-VIEWS.md) specifies the access restrictions,
+cut bounds, alignment recovery and examples with scans and zips.

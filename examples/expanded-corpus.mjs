@@ -1,5 +1,15 @@
 // Canonical examples, language-pattern inspirations, and app-like fixtures.
 export const expandedCorpus = [
+  {id:'view-section-report',path:'case-studies/views/section_report.ass',name:'section_report',
+    args:[[1,2,3,4],{cut:2,leftGain:10,rightGain:100}],
+    expected:{values:[10,20,300,400],totals:[10,30,330,730],state:{value:400,total:730,correction:720}},
+    inspiration:'cut-cover reassembly, static zip and a single causal report without intermediate arrays',kind:'case-study'},
+  {id:'view-rotate-scan',path:'case-studies/views/rotate_scan.ass',name:'rotate_scan',
+    args:[[1,2,3,4],2],expected:[3,7,8,10],
+    inspiration:'virtual concatenation and a scan whose state crosses the joined boundary',kind:'case-study'},
+  {id:'view-adjacent-deltas',path:'case-studies/views/adjacent_deltas.ass',name:'adjacent_deltas',
+    args:[[2,5,4,10]],expected:[3,-1,6],
+    inspiration:'overlapping dense views and explicit checked positional pairing',kind:'case-study'},
   {id:'lexicographic-nearest',path:'case-studies/ordering/nearest_ties.ass',name:'nearest_ties',
     args:[[7,3,6,4,7,5],5],expected:[5,4,6,3,7,7],
     inspiration:'explicit distance and tie-breaking priorities in one native tuple key',kind:'case-study'},

@@ -1,3 +1,4 @@
+import { createArrayViews } from './array-views.mjs';
 import { collectOrderings, orderingKeyLeaves } from './ordering.mjs';
 import { isSymbolKey, displayRecordKey } from './record-keys.mjs';
 import { intrinsicArities, stageIntrinsic } from './intrinsics.mjs';
@@ -26,6 +27,30 @@ export function verifyCertificate(steps) {
         arity(1);
         if (step.obligation !== 'finite-stable-materialization') throw new Error('JTE: missing ordering obligation');
         fact = { domain: step.id, dense: true, seekable: true }; break;
+      case 'split_left':
+        arity(1);
+        if (!parents[0].dense || !parents[0].seekable || step.obligation !== 'integer-cut-within-extent')
+          throw new Error('JTE: split requires indexed input and a checked cut');
+        fact = { domain: step.id, dense: true, seekable: true,
+          cover: { cut: step.id, side: 'left', parent: parents[0] } }; break;
+      case 'split_right': {
+        arity(2); const c = parents[1].cover;
+        if (!c || c.cut !== step.parents[1] || c.side !== 'left' || c.parent !== parents[0])
+          throw new Error('JTE: right half requires the exact cut and parent');
+        fact = { domain: step.id, dense: true, seekable: true,
+          cover: { cut: c.cut, side: 'right', parent: parents[0] } }; break;
+      }
+      case 'concat':
+        arity(2);
+        if (!parents.every(p => p.dense && p.seekable)) throw new Error('JTE: concat requires indexed inputs');
+        fact = { domain: step.id, dense: true, seekable: true }; break;
+      case 'rejoin': {
+        arity(2); const [a, b] = parents.map(p => p.cover);
+        if (!parents.every(p => p.dense && p.seekable) || !a || !b || a.cut !== b.cut ||
+            a.side !== 'left' || b.side !== 'right' || a.parent !== b.parent)
+          throw new Error('JTE: rejoin requires an ordered complementary cut cover');
+        fact = { ...a.parent }; break;
+      }
       case 'map':
         arity(1); fact = { ...parents[0] }; break;
       case 'scan':
@@ -86,6 +111,19 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
   for (const h of hostDeclarations) if (!h.parameters.every(hostSupported)) fail('Host stream arguments require explicit materialization, not implemented yet',null,'E_ABI');
   const hostByName = new Map(hostDeclarations.map(h=>[h.name,h]));
   function scalar(op, type, args = [], data = undefined, unique = false) {
+    // Exact modular identities for compiler-only index rebasing. Never rewrite
+    // user f64 arithmetic; retained view guards still validate cuts and lengths.
+    if (op === 'index_add') {
+      const [a, b] = args;
+      if (a.op === 'const' && a.data === 0) return b;
+      if (b.op === 'const' && b.data === 0) return a;
+      if (a.op === 'index_sub' && a.args[1] === b) return a.args[0];
+    }
+    if (op === 'index_sub') {
+      const [a, b] = args;
+      if (b.op === 'const' && b.data === 0) return a;
+      if (a.op === 'index_add' && a.args[1] === b) return a.args[0];
+    }
     const key = `${op}:${type}:${args.map(n => n.id).join(',')}:${
       Object.is(data, -0) ? '-0' : JSON.stringify(data)}`;
     if (nodes.length >= maxExpansion) fail('Scalar graph expansion limit exceeded',null,'E_LIMIT');
@@ -101,8 +139,9 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
   function record(rule, parents = [], extra = {}) {
     const id = steps.length, pp = parents.map(p => steps[p.proof]);
     const domain = rule === 'reduce' ? null : ['map', 'zip', 'scan'].includes(rule) ? pp[0].domain : id;
-    const dense = rule==='choose' ? pp.every(p=>p.dense) : ['source', 'zip_checked', 'order'].includes(rule) || ['map', 'zip', 'scan'].includes(rule) && pp[0].dense;
-    const seekable = ['source', 'order'].includes(rule) || ['map','zip','choose','zip_checked'].includes(rule) && pp.every(p=>p.seekable);
+    const viewRule = ['split_left', 'split_right', 'concat', 'rejoin'].includes(rule);
+    const dense = rule==='choose' ? pp.every(p=>p.dense) : viewRule || ['source', 'zip_checked', 'order'].includes(rule) || ['map', 'zip', 'scan'].includes(rule) && pp[0].dense;
+    const seekable = viewRule || ['source', 'order'].includes(rule) || ['map','zip','choose','zip_checked'].includes(rule) && pp.every(p=>p.seekable);
     const step = { id, rule, seekable: Boolean(seekable), parents: parents.map(p => p.proof), domain, dense: Boolean(dense), ...extra };
     steps.push(step); return id;
   }
@@ -132,6 +171,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     if(yes.kind==='stream' && no.kind==='stream' && (yes.machines.length || no.machines.length))
       fail('Choose the source before scan/transduce, or branch inside the transition; selecting stateful streams is not implemented',at,'E_STATE_BRANCH');
     if(yes.kind==='stream' && no.kind==='stream')return {kind:'stream',proof:record('choose',[yes,no]),
+      ...((yes.viewDepth || no.viewDepth) ? {viewDepth:Math.max(yes.viewDepth??0,no.viewDepth??0)} : {}),
       machines:[],extent:scalar('if','I32',[condition,yes.extent,no.extent]),indices:union(yes.indices,no.indices),
       mask:yes.mask||no.mask?scalar('if','Bool',[condition,yes.mask??boolean(true),no.mask??boolean(true)]):null,
       item:choose(condition,yes.item,no.item,at),
@@ -194,6 +234,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     const proof = record('source', [], { name });
     return { kind: 'stream', proof, extent, item, indices: [index], mask: null, guards: [], machines: [] };
   }
+  const arrayViews = createArrayViews({scalar,int,substitute,record,steps,fail});
   function invoke(callee, args, at) {
     if (++work > maxExpansion) fail('Staging expansion limit exceeded; recursive/expansive abstraction is not supported', at, 'E_LIMIT');
     if (callee.kind === 'callable_choice') {
@@ -259,6 +300,8 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     if (name === 'sort_by' && activeLoops)
       fail('Construct sort_by outside runtime callbacks; bind and reuse an invariant ordered stream', at, 'E_ORDER_SCOPE');
     const input = scopedPlan(requireStream(args[0], at));
+    if (name === 'split_at') return arrayViews.splitAt(input, requireScalar(args[1], at), at);
+    if (name === 'concat') return arrayViews.concat(input, scopedPlan(requireStream(args[1], at)), at);
     if (name === 'sort_by') {
       const payload = leaves(input.item, at);
       if (!payload.length || payload.length > 32 || payload.some(v => !['Num', 'Bool'].includes(v.type)))
@@ -327,7 +370,8 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
       const item = iteration([input,other],()=>invoke(args[2], [input.item, other.item], at));
       leaves(item,at);
       const proof = record(name, [input, other], name === 'zip_checked' ? { obligation: 'equal-extent-before-iteration' } : {});
-      return { ...input, item, proof, guards, machines:union(input.machines,other.machines), indices: union(input.indices, other.indices) };
+      return { ...input, item, proof, guards, machines:union(input.machines,other.machines), indices: union(input.indices, other.indices),
+        ...((input.viewDepth || other.viewDepth) ? {viewDepth:Math.max(input.viewDepth??0,other.viewDepth??0)} : {}) };
     }
     if (name==='count' && steps[input.proof].dense && !input.machines.length) {
       let result=scalar('to_num','Num',[input.extent]);
@@ -479,5 +523,5 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
   }
   const observations=Object.fromEntries(kernels.map(k=>[k.name,observe(k.result)]));
   verifyCertificate(steps);
-  return { kernels, observations, hostDeclarations, certificate: { version: steps.some(s=>s.rule==='order') ? 'jte-2-ordering' : 'jte-1-causal', steps }, nodes: nodes.length, work, staticZips, checkedZips };
+  return { kernels, observations, hostDeclarations, certificate: { version: arrayViews.stats.splits || arrayViews.stats.concats ? 'jte-3-views' : steps.some(s=>s.rule==='order') ? 'jte-2-ordering' : 'jte-1-causal', steps }, arrayViews: arrayViews.stats, nodes: nodes.length, work, staticZips, checkedZips };
 }

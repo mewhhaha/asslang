@@ -80,6 +80,16 @@ requires a direct, fully applied declared host call in an exported effect body.
 Partial application must not hide, duplicate, or defer a host effect. Inference
 and staging retain this explicit boundary independently of call punctuation.
 
+## Indexed array views
+
+`src/array-views.mjs` stages `split_at` and `concat` as checked index maps, not
+runtime buffers. Balanced segment dispatch reads only the selected indexed
+source. Prefix boundaries are scalar guard work outside a consumer loop. JTE
+cut-cover rules can restore the original domain when complementary halves are
+reassembled after maps. Reversal, independent cuts and positional zips do not
+forge that cover. Dense/seekable requirements exclude implicit causal replay.
+See [array views](ARRAY-VIEWS.md) for bounds, demand, output ownership and proofs.
+
 ## Native finite ordering
 
 `sort_by` introduces a strict finite materialization boundary and a fresh dense,

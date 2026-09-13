@@ -1,3 +1,4 @@
+import { runArrayViewBrowserChecks } from './array-views-browser.mjs';
 import { runLexicographicKeyBrowserChecks } from './lexicographic-keys-browser.mjs';
 import { runNativeOrderingBrowserChecks } from './native-ordering-browser.mjs';
 import { runPartitionOrderBrowserChecks } from './partition-order-browser.mjs';
@@ -310,6 +311,7 @@ try {
   await runPartitionOrderBrowserChecks({compile},createRuntime,report);
   await runNativeOrderingBrowserChecks({compile},createRuntime,report);
   await runLexicographicKeyBrowserChecks({compile},createRuntime,report);
+  await runArrayViewBrowserChecks({compile,check},createRuntime,report);
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {
