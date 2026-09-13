@@ -1,5 +1,14 @@
 // Canonical examples, language-pattern inspirations, and app-like fixtures.
 export const expandedCorpus = [
+  {id:'chunk-block-report',path:'case-studies/chunks/block_report.ass',name:'block_report',
+    args:[[10,13,20,18,30],2],expected:{relative:[0,3,0,-2,0],totals:[0,3,3,1,1],state:{value:0,total:1,original:91}},
+    inspiration:'arithmetic chunk covers, aligned flattening and continuous scan',kind:'case-study'},
+  {id:'chunk-block-exposure',path:'case-studies/chunks/block_exposure.ass',name:'block_exposure',
+    args:[[10,13,20,18,30],2],expected:[33,58,30],
+    inspiration:'block-local causal scans and folds without a nested buffer',kind:'case-study'},
+  {id:'chunk-paired-blocks',path:'case-studies/chunks/paired_blocks.ass',name:'paired_blocks',
+    args:[[1,2,3,4,5],[2,3,4,5,6],2],expected:[8,32,30],
+    inspiration:'nested checked block pairing and reductions',kind:'case-study'},
   {id:'view-section-report',path:'case-studies/views/section_report.ass',name:'section_report',
     args:[[1,2,3,4],{cut:2,leftGain:10,rightGain:100}],
     expected:{values:[10,20,300,400],totals:[10,30,330,730],state:{value:400,total:730,correction:720}},

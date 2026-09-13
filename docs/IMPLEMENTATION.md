@@ -90,6 +90,17 @@ reassembled after maps. Reversal, independent cuts and positional zips do not
 forge that cover. Dense/seekable requirements exclude implicit causal replay.
 See [array views](ARRAY-VIEWS.md) for bounds, demand, output ownership and proofs.
 
+## Arithmetic chunk families
+
+`src/chunk-views.mjs` represents fixed-width chunks by one symbolic outer cursor,
+one inner cursor and checked arithmetic, not per-chunk data/descriptor buffers.
+Block callbacks use existing scalar/record reductions and causal schedules.
+Cover-preserving `flatten` substitutes quotient/remainder coordinates and restores
+source event alignment. Independent block selection issues a fresh domain.
+Structural block guards use a metered preflight; costly flattened reductions and
+causal inner flattening are rejected rather than silently replayed. The existing
+value ABI still rejects nested arrays. See [chunk views](CHUNK-VIEWS.md).
+
 ## Native finite ordering
 
 `sort_by` introduces a strict finite materialization boundary and a fresh dense,

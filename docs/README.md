@@ -37,6 +37,11 @@ then feed zips and scans without intermediate guest arrays.
 [Tuple keys](LEXICOGRAPHIC-KEYS.md) express primary and tie-breaking priorities
 in one native stable sort, including reusable nested subkeys.
 
+## Chunk-level array programs
+
+[Chunk views](CHUNK-VIEWS.md) compose block reductions and aligned pointwise
+flattening without arrays of block data or descriptors.
+
 ## Numerical differentiation
 
 | Task | Contract |

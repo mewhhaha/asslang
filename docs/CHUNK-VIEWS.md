@@ -2,6 +2,97 @@
 
 [Array views](ARRAY-VIEWS.md) · [Vertical composition](VERTICAL-COMPOSITION.md)
 
+## Run the examples
+
+```sh
+npm run example:chunk-views
+npm run test:chunk-views
+printf '[[10,13,20,18,30],2]' | node examples/case-studies/app.mjs chunk-block-report
+```
+
+### Reset the reference, not the running total
+
+For `[10,13,20,18,30]` and width 2, subtract the first reading in each block.
+Flatten those pointwise adjustments, zip them with the original readings, and
+scan continuously. Relative readings are `[0,3,0,-2,0]`, totals `[0,3,3,1,1]`.
+The final singleton block is handled automatically. No chunk data or descriptor
+array is built; one default fused loop returns the two traces and final state.
+
+<!-- chunk-example: block_report -->
+```ass
+// Reset the reference in each block, then carry one state across all blocks.
+export fn block_report = (readings:[Num]) -> (width:Num) -> do {
+  let relative =
+    readings
+    |> chunks width
+    |> map (block -> do {
+      let first = at block 0;
+      block |> map (reading -> do {
+        let value = reading-first;
+        require (value-value == 0) value
+      })
+    })
+    |> flatten;
+  let initial = {value:0, total:0, original:0};
+  let history =
+    zip readings relative (reading -> value -> {reading, value})
+    |> scan initial (state -> row -> {
+      value: row.value,
+      total: state.total+row.value,
+      original: state.original+row.reading,
+    });
+  {
+    relative: history |> map (state -> state.value),
+    totals: history |> map (state -> state.total),
+    state: history |> fold initial (previous -> next -> next),
+  }
+};
+```
+
+### Scan inside each block
+
+The same readings give `[33,58,30]`: sum each block's running totals.
+The inner scan starts fresh per block; unlike the first example, it is not a
+continuous scan across the flattened sequence. Only three results are stored.
+
+<!-- chunk-example: block_exposure -->
+```ass
+// Sum running totals independently inside each block, including the short tail.
+export fn block_exposure = (readings:[Num]) -> (width:Num) ->
+  readings
+  |> chunks width
+  |> map (block ->
+    block
+    |> scan 0 (total -> reading -> total+reading)
+    |> sum);
+```
+
+### Pair blocks, then pair their elements
+
+For `[1,2,3,4,5]` and `[2,3,4,5,6]` at width 2, the block dot products
+are `[8,32,30]`. The outer check compares block counts; the inner check also
+protects unequal final-block lengths. No host zip or temporary block arrays.
+
+<!-- chunk-example: paired_blocks -->
+```ass
+// One dot product per block, with checked pairing at both levels.
+export fn paired_blocks = (left:[Num]) -> (right:[Num]) -> (width:Num) ->
+  left
+  |> chunks width
+  |> zip_checked (chunks right width) (a -> b ->
+    zip_checked a b (x -> y -> x*y) |> sum);
+```
+
+The driver checks exact loop and output allowances: five units and 80 output
+bytes for the five-reading report, eight units and 24 bytes for each three-block
+reduction. Output descriptors are separate. One fewer loop unit traps. These are
+artifact/workspace measurements, not throughput benchmarks. Complete default
+and disabled-fusion results are covered by the tests.
+
+For a simpler reduction, `xs |> chunks width |> map sum` uses the
+same nested-loop mechanism. Functions and partial applications remain ordinary
+staged Asslang, rather than a second chunk-specific callback language.
+
 ## Design before implementation
 
 Merged main `f074696532798345c0e67c572b75652d336d469c`, tree
@@ -27,7 +118,7 @@ reduce its blocks, select a block, or use checked flattening first.
 
 ## Two deliberately separate consumption paths
 
-**Block reductions.** `xs |> chunks width |> map (block -> sum block)` emits an
+**Block reductions.** `xs |> chunks width |> map sum` emits an
 outer block loop containing a normal inner reduction. It visits N elements and
 C=ceil(N/width) block events, uses scalar locals and the final C-element output,
 and needs no block data or descriptor buffers. The ordinary inner operation may
@@ -46,9 +137,11 @@ the entire flattened result. This does not reset that scan at block boundaries.
 Flattening requires an unfiltered, unpermuted complete outer chunk cover and a
 dense, seekable inner stream covering the corresponding whole block in order.
 Maps and same-domain zips preserve that proof; an inner split followed by checked
-rejoin can recover it. Independent chunk builders, replacing blocks, changing
+rejoin can recover it. Mixing different chunk families, replacing blocks, changing
 length, rotation, sorting, outer filters and unrelated checked zips do not forge
-it. An independently selected block receives a fresh domain, so selecting block
+it. Different widths can each flatten their own complete cover back to the same
+source domain; that does not equate their outer block domains. An independently
+selected block receives a fresh domain, so selecting block
 0 and block 1 cannot accidentally prove event alignment.
 
 The initial flattening path rejects item/structural graphs containing reductions,
@@ -155,3 +248,8 @@ Sources checked September 13, 2026. This much narrower sequential-Wasm design us
 an arithmetic chunk cover rather than a runtime segment vector. No new general
 category-theory theorem, worldwide novelty, GPU parallelism, universal fusion,
 formal proof-assistant check or measured throughput improvement is claimed.
+
+## Executed evidence
+
+[Validation report](CHUNK-VIEWS-VALIDATION.md) records the actual kernels, exact
+resource boundaries, baseline comparisons, browser results and remaining limits.
