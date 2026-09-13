@@ -196,7 +196,7 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
       for (const arg of plan.args) vectorValue(arg, ctx, memo);
       vectorOp(SIMD_OPS[node.op]);
     }
-    const local = allocate('V128'); set(local); memo.set(node.id, local); get(local);
+    const local = allocate('V128'); set(local); memo.set(plan.node.id, local); get(local);
   }
   function vectorLoop(index, extent, body) {
     vectorizedLoops++;
@@ -260,6 +260,23 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
       else if (node.op === '||') loadRegion(a[1], no);
       else i32(0);
       emit(0x0b);
+    } else if (node.op === 'chunk_width') {
+      const n = evaluate(a[0], ctx);
+      get(n); f64(0); emit(0x64); trapUnless();
+      get(n); f64(2147483647); emit(0x65); trapUnless();
+      get(n); get(n); emit(0x9c,0x61); trapUnless();
+      get(n); emit(0xab);
+    } else if (node.op === 'chunk_count') {
+      const n = evaluate(a[0], ctx), width = evaluate(a[1], ctx);
+      get(n); emit(0x04,0x7f);
+      get(n); i32(1); emit(0x6b); get(width); emit(0x6e); i32(1); emit(0x6a);
+      emit(0x05); i32(0); emit(0x0b);
+    } else if (['index_mul','index_div','index_rem','index_min'].includes(node.op)) {
+      const left = evaluate(a[0], ctx), right = evaluate(a[1], ctx);
+      get(left); get(right);
+      if (node.op === 'index_min') {
+        emit(0x49,0x04,0x7f); get(left); emit(0x05); get(right); emit(0x0b);
+      } else emit({index_mul:0x6c,index_div:0x6e,index_rem:0x70}[node.op]);
     } else if (node.op === 'extent') {
       const n = evaluate(a[0], ctx);
       get(n); f64(0); emit(0x66); trapUnless(); // n >= 0, also rejects NaN

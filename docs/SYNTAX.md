@@ -168,3 +168,13 @@ precedence, array literal or indentation rule. `split_at` and `concat` become
 reserved builtin names; existing user definitions with those names must be
 renamed. [Array composition](ARRAY-VIEWS.md) specifies the access restrictions,
 cut bounds, alignment recovery and examples with scans and zips.
+
+## Chunk families and existing higher-order functions
+
+`xs |> chunks width |> map sum` computes one sum per nonempty block. The last
+block may be shorter. `map` and `zip` callbacks receiving block streams can return
+another stream; `flatten` accepts a checked complete, ordered chunk cover after
+pointwise transforms. It does not allocate an array of arrays. Nested streams
+remain compiler-only and cannot cross the value ABI. The builtin names `chunks`
+and `flatten` are newly reserved; no punctuation, precedence or layout rule changes.
+See [chunk programs and their explicit limits](CHUNK-VIEWS.md).
