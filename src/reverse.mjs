@@ -125,21 +125,6 @@ function accumulateReverse(point, seeds, roots, outputs, plan, api) {
   return cotangent;
 }
 
-// VJP retains its eager validation order, including for value-only projections.
-export function reverseVJP(f, point, weights, api, at) {
-  numericLeaves(point,api,at);
-  const seeds=numericLeaves(weights,api,at);
-  const {value,roots,replacements}=prepareDifferential(f,point,api,at);
-  const outputs=numericLeaves(value,api,at);
-  if(outputs.length!==seeds.length)
-    api.fail('Differentiation seed shape mismatch',at,'E_DIFF_TYPE');
-  const plan=analyzeReverse(roots,outputs,api,at);
-  const cotangent=accumulateReverse(point,seeds,roots,outputs,plan,api);
-  return api.substitute({kind:'record',fields:new Map([
-    ['value',value],['cotangent',cotangent],
-  ])},replacements);
-}
-
 export function reusablePullback(f, point, api, at) {
   numericLeaves(point,api,at);
   const {value,roots,replacements}=prepareDifferential(f,point,api,at);

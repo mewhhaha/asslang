@@ -79,6 +79,11 @@
     "example:chunk-composition": "node examples/interop/chunk-composition.mjs",
     "test:window-maps": "node --test test/window-maps.test.mjs",
     "example:window-maps": "node examples/interop/window-maps.mjs",
-    "test:window-chunk-integration": "node --test test/window-chunk-integration.test.mjs"
+    "test:window-chunk-integration": "node --test test/window-chunk-integration.test.mjs",
+    "build:prelude": "node scripts/build-prelude.mjs",
+    "check:prelude": "node scripts/build-prelude.mjs --check",
+    "audit:core": "node scripts/audit-core.mjs",
+    "test:core-prelude": "node --test test/core-prelude.test.mjs",
+    "example:core-prelude": "node examples/interop/core-prelude.mjs"
   }
 }

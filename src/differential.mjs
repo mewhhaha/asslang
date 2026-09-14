@@ -77,16 +77,6 @@ function prepareLinearization(f, point, api, at) {
   return {value:substitute(value,replacements),pushforward};
 }
 
-export function forwardLinearize(f, point, direction, api, at) {
-  const inputs=numericLeaves(point,api,at), seeds=numericLeaves(direction,api,at);
-  if(inputs.length!==seeds.length)
-    api.fail('Differentiation seed shape mismatch',at,'E_DIFF_TYPE');
-  const linear=prepareLinearization(f,point,api,at);
-  return {kind:'record',fields:new Map([
-    ['value',linear.value],['tangent',linear.pushforward(seeds)],
-  ])};
-}
-
 export function reusableLinearize(f, point, api, at) {
   const inputs=numericLeaves(point,api,at);
   const linear=prepareLinearization(f,point,api,at);

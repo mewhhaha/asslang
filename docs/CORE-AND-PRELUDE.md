@@ -2,6 +2,111 @@
 
 [Documentation](README.md) · [Architecture](IMPLEMENTATION.md) · [Syntax](SYNTAX.md)
 
+## Implemented: library definitions, not special handlers
+
+Four existing operations now live in ordinary source. Existing calls keep working;
+there is no new syntax and no guest closure or buffer for the prelude. The exact
+editable file is [lib/prelude.ass](../lib/prelude.ass):
+
+<!-- core-prelude-source -->
+```ass
+// Compiler-shipped source, using the same language as user libraries.
+// Available by default; link explicitly only with prelude:false / --no-prelude.
+fn sum = xs -> fold xs 0 (total -> value -> total+value);
+fn grad = f -> point -> (value_and_grad f point).gradient;
+fn jvp = f -> point -> direction -> do {
+  let plan = linearize f point;
+  {value:plan.value, tangent:plan.pushforward direction}
+};
+fn vjp = f -> point -> weights -> do {
+  let plan = pullback f point;
+  {value:plan.value, cotangent:plan.pullback weights}
+};
+```
+
+`sum` specializes the same ordered fold. `grad` projects the same forward gradient.
+`jvp` and `vjp` apply the corresponding reusable plan once. These are not body-pattern
+recognition rules: rename any of the functions and it compiles through the same
+mechanisms. Their former bespoke inference/staging handlers and one-shot AD
+implementations have been removed.
+
+### Use the core without an implicit prelude
+
+```sh
+npm run audit:core
+npm run check:prelude
+npm run example:core-prelude
+node src/cli.mjs examples/case-studies/core/block_energy.ass --no-prelude --lib lib/prelude.ass --run block_energy --args '[[1,2,3,4,5,6,7],3]'
+```
+
+The last command returns `[14,77,49]`. Without the explicit `--lib`, `sum` is unknown
+in core-only mode. Default compilation still provides it. The JS equivalent is
+`compileSources(files, {prelude:false})` with the prelude and application supplied
+as ordinary named source fragments. The session cache distinguishes the modes.
+Primitive names stay reserved; these four names may be defined by user source
+only when the implicit prelude is disabled. Local shadowing remains unchanged.
+
+The [inventory](core-inventory.json) covers **34 public callable names: 30 compiler
+primitives and four source functions**. It deliberately does not hide expression
+syntax, effects, ABI validation or budget accounting in that count. Normal tests
+fail if a new builtin lacks a decision. The core is an audited practical basis,
+not a claim of mathematical minimality.
+
+### Compose the source layer with array and AD mechanisms
+
+The complete [example driver](../examples/interop/core-prelude.mjs) compiles the
+following program both with the implicit prelude and with explicitly linked
+source in core-only mode. It asserts identical Wasm, ABI and JTE certificates:
+
+<!-- core-example -->
+```ass
+// Derived source functions compose with block views and compiler graph transforms.
+export fn source_basis = (samples:[Num]) -> (width:Num) -> (point:{x:Num,y:Num}) -> do {
+  let energy = block -> block |> map (x -> x*x) |> sum;
+  let objective = p -> p.x*p.x+p.y*p.y;
+  let outputs = p -> {square:p.x*p.x, total:p.x+p.y};
+  {
+    blocks: samples |> chunks width |> map energy,
+    gradient: grad objective point,
+    along_x: (jvp objective point {x:1,y:0}).tangent,
+    weighted: (vjp outputs point {square:1,total:2}).cotangent,
+  }
+};
+```
+
+On samples `[1,2,3,4,5,6,7]`, width 3 and point `{x:3,y:4}`, it returns block
+energies `[14,77,49]`, gradient `{x:6,y:8}`, directional derivative 6, and weighted
+reverse derivative `{x:8,y:2}`. Exactly ten loop units cover seven sample visits
+and three block dispatches; the three energy outputs need 24 bytes. There are
+two loop sites and no intermediate data buffers. Array descriptors, host input
+snapshots and result copies still occupy storage. The emitted module is 3,220
+bytes with the demonstrated loop allowance, in both the old and new compiler.
+
+The AD source is a named JS-held source fragment, following the existing AD case
+studies, since the corpus reference interpreter does not implement differentiation.
+A separate array-only [block-energy kernel](../examples/case-studies/core/block_energy.ass)
+is registered in the normal corpus. The guide snippets are checked against their
+exact executable sources, not maintained as independent pseudo-code.
+
+### Front-end work is not free
+
+Shipped source is parsed once per inference run when needed (56 AST nodes), and
+only referenced functions are inferred. This parsing is included in the inference
+phase timing. `stats.syntaxNodes` still describes the user's input;
+`stats.sourcePrelude` reports enabled mode, inferred helper names and additional
+nodes. Both sets count toward the existing 50,000-node bound. Internal relocated
+helper bodies are normal staged work charged to `maxExpansion`.
+
+In the combined example, inference constraints rise 140 to 220 and staging work
+102 to 158, while scalar graph nodes remain 107 and Wasm remains 3,220 bytes. A
+previously sufficient very small expansion allowance may need adjustment; there
+is no hidden exemption or raised default. This is less duplicated implementation
+and a source-library foundation, not a claim of lower compile time or a smaller
+compiler by line count. Packaging/inventory infrastructure adds code of its own.
+
+[Executed validation](CORE-AND-PRELUDE-VALIDATION.md) records baseline comparisons,
+core-boundary counterexamples, actual test results and the limits of these claims.
+
 ## Design before implementation
 
 Base: merged main `00c22376ca58c4134e704b08c15939d7affe17d5`, tree
@@ -18,7 +123,7 @@ reconstruction/evidence synthesis are a fourth, explicit tooling layer: moving
 JavaScript graph algorithms to a source string does not implement those algorithms
 inside Asslang. Count public names separately from semantic mechanisms and code.
 
-This change will move **sum, grad, jvp and vjp** from bespoke inference/staging
+This change moves **sum, grad, jvp and vjp** from bespoke inference/staging
 handlers to a compiler-shipped, ordinary Asslang prelude. Audit every remaining
 builtin, record why it remains, and add executable counterexamples to overly
 aggressive reductions. This is a first extraction, not a claim that 30 remaining
@@ -26,7 +131,7 @@ compiler entry points are a mathematically minimal or already tiny core.
 
 ## Source definitions and preservation targets
 
-The candidate definitions use no privileged function bodies:
+The definitions above use no privileged function bodies. In compact form:
 
 ```text
 fn sum = xs -> fold xs 0 (total -> value -> total+value);

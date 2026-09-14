@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "scope": "Callable builtin names only; expression syntax, host authority, ABI and validation are additional trusted mechanisms.",
+  "decisions": [
+    {
+      "layer": "source",
+      "family": "ordered-reduction",
+      "names": [
+        "sum"
+      ],
+      "implementation": "lib/prelude.ass",
+      "reason": "Same scalar fold graph, not a reassociated reduction."
+    },
+    {
+      "layer": "source",
+      "family": "differential-adapters",
+      "names": [
+        "grad",
+        "jvp",
+        "vjp"
+      ],
+      "implementation": "lib/prelude.ass",
+      "reason": "Projection and single applications of checked graph transforms."
+    },
+    {
+      "layer": "compiler",
+      "family": "numeric",
+      "names": [
+        "sqrt",
+        "abs",
+        "min",
+        "max",
+        "floor"
+      ],
+      "implementation": "src/wasm.mjs",
+      "reason": "Exact f64 instructions, including signed zero/NaN and AD conventions."
+    },
+    {
+      "layer": "compiler",
+      "family": "borrowed-bytes",
+      "names": [
+        "utf8",
+        "byte_length",
+        "byte_values"
+      ],
+      "implementation": "src/jte.mjs",
+      "reason": "Representation-aware borrowed access; text processing remains source."
+    },
+    {
+      "layer": "compiler",
+      "family": "indexed-structure",
+      "names": [
+        "range",
+        "at",
+        "split_at",
+        "concat",
+        "chunks",
+        "flatten"
+      ],
+      "implementation": "src/jte.mjs",
+      "reason": "Checked index maps, cut/chunk covers and symbolic families; not just lengths."
+    },
+    {
+      "layer": "compiler",
+      "family": "mapping-pairing",
+      "names": [
+        "map",
+        "zip",
+        "zip_checked"
+      ],
+      "implementation": "src/jte.mjs",
+      "reason": "Event preservation and explicit guarded positional alignment."
+    },
+    {
+      "layer": "compiler",
+      "family": "clock-state",
+      "names": [
+        "filter",
+        "scan",
+        "transduce"
+      ],
+      "implementation": "src/jte.mjs",
+      "reason": "Event masks, lazy seeds, simultaneous state and causal access."
+    },
+    {
+      "layer": "compiler",
+      "family": "observation-sinks",
+      "names": [
+        "count",
+        "fold",
+        "fold_until"
+      ],
+      "implementation": "src/jte.mjs",
+      "reason": "Structural demand, ordered reduction and stopping without visiting suffixes."
+    },
+    {
+      "layer": "compiler",
+      "family": "bounded-iteration",
+      "names": [
+        "iterate"
+      ],
+      "implementation": "src/jte.mjs",
+      "reason": "Explicit bounded loop; arbitrary source recursion remains rejected."
+    },
+    {
+      "layer": "compiler",
+      "family": "materialization",
+      "names": [
+        "sort_by"
+      ],
+      "implementation": "src/order-wasm.mjs",
+      "reason": "Strict finite barrier, new provenance, cached keys and disjoint scratch."
+    },
+    {
+      "layer": "compiler",
+      "family": "guard",
+      "names": [
+        "require"
+      ],
+      "implementation": "src/jte.mjs",
+      "reason": "Demand-aware guards on streams, records, values and callables."
+    },
+    {
+      "layer": "compiler",
+      "family": "graph-transform",
+      "names": [
+        "linearize",
+        "pullback",
+        "value_and_grad",
+        "stop_gradient"
+      ],
+      "implementation": "src/intrinsics.mjs",
+      "reason": "Graph and product-shape access; perturbation/activity and limit checks."
+    }
+  ],
+  "sourceLibraries": [
+    {
+      "path": "lib/reducers.ass",
+      "purpose": "Products/adaptors, means, any/all, threshold and stopping policies."
+    },
+    {
+      "path": "lib/windows.ass",
+      "purpose": "Complete overlapping read-only neighborhoods over checked views."
+    },
+    {
+      "path": "lib/patterns.ass",
+      "purpose": "Function, predicate, reader, lens and structural result/option composition."
+    }
+  ]
+}

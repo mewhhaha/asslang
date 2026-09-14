@@ -12,6 +12,7 @@ const usage = `Usage: node src/cli.mjs INPUT.ass [--lib HELPERS.ass ...] [-o OUT
   --pages N                       Fixed runtime capacity in 64-KiB pages (default: 16)
   --max-loop-iterations N          Aggregate per-export loop budget (0..2147483647)
   --explain                       Print ABI, types, observations, statistics and proof
+  --no-prelude                    Use only primitives and explicitly linked source
   --simd                          Enable ordered f64x2 maps and sums
   --no-reduction-fusion            Disable default demand-scoped reduction cohorts
   --experimental-reduction-fusion Legacy alias for enabling reduction cohorts`;
@@ -25,7 +26,7 @@ async function main() {
     if (jsonDiagnostics) throw new UsageError('--help cannot be combined with --diagnostics=json');
     console.log(usage); return;
   }
-  let input, output, run, jsonArgs, pages = 16, check = false, explain = false, experimentalReductionFusion, simd = false, maxLoopIterations;
+  let input, output, run, jsonArgs, pages = 16, check = false, explain = false, experimentalReductionFusion, simd = false, maxLoopIterations, prelude = true;
   const libraries = [];
   let diagnosticFlags = 0;
   function value(index, flag) {
@@ -54,6 +55,10 @@ async function main() {
         throw new UsageError('--diagnostics must be text or json');
     }
     else if (flag === '--explain') explain = true;
+    else if (flag === '--no-prelude') {
+      if (!prelude) throw new UsageError('--no-prelude may be specified only once');
+      prelude = false;
+    }
     else if (flag === '--simd') simd = true;
     else if (flag === '--no-reduction-fusion') {
       if (experimentalReductionFusion === true) throw new UsageError('Conflicting reduction fusion flags');
@@ -75,12 +80,12 @@ async function main() {
   if (!Number.isInteger(pages) || pages < 0 || pages > 32767) throw new UsageError('--pages must be an integer between 0 and 32767');
   for (const name of [...libraries, input]) files.push({ name, source: await readFile(name, 'utf8') });
   if (jsonDiagnostics) {
-    const report = checkSources(files, { experimentalReductionFusion, simd, maxLoopIterations });
+    const report = checkSources(files, { experimentalReductionFusion, simd, maxLoopIterations, prelude });
     console.log(JSON.stringify(report));
     process.exitCode = report.ok ? 0 : 1;
     return;
   }
-  const result = compileSources(files, { experimentalReductionFusion, simd, maxLoopIterations });
+  const result = compileSources(files, { experimentalReductionFusion, simd, maxLoopIterations, prelude });
   if (run) {
     const values = JSON.parse(jsonArgs ?? '[]');
     if (!Array.isArray(values)) throw new UsageError('--args must be a JSON array of export arguments');

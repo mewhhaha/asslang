@@ -15,6 +15,11 @@ The [repository README](../README.md) is the overview; this directory holds the 
 | [Example corpus](../examples/README.md) | Algorithms, unsupported fixtures and app-like case studies. |
 | [Validation and provenance](EVIDENCE.md) | Revision-specific checks, measurements and limitations. |
 
+## Compiler core and source libraries
+
+[Core and source prelude](CORE-AND-PRELUDE.md) audits every builtin, moves derived
+operations into ordinary source, and explains which semantic boundaries stay native.
+
 ## Language, runtime and compiler
 
 | Topic | Contract |
