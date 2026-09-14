@@ -1,0 +1,9 @@
+// Independent two-coordinate systems compose as a product, with no dense matrix.
+export fn product_solve = (rhs:{left:Num,right:Num}) -> do {
+  let scalar = scalar_vector ();
+  let vector = vector_product scalar scalar;
+  let twice = {apply:x -> 2*x, adjoint:x -> 2*x};
+  let three = {apply:x -> 3*x, adjoint:x -> 3*x};
+  let normal = operator_product twice three |> operator_normal;
+  cg_solve normal.apply vector rhs vector.zero {tolerance:1e-10,maxSteps:16}
+};

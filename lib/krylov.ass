@@ -1,0 +1,69 @@
+// Fixed-product vector arithmetic and bounded, unpreconditioned conjugate gradients.
+// Source dictionaries are not proofs of linearity, positivity or an inner product.
+fn krylov_finite = x -> x-x == 0;
+
+fn scalar_vector = () -> {
+  zero:0,
+  add:x -> y -> x+y,
+  sub:x -> y -> x-y,
+  scale:a -> x -> a*x,
+  dot:x -> y -> x*y,
+  finite:krylov_finite,
+};
+
+fn vector_product = left -> right -> {
+  zero:{left:left.zero, right:right.zero},
+  add:x -> y -> {left:left.add x.left y.left, right:right.add x.right y.right},
+  sub:x -> y -> {left:left.sub x.left y.left, right:right.sub x.right y.right},
+  scale:a -> x -> {left:left.scale a x.left, right:right.scale a x.right},
+  dot:x -> y -> left.dot x.left y.left + right.dot x.right y.right,
+  finite:x -> left.finite x.left && right.finite x.right,
+};
+
+fn cg_solve = apply -> vector -> rhs -> initial ->
+  (controls:{tolerance:Num,maxSteps:Num}) -> do {
+    let target = controls.tolerance*controls.tolerance;
+    let validControls = krylov_finite controls.tolerance && controls.tolerance>0
+      && krylov_finite target && target>0
+      && krylov_finite controls.maxSteps && controls.maxSteps>=0
+      && controls.maxSteps<=256 && controls.maxSteps == floor controls.maxSteps;
+    let residual = vector.sub rhs (apply initial);
+    let rr = vector.dot residual residual;
+    let validInputs = vector.finite rhs && vector.finite initial;
+    let start = {x:initial, r:residual, p:residual, rr, broken:false};
+    let limit = if rr<=target then 0 else controls.maxSteps;
+    let result = iterate start limit (s -> do {
+      let ap = apply s.p;
+      let curvature = vector.dot s.p ap;
+      let alpha = s.rr/curvature;
+      let x = vector.add s.x (vector.scale alpha s.p);
+      let r = vector.sub s.r (vector.scale alpha ap);
+      let nextRR = vector.dot r r;
+      let beta = nextRR/s.rr;
+      let p = vector.add r (vector.scale beta s.p);
+      // Left-to-right short circuit keeps invalid divisions/candidates undemanded.
+      let valid = krylov_finite curvature && curvature>0 && vector.finite ap
+        && krylov_finite alpha && vector.finite x && vector.finite r
+        && krylov_finite nextRR && nextRR>=0 && krylov_finite beta && vector.finite p;
+      {
+        state:if valid then {x,r,p,rr:nextRR,broken:false}
+          else {x:s.x,r:s.r,p:s.p,rr:s.rr,broken:true},
+        done: !valid || nextRR<=target,
+      }
+    });
+    let checkedResidual = vector.sub rhs (apply result.state.x);
+    let checkedRR = vector.dot checkedResidual checkedResidual;
+    // Complete the solve before short-circuiting over its checked residual.
+    // Besides checking the iteration invariant, this fixes the demand phase.
+    require (validControls && validInputs)
+    (require (krylov_finite rr && rr>=0 && vector.finite residual)
+    (require (result.steps <= controls.maxSteps)
+    (require (krylov_finite checkedRR && checkedRR>=0 && vector.finite checkedResidual) {
+      solution:result.state.x,
+      iterations:result.steps,
+      converged: !result.state.broken && checkedRR<=target,
+      breakdown:result.state.broken,
+      residualSquared:checkedRR,
+      recurrenceResidualSquared:result.state.rr,
+    })))
+  };

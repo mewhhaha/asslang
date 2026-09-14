@@ -2,6 +2,79 @@
 
 [Core boundary](CORE-AND-PRELUDE.md) · [Documentation](README.md)
 
+## Implemented: compose actions, not matrices
+
+Link `lib/operators.ass` and `lib/krylov.ass` explicitly. This program combines two
+independent operators, constructs their normal operator and solves its system:
+
+<!-- operator-example: product_solve -->
+```ass
+// Independent two-coordinate systems compose as a product, with no dense matrix.
+export fn product_solve = (rhs:{left:Num,right:Num}) -> do {
+  let scalar = scalar_vector ();
+  let vector = vector_product scalar scalar;
+  let twice = {apply:x -> 2*x, adjoint:x -> 2*x};
+  let three = {apply:x -> 3*x, adjoint:x -> 3*x};
+  let normal = operator_product twice three |> operator_normal;
+  cg_solve normal.apply vector rhs vector.zero {tolerance:1e-10,maxSteps:16}
+};
+```
+
+For rhs `{left:4,right:18}`, the solution is approximately `{left:1,right:2}`.
+The default fixture takes two iterations. This source needs no matrix type,
+Jacobian array, solver opcode or runtime operator object. Source protocols are
+ordinary records, and their mathematical laws are not compiler-issued evidence.
+
+The same action can be placed inside a block scan, then zipped with its source:
+
+<!-- operator-example: operator_blocks -->
+```ass
+// Captured source operators work inside local scans without changing their clocks.
+export fn operator_blocks = (samples:[Num]) -> (width:Num) -> do {
+  let twice = {apply:x -> 2*x, adjoint:x -> 2*x};
+  let normal = operator_normal twice;
+  let local = samples |> chunks width
+    |> map (block -> scan block 0 (total -> x -> total + normal.apply x))
+    |> flatten;
+  let history = zip samples local (sample -> total -> {local:total,correction:total-sample});
+  {local:map history (row -> row.local), correction:map history (row -> row.correction)}
+};
+```
+
+For `[1,2,3,4,5,6,7]` and width 3, local is `[4,12,24,16,36,60,28]` and correction
+is `[3,10,21,12,31,54,21]`. Default output fusion uses seven loop units and one
+loop site, with 112 final-array bytes and no intermediate buffer. Turning fusion
+off retains two traversals and fourteen units. Both output arrays own their data.
+
+Differentiation can supply the operator instead of writing its actions manually:
+
+```text
+let {value,linear} = operator_at predict point |> operator_chain residual;
+let system = operator_normal linear |> operator_shift vector damping;
+let rhs = vector.scale (-1) (linear.adjoint value);
+cg_solve system.apply vector rhs vector.zero {tolerance:1e-10,maxSteps:16}
+```
+
+The complete [calibration source](../examples/case-studies/operators/calibration-kernel.mjs)
+uses three read-only samples and solves a regularized linearized correction. The
+[driver](../examples/interop/source-operators.mjs) links the libraries, runs all
+three cases with exact loop/storage capacities, and checks one-less failures.
+The AD case is a named fragment because the corpus interpreter does not implement
+AD; separate derivative and browser tests execute it.
+
+```sh
+npm run example:source-operators
+npm run test:source-operators
+printf '[[1,2,3,4,5,6,7],3]' | node examples/case-studies/app.mjs operator-blocks
+npm run audit:core
+```
+
+All these libraries also work with `prelude:false`: the compiler primitive
+inventory stays at 30, with the same four standard source-prelude functions.
+The implementation includes two narrow core repairs exposed by this composition:
+identical-arm demand lowering and preservation of supplied derivative seed graphs.
+It is not a claim that the compiler was unchanged.
+
 ## Design before implementation
 
 Base: merged main `12754f5b69e297d9422205bd1205ff08b8ed142a`, tree
@@ -218,3 +291,23 @@ not tag them stop-gradient or erase nested differentiation. Apply this in forwar
 and reverse plan application. Do not change global substitution, chunk binder
 rewrites, effect nodes or source loop semantics. Tests must cover nested AD,
 effect identity, reduction/iteration seeds, exact allowances and nontrivial seeds.
+
+## Source demand phases in the solver
+
+Pure local bindings share a graph but are not eager sequencing statements. The
+solver uses explicit nested guards to validate inputs, compute the initial squared
+residual, finish the iteration, and compute the checked final squared residual in
+that order. Checking each norm before its component-wise finite predicate makes
+the action's scalar results available before short-circuiting over them. A test
+with a three-step reduction inside the action checks exactly ten total loop units:
+three initial-action steps, one iterate step, three search-direction steps and
+three final-action steps. There is no unmetered callback allowance.
+
+A nonfinite initial or recomputed final residual traps. A nonfinite trial or
+nonpositive curvature returns breakdown with the previous finite solution.
+`converged:false,breakdown:false` may mean a reached iteration limit or a stopped
+recurrence whose recomputed residual misses tolerance; inspect both residual fields.
+No undocumented restart or tolerance relaxation occurs.
+
+[Executed validation](SOURCE-OPERATORS-VALIDATION.md) records the exact comparisons,
+AD binary changes, browser results, work/storage counts and numerical limitations.

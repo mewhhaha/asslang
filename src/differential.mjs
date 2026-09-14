@@ -72,7 +72,10 @@ function prepareLinearization(f, point, api, at) {
       // for NaN, a constant derivative, or a primal-only range/bounds check.
       return select(scalar('==','Bool',[n,n]),d,d);
     });
-    return substitute(tangent,replacements);
+    // Seeds are caller values, outside this plan's private perturbation scope.
+    // Keep their existing reduction/iteration identities instead of cloning work.
+    const external = new Map([...replacements, ...seeds.map(n => [n.id, n])]);
+    return substitute(tangent,external);
   }
   return {value:substitute(value,replacements),pushforward};
 }

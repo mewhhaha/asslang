@@ -1,5 +1,14 @@
 // Canonical examples, language-pattern inspirations, and app-like fixtures.
 export const expandedCorpus = [
+  {id:'operator-product-solve',path:'case-studies/operators/product_solve.ass',name:'product_solve',
+    args:[{left:4,right:18}],expected:{breakdown:false,converged:true,iterations:2,
+      recurrenceResidualSquared:3.4820813394521224e-31,residualSquared:1.262177448353619e-29,
+      solution:{left:1,right:1.9999999999999998}},libraries:['../lib/operators.ass','../lib/krylov.ass'],
+    inspiration:'source product/normal operators and bounded matrix-free conjugate gradients',kind:'case-study'},
+  {id:'operator-blocks',path:'case-studies/operators/operator_blocks.ass',name:'operator_blocks',
+    args:[[1,2,3,4,5,6,7],3],expected:{local:[4,12,24,16,36,60,28],correction:[3,10,21,12,31,54,21]},
+    libraries:['../lib/operators.ass'],
+    inspiration:'a captured source operator inside chunk scans and aligned output fusion',kind:'case-study'},
   {id:'core-source-basis',path:'case-studies/core/block_energy.ass',name:'block_energy',
     args:[[1,2,3,4,5,6,7],3],expected:[14,77,49],
     inspiration:'ordinary source prelude atop checked block arrays',kind:'case-study'},

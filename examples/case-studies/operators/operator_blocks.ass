@@ -1,0 +1,10 @@
+// Captured source operators work inside local scans without changing their clocks.
+export fn operator_blocks = (samples:[Num]) -> (width:Num) -> do {
+  let twice = {apply:x -> 2*x, adjoint:x -> 2*x};
+  let normal = operator_normal twice;
+  let local = samples |> chunks width
+    |> map (block -> scan block 0 (total -> x -> total + normal.apply x))
+    |> flatten;
+  let history = zip samples local (sample -> total -> {local:total,correction:total-sample});
+  {local:map history (row -> row.local), correction:map history (row -> row.correction)}
+};

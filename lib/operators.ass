@@ -1,0 +1,37 @@
+// Source-only linear operator protocol. Shape checking does not prove linearity
+// or the adjoint law for arbitrary supplied dictionaries. See SOURCE-OPERATORS.md.
+fn operator_identity = () -> {apply:x -> x, adjoint:x -> x};
+
+fn operator_then = first -> second -> {
+  apply:direction -> second.apply (first.apply direction),
+  adjoint:weights -> first.adjoint (second.adjoint weights),
+};
+
+fn operator_transpose = op -> {apply:op.adjoint, adjoint:op.apply};
+
+fn operator_product = left -> right -> {
+  apply:pair -> {left:left.apply pair.left, right:right.apply pair.right},
+  adjoint:pair -> {left:left.adjoint pair.left, right:right.adjoint pair.right},
+};
+
+fn operator_normal = op -> operator_then op (operator_transpose op);
+
+fn operator_shift = op -> vector -> damping -> {
+  apply:direction -> require (damping-damping == 0)
+    (vector.add (op.apply direction) (vector.scale damping direction)),
+  adjoint:weights -> require (damping-damping == 0)
+    (vector.add (op.adjoint weights) (vector.scale damping weights)),
+};
+
+// Two existing graph transforms, not a new compiler intrinsic or runtime matrix.
+fn operator_at = f -> point -> do {
+  let forward = linearize f point;
+  let reverse = pullback f point;
+  {value:forward.value, linear:{apply:forward.pushforward, adjoint:reverse.pullback}}
+};
+
+// The next nonlinear stage is differentiated at the preceding stage's value.
+fn operator_chain = previous -> next -> do {
+  let following = operator_at next previous.value;
+  {value:following.value, linear:operator_then previous.linear following.linear}
+};
