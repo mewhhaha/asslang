@@ -121,3 +121,6 @@ bounded matrix-free solvers without new compiler primitives.
 then scan and resume its value/tangent state without a reverse tape.
 
 [Machine publication validation](CLOCKED-MACHINES-PUBLICATION.md) records the integration with operator-enabled main.
+
+[Old-state feedback](MACHINE-FEEDBACK.md) closes reusable source pipelines over their
+previous state, with error-feedback quantization and closed-loop sensitivities.

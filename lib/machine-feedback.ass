@@ -1,0 +1,8 @@
+// Close a body over an observation of its OLD state. No fixed point or buffer.
+// Body ports are {input,feedback}; the state and finish protocol stay unchanged.
+fn machine_feedback = body -> observe -> {
+  initial: body.initial,
+  step: state -> input ->
+    body.step state {input, feedback:observe state},
+  finish: body.finish,
+};

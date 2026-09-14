@@ -90,6 +90,8 @@
     "example:clocked-machines": "node examples/interop/clocked-machines.mjs",
     "test:clocked-machines": "node --test test/clocked-machines.test.mjs",
     "test:machine-differentials": "node --test test/machine-differentials.test.mjs",
-    "example:machine-sensitivity": "node examples/interop/machine-sensitivity.mjs"
+    "example:machine-sensitivity": "node examples/interop/machine-sensitivity.mjs",
+    "example:machine-feedback": "node examples/interop/machine-feedback.mjs",
+    "test:machine-feedback": "node --test test/machine-feedback.test.mjs"
   }
 }

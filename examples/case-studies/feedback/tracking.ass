@@ -1,0 +1,19 @@
+// A discrete numerical tracker, not a deployed control system.
+fn tracking_body = gain -> do {
+  let correction = {
+    initial:0,
+    step:previous -> ports -> gain*(ports.input-ports.feedback),
+    finish:x -> x,
+  };
+  correction |> machine_then (sum_reducer ())
+};
+
+export fn tracking = (targets:[Num]) -> (gain:Num) -> (saved:{left:Num,right:Num}) -> do {
+  let body = tracking_body gain;
+  let closed = machine_feedback body body.finish;
+  let history = machine_states_from targets closed saved;
+  {
+    values:history |> map closed.finish,
+    state:history |> fold saved (previous -> next -> next),
+  }
+};
