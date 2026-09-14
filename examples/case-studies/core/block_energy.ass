@@ -1,0 +1,4 @@
+// Source-prelude sum inside a source-defined block algorithm.
+fn energy = xs -> xs |> map (x -> x*x) |> sum;
+export fn block_energy = (samples:[Num]) -> (width:Num) ->
+  samples |> chunks width |> map energy;

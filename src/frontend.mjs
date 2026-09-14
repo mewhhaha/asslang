@@ -1,3 +1,4 @@
+import { createPrelude, preludeArities } from './prelude.mjs';
 import { symbolKey, displayRecordKey } from './record-keys.mjs';
 import { intrinsicArities, inferIntrinsic } from './intrinsics.mjs';
 import { createUnaryParser } from './unary.mjs';
@@ -291,12 +292,16 @@ export function showType(type, curried = false) {
   return show(type);
 }
 
-export const builtinArities = Object.freeze({ ...intrinsicArities, range: 1, map: 2, filter: 2, sort_by: 2, split_at: 2, concat: 2, chunks: 2, flatten: 1, scan: 3,
-  transduce: 3, iterate: 3, zip: 3, zip_checked: 3, sum: 1, count: 1, fold: 3,
+export const primitiveArities = Object.freeze({ ...intrinsicArities, range: 1, map: 2, filter: 2, sort_by: 2, split_at: 2, concat: 2, chunks: 2, flatten: 1, scan: 3,
+  transduce: 3, iterate: 3, zip: 3, zip_checked: 3, count: 1, fold: 3,
   fold_until: 3, sqrt: 1, abs: 1, min: 2, max: 2, floor: 1, at: 2,
   byte_length: 1, utf8: 1, byte_values: 1, require: 2 });
+// Default public names remain compatible; four are ordinary source definitions.
+export const builtinArities = Object.freeze({ ...primitiveArities, ...preludeArities });
 export const builtinNames = Object.keys(builtinArities);
-export function infer(program) {
+export function infer(program, { prelude: usePrelude = true } = {}) {
+  const sourcePrelude = createPrelude(parse, usePrelude, program.nodeCount, fail);
+  const reservedNames = usePrelude ? builtinNames : Object.keys(primitiveArities);
   let next = 0, constraints = 0;
   const variable = () => ({ tag: 'Var', id: next++ });
   const schemes = new Map(), active = new Set();
@@ -410,7 +415,6 @@ export function infer(program) {
       case 'concat': return fn([stream(a), stream(a)], stream(a));
       case 'sort_by': constrainKey(b, at); return fn([stream(a), fn([a], b)], stream(a));
       case 'zip': case 'zip_checked': return fn([stream(a), stream(b), fn([a, b], c)], stream(c));
-      case 'sum': return fn([stream(Num)], Num);
       case 'count': return fn([stream(a)], Num);
       case 'fold': return fn([stream(a), b, fn([b, a], b)], b);
       case 'fold_until': return fn([stream(a), b, fn([b, a], {tag:'Record',
@@ -443,7 +447,7 @@ export function infer(program) {
   function definition(name, at) {
     if (schemes.has(name)) return schemes.get(name);
     if (active.has(name)) fail(`Recursion through '${name}' is not supported in the kernel prototype`, at, 'E_RECURSION');
-    const d = definitions.get(name);
+    const d = definitions.get(name) ?? sourcePrelude.definition(name, at);
     if (!d) fail(`Unknown name '${name}'`, at, 'E_NAME');
     active.add(name);
     const env = new Map(), args = d.params.map(() => variable());
@@ -527,9 +531,9 @@ export function infer(program) {
     return type;
   }
   for (const d of program.definitions) {
-    if (builtinNames.includes(d.name) || hosts.has(d.name) || d.name === 'memory') fail(`Reserved function name '${d.name}'`, d, 'E_NAME');
+    if (reservedNames.includes(d.name) || hosts.has(d.name) || d.name === 'memory') fail(`Reserved function name '${d.name}'`, d, 'E_NAME');
   }
-  for (const h of hosts.values()) if (builtinNames.includes(h.name) || h.name === 'memory') fail('Reserved host name',h,'E_NAME');
+  for (const h of hosts.values()) if (reservedNames.includes(h.name) || h.name === 'memory') fail('Reserved host name',h,'E_NAME');
   for (const d of program.definitions) definition(d.name, d);
   const exportedVariables = new Set(program.definitions.filter(d => d.exported)
     .flatMap(d => [...free(schemes.get(d.name).type)]));
@@ -553,5 +557,6 @@ export function infer(program) {
       validateKey(value, at, state, depth+1);
   }
   for (const [type, at] of keyConstraints) validateKey(type, at);
-  return { schemes, constraints, variables: next, signatures: Object.fromEntries([...schemes].map(([k, s]) => [k, showType(s.type, definitions.get(k)?.syntax === 'unary')])) };
+  return { schemes, constraints, variables: next, preludeDefinitions: [...sourcePrelude.definitions.values()],
+    preludeSyntaxNodes: sourcePrelude.syntaxNodes, signatures: Object.fromEntries([...schemes].filter(([k]) => definitions.has(k)).map(([k, s]) => [k, showType(s.type, definitions.get(k)?.syntax === 'unary')])) };
 }

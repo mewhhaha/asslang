@@ -16,6 +16,7 @@ checks and regression runs for this change.
 
 | Area | Executed validation |
 | --- | --- |
+| Source prelude and compiler basis | [Core extraction, compatibility and counterexamples](CORE-AND-PRELUDE-VALIDATION.md). |
 | Arithmetic chunk covers | [Block programs without nested-array buffers](CHUNK-VIEWS-VALIDATION.md). |
 | Cut-cover array views | [No-buffer composition and recovered alignment](ARRAY-VIEWS-VALIDATION.md). |
 | Tuple ordering keys | [Native lexicographic priorities](LEXICOGRAPHIC-KEYS-VALIDATION.md). |

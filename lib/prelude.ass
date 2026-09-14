@@ -1,0 +1,12 @@
+// Compiler-shipped source, using the same language as user libraries.
+// Available by default; link explicitly only with prelude:false / --no-prelude.
+fn sum = xs -> fold xs 0 (total -> value -> total+value);
+fn grad = f -> point -> (value_and_grad f point).gradient;
+fn jvp = f -> point -> direction -> do {
+  let plan = linearize f point;
+  {value:plan.value, tangent:plan.pushforward direction}
+};
+fn vjp = f -> point -> weights -> do {
+  let plan = pullback f point;
+  {value:plan.value, cotangent:plan.pullback weights}
+};

@@ -20,6 +20,7 @@ function validateOptions(options) {
   }
   if (options.maxLoopIterations !== undefined && (!Number.isInteger(options.maxLoopIterations) || options.maxLoopIterations < 0 || options.maxLoopIterations > 2147483647))
     throw new TypeError('maxLoopIterations must be an integer between 0 and 2147483647');
+  if (options.prelude !== undefined && typeof options.prelude !== 'boolean') throw new TypeError('prelude must be a boolean');
   if (options.memoizeReductions !== undefined && typeof options.memoizeReductions !== 'boolean') throw new TypeError('memoizeReductions must be a boolean');
   if (options.simd !== undefined && typeof options.simd !== 'boolean') throw new TypeError('simd must be a boolean');
   if (options.reductionFusion !== undefined && typeof options.reductionFusion !== 'boolean') throw new TypeError('reductionFusion must be a boolean');
@@ -30,7 +31,7 @@ function validateOptions(options) {
 /** Compile source to a standalone Wasm kernel module and an erased JTE ledger.
  * The compiler itself is JavaScript and is NOT allocation-free.
  * @param {string} source
- * @param {{maxExpansion?: number, memoizeReductions?: boolean, experimentalReductionFusion?: boolean, reductionFusion?: boolean, simd?: boolean, maxLoopIterations?: number}} options
+ * @param {{maxExpansion?: number, prelude?: boolean, memoizeReductions?: boolean, experimentalReductionFusion?: boolean, reductionFusion?: boolean, simd?: boolean, maxLoopIterations?: number}} options
  */
 export function compile(source, options = {}) {
   validateOptions(options);
@@ -40,7 +41,7 @@ export function compile(source, options = {}) {
   try {
     const program = parse(source); const parsed = now();
     phase = 'infer';
-    const inferred = infer(program); const checked = now();
+    const inferred = infer(program, options); const checked = now();
     phase = 'stage';
     const staged = stage(program, inferred, options); const normalized = now();
     phase = 'emit';
@@ -60,6 +61,8 @@ export function compile(source, options = {}) {
       certificate: staged.certificate,
       stats: {
         sourceCharacters: source.length, syntaxNodes: program.nodeCount,
+        sourcePrelude: { enabled: options.prelude !== false,
+          functions: inferred.preludeDefinitions.map(d => d.name).sort(), syntaxNodes: inferred.preludeSyntaxNodes },
         inferenceConstraints: inferred.constraints, scalarNodes: staged.nodes,
         stagingWork: staged.work, proofSteps: staged.certificate.steps.length,
         staticZips: staged.staticZips, stagedCheckedZips: staged.checkedZips,
@@ -188,6 +191,7 @@ export function createCompiler({ maxEntries = 16, maxBytes = 8 * 1024 * 1024 } =
     if (typeof source !== 'string') throw new TypeError('Source must be a string');
     const started = performance.now();
     const normalized = {
+      prelude: options.prelude ?? true,
       maxExpansion: options.maxExpansion ?? 100_000,
       memoizeReductions: options.memoizeReductions ?? true,
       reductionFusion: options.reductionFusion ?? options.experimentalReductionFusion ?? true,

@@ -1,5 +1,8 @@
 // Canonical examples, language-pattern inspirations, and app-like fixtures.
 export const expandedCorpus = [
+  {id:'core-source-basis',path:'case-studies/core/block_energy.ass',name:'block_energy',
+    args:[[1,2,3,4,5,6,7],3],expected:[14,77,49],
+    inspiration:'ordinary source prelude atop checked block arrays',kind:'case-study'},
   {id:'chunk-report',path:'case-studies/chunk-scans/block_report.ass',name:'block_report',
     args:[[1,2,3,4,5,6,7],3],expected:{local:[1,3,6,4,9,15,7],totals:[1,3,6,10,15,21,28],state:{local:7,total:28}},
     inspiration:'symbolic blocks, local resets, restored zip alignment and a continuing global scan',kind:'case-study'},

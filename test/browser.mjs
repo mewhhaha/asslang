@@ -1,3 +1,4 @@
+import { runCorePreludeBrowserChecks } from './core-prelude-browser.mjs';
 import { runChunkCompositionBrowserChecks } from './chunk-composition-browser.mjs';
 import { runChunkViewBrowserChecks } from './chunk-views-browser.mjs';
 import { runArrayViewBrowserChecks } from './array-views-browser.mjs';
@@ -316,6 +317,7 @@ try {
   await runArrayViewBrowserChecks({compile,check},createRuntime,report);
   await runChunkViewBrowserChecks({compile,check},createRuntime,report);
   await runChunkCompositionBrowserChecks({compile,check},createRuntime,report);
+  await runCorePreludeBrowserChecks({compile,compileSources,check,createCompiler},createRuntime,report);
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {

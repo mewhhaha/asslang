@@ -28,6 +28,15 @@ second source-level argument convention. A tuple or record is one product value,
 not a comma-separated call argument list. Pattern lowering must bind the input
 once, keep lexical scope, and reject duplicate bindings.
 
+## Source prelude
+
+`lib/prelude.ass` defines sum, grad, jvp and vjp in ordinary Asslang. A deterministic
+checked-in text snapshot lets the same synchronous compiler run in Node and a
+browser without reading files. Default inference loads those definitions only
+when needed; `prelude:false` disables them and permits explicit source linkage.
+There are no staging handlers for these four names. See [the core audit](CORE-AND-PRELUDE.md)
+for namespace, source-location, resource and compatibility rules.
+
 ## Static abstractions, dynamic scalar work
 
 `src/jte.mjs` interprets statically known functions into a scalar graph and stream

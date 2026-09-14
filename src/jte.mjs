@@ -1,10 +1,11 @@
+import { relocatePrelude } from './prelude.mjs';
 import { createChunkViews } from './chunk-views.mjs';
 import { createArrayViews } from './array-views.mjs';
 import { collectOrderings, orderingKeyLeaves } from './ordering.mjs';
 import { isSymbolKey, displayRecordKey } from './record-keys.mjs';
 import { intrinsicArities, stageIntrinsic } from './intrinsics.mjs';
 import { flatTypes, isScalarSchema } from './abi-schema.mjs';
-import { fail, prune, showType, builtinArities } from './frontend.mjs';
+import { fail, prune, showType, primitiveArities } from './frontend.mjs';
 
 // JTE v0 encodes relational observations of values, not sizes in ordinary types.
 // A domain identifies an ordered sequence of iteration events. A positional
@@ -123,6 +124,7 @@ export function schemaOfType(type, at, depth=0, budget={count:0}) {
 
 export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
   const definitions = new Map(program.definitions.map(d => [d.name, d]));
+  const preludeDefinitions = new Map((inferred.preludeDefinitions ?? []).map(d => [d.name,d]));
   const steps = [], kernels = [], nodes = [], intern = new Map();
   let work = 0, staticZips = 0, checkedZips = 0;
   let activeIndices = new Set();
@@ -309,11 +311,14 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
       const local = new Map(callee.env), count = Math.min(callee.params.length, args.length);
       for (let i = 0; i < count; i++) local.set(callee.params[i], args[i]);
       if (count < callee.params.length) return { ...callee, params: callee.params.slice(count), env: local };
-      const result = expression(callee.body, local);
+      // Relocate only shipped helper syntax at saturation; caller functions keep
+      // their own locations. A partial application retains its source identity.
+      const body = callee.sourcePrelude ? relocatePrelude(callee.body, at.pos) : callee.body;
+      const result = expression(body, local);
       return count < args.length ? invoke(result, args.slice(count), at) : result;
     }
     if (callee.kind !== 'builtin') fail('Only statically known functions can be called', at, 'E_LOWER');
-    const name = callee.name, arity = builtinArities[name];
+    const name = callee.name, arity = primitiveArities[name];
     if (arity === undefined) fail(`Unknown builtin '${name}'`, at, 'E_NAME');
     args = [...(callee.args ?? []), ...args];
     if (args.length < arity) return { ...callee, args };
@@ -456,7 +461,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
         ['done', scalar('reduce_field', 'Bool', [group], body.length + 1)],
       ]) };
     }
-    if (['sum', 'count', 'fold'].includes(name)) {
+    if (['count', 'fold'].includes(name)) {
       if (name==='fold' && args[1].kind==='record') {
         const initial=leaves(args[1],at), acc=initial.map(v=>scalar('acc',v.type,[],null,true));
         let cursor=0; const accumulator=shape(args[1],()=>acc[cursor++]);
@@ -469,7 +474,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
       const initial = name === 'fold' ? requireScalar(args[1], at) : num(0);
       const acc = scalar('acc', initial.type, [], null, true);
       const body = name === 'fold' ? requireScalar(iteration([input],()=>invoke(args[2], [acc, input.item], at)), at) :
-        scalar('+', 'Num', [acc, name === 'count' ? num(1) : input.item]);
+        scalar('+', 'Num', [acc, num(1)]);
       const result = scalar('reduce', initial.type, [], null, true);
       result.stream = input; result.initial = initial; result.acc = acc; result.body = body;
       record('reduce',[input]); return result;
@@ -489,8 +494,9 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
       case 'boolean': return boolean(ast.value);
       case 'name': {
         if (env.has(ast.name)) return env.get(ast.name);
-        const d = definitions.get(ast.name);
-        return d ? { kind: 'closure', params: d.params, body: d.body, env: new Map() } : { kind: 'builtin', name: ast.name };
+        const d = definitions.get(ast.name) ?? preludeDefinitions.get(ast.name);
+        return d ? { kind: 'closure', params: d.params, body: d.body, env: new Map(),
+          ...(preludeDefinitions.has(ast.name) ? {sourcePrelude:true} : {}) } : { kind: 'builtin', name: ast.name };
       }
       case 'lambda': return { kind: 'closure', params: ast.params, body: ast.body, env: new Map(env) };
       case 'call': return invoke(expression(ast.callee, env), ast.args.map(a => expression(a, env)), ast);
