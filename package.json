@@ -76,6 +76,9 @@
     "test:chunk-views": "node --test test/chunk-views.test.mjs",
     "example:chunk-views": "node examples/interop/chunk-views.mjs",
     "test:chunk-composition": "node --test test/chunk-composition.test.mjs",
-    "example:chunk-composition": "node examples/interop/chunk-composition.mjs"
+    "example:chunk-composition": "node examples/interop/chunk-composition.mjs",
+    "test:window-maps": "node --test test/window-maps.test.mjs",
+    "example:window-maps": "node examples/interop/window-maps.mjs",
+    "test:window-chunk-integration": "node --test test/window-chunk-integration.test.mjs"
   }
 }
