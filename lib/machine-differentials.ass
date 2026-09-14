@@ -1,0 +1,9 @@
+// Optional source adapter. Uses the prelude's jvp; no stream AD intrinsic.
+fn machine_jvp = machine -> initial_tangent -> {
+  initial: {value:machine.initial, tangent:initial_tangent},
+  step: state -> input ->
+    jvp (p -> machine.step p.state p.input)
+      {state:state.value, input:input.value}
+      {state:state.tangent, input:input.tangent},
+  finish: state -> jvp machine.finish state.value state.tangent,
+};

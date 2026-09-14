@@ -86,6 +86,10 @@
     "test:core-prelude": "node --test test/core-prelude.test.mjs",
     "example:core-prelude": "node examples/interop/core-prelude.mjs",
     "test:source-operators": "node --test test/source-operators.test.mjs test/operator-sharing.test.mjs",
-    "example:source-operators": "node examples/interop/source-operators.mjs"
+    "example:source-operators": "node examples/interop/source-operators.mjs",
+    "example:clocked-machines": "node examples/interop/clocked-machines.mjs",
+    "test:clocked-machines": "node --test test/clocked-machines.test.mjs",
+    "test:machine-differentials": "node --test test/machine-differentials.test.mjs",
+    "example:machine-sensitivity": "node examples/interop/machine-sensitivity.mjs"
   }
 }

@@ -47,3 +47,44 @@ Nested work can still prevent output fusion; checkpoint descriptors, input array
 requested traces, and host/compiler allocations are not zero memory. Existing
 expansion, loop, effect and ABI limits continue to apply. Source dictionaries
 carry ordinary values, not compiler-verified algebraic laws or authentication.
+
+## Executed publication checks
+
+September 14, 2026; Node v22.16.0, Linux x64, Chromium 144.0.7559.96.
+The CI archive for PR #38 reconstructed current main's tree exactly. Applying
+the prepared source change produced five additive conflicts: docs/EVIDENCE.md,
+docs/README.md, examples/expanded-corpus.mjs, package.json, and test/browser.mjs.
+Both sides' registrations were retained. Source libraries, examples, and tests
+from the prepared machine package are unchanged. All 33 current-main compiler
+modules, the root README, existing operator files and workflows are unchanged.
+
+| Completed check | Result |
+| --- | --- |
+| Full `npm test` on integrated source | 1,651 passed; no failures/skips |
+| Machine, sensitivity and operator focused suites | 99 passed (33 + 19 + 47) |
+| Documentation suite | 26 passed |
+| Chromium engine | 2,217 core + 276 experiment checks passed |
+| Actual current-main compatibility | 115 ASTs; 920 binaries, ABI objects and certificates identical |
+| Core audit / prelude snapshot | Passed; 30 primitives and 4 source-prelude names |
+| Required host/reducer and machine/sensitivity/operator drivers | Passed |
+
+These fresh results supersede neither feature's historical report: they validate
+the combined source at this publication. In particular, the original machine
+report's 1,600 tests and 2,145 browser checks are original-base results only.
+The sensitivity driver now emits 3,865 bytes for the full report and 2,887 bytes
+for checkpoint-only output, rather than the old-base 4,064 / 3,081 bytes. The full
+report uses 344 local-value bytes. Both variants retain one loop, four recurrence
+slots and a four-unit allowance. These changed byte counts come from retained
+PR #38 compiler fixes, not compiler modifications by the machine library PR.
+The checkpoint-only descriptor is 32 bytes; it needs zero output-array bytes.
+No timing improvement or machine-checked proof follows from these measurements.
+
+The published commit and remote CI status are recorded in the PR discussion.
+No main ref update, merge, or force push is part of publication. Exact-tree
+verification guards against upload transcription differences; the source tested
+locally is the source intended for publication. The historical machine report's
+HTTP-policy failure is not a current HTTP success, and engine tests alone do not
+validate HTTP/worker loading or other browser engines.
+
+The fresh HTTP browser attempt also failed with
+`net::ERR_BLOCKED_BY_ADMINISTRATOR`. No policy was changed or bypassed.

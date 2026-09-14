@@ -1,0 +1,8 @@
+// Both stages reset together at each symbolic block boundary.
+export fn block_cascade = (samples:[Num]) -> (width:Num) -> do {
+  let cascade = sum_reducer () |> machine_then (sum_reducer ());
+  samples
+  |> chunks width
+  |> map (block -> block |> scan_with cascade)
+  |> flatten
+};

@@ -1,0 +1,29 @@
+// The validity bit gates the update, NOT the output clock.
+fn held_total = project -> enabled -> {
+  initial: 0,
+  step: total -> value -> do {
+    let next = total+value;
+    require (value-value == 0 && next-next == 0) next
+  },
+  finish: total -> total,
+}
+  |> reducer_map_input project
+  |> reducer_filter enabled;
+
+export fn held_channels = (left:[Num]) -> (leftValid:[Bool]) ->
+  (right:[Num]) -> (rightValid:[Bool]) -> do {
+    let rows =
+      zip_checked left leftValid (value -> valid -> {value, valid})
+      |> zip_checked (zip_checked right rightValid (value -> valid -> {value, valid}))
+        (left -> right -> {left, right});
+    let machine = reducer_product
+      (held_total (row -> row.left.value) (row -> row.left.valid))
+      (held_total (row -> row.right.value) (row -> row.right.valid));
+    let history = rows |> machine_states machine;
+
+    {
+      left: history |> map (state -> state.left),
+      right: history |> map (state -> state.right),
+      state: history |> fold machine.initial (previous -> next -> next),
+    }
+};
