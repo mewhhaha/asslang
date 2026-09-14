@@ -1,5 +1,9 @@
 # Chunk programs without chunk buffers
 
+> [Scan integration](CHUNK-SCAN-INTEGRATION.md) extends the original contract below:
+> complete local scans can now flatten with boundary resets. Structural preflight
+> and rejection of per-item reductions remain unchanged.
+
 [Array views](ARRAY-VIEWS.md) · [Vertical composition](VERTICAL-COMPOSITION.md)
 
 ## Run the examples

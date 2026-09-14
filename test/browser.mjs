@@ -1,3 +1,4 @@
+import { runChunkCompositionBrowserChecks } from './chunk-composition-browser.mjs';
 import { runChunkViewBrowserChecks } from './chunk-views-browser.mjs';
 import { runArrayViewBrowserChecks } from './array-views-browser.mjs';
 import { runLexicographicKeyBrowserChecks } from './lexicographic-keys-browser.mjs';
@@ -314,6 +315,7 @@ try {
   await runLexicographicKeyBrowserChecks({compile},createRuntime,report);
   await runArrayViewBrowserChecks({compile,check},createRuntime,report);
   await runChunkViewBrowserChecks({compile,check},createRuntime,report);
+  await runChunkCompositionBrowserChecks({compile,check},createRuntime,report);
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {

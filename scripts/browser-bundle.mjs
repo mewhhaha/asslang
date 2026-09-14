@@ -6,6 +6,7 @@ export async function browserBundle({ benchmark = false } = {}) {
   const read=async path=>(await readFile(new URL('../'+path,import.meta.url),'utf8'))
     .replace(/^import .*?;\n/gm,'').replace(/^export \{.*?;\n/gm,'').replace(/^export /gm,'');
   const specs=[
+    ['chunkScanChecks','test/chunk-composition-browser.mjs','','runChunkCompositionBrowserChecks'],
     ['recordKeys','src/record-keys.mjs','','symbolKey,isSymbolKey,displayRecordKey'],
     ['abiSchema','src/abi-schema.mjs','','ABI_VERSION,SCRATCH_ABI_VERSION,alignTo,layout,flatTypes,isScalarSchema'],
     ['diagnostics','src/diagnostics.mjs','','diagnosticFromError,formatDiagnostic'],
@@ -79,6 +80,7 @@ export async function browserBundle({ benchmark = false } = {}) {
     code+=`const report=await modules.benchmark.runBenchmarks({loadSource:async path=>globalThis.asslangSources[path],compileSamples:15,samples:11});report.environment={engine:navigator.userAgent};return report;`;
   } else {
     code+='const {runChunkViewBrowserChecks}=modules.chunkChecks;const {runArrayViewBrowserChecks}=modules.arrayViewChecks;const {runLexicographicKeyBrowserChecks}=modules.lexicographicChecks;const {runNativeOrderingBrowserChecks}=modules.nativeOrderingChecks;const {runPartitionOrderBrowserChecks}=modules.partitionChecks;const {runLocalPatternBrowserChecks}=modules.localPatternChecks;const {runCalibrationCoordinatesBrowserChecks}=modules.calibrationChecks;const {runOutputFusionBrowserChecks}=modules.outputChecks;const {runWorkflowBrowserChecks}=modules.workflowChecks;const {unaryCases}=modules.unaryCases;const {createEvidenceAlgebra,compile,compileSources,check,checkSources,formatDiagnostic,createCompiler,instantiate,supportsSIMD,planReconstruction,reconstructionSource,planDescentExtension,descentCountermodel,descentExtensionSource,planDescentQuery,verifyDescentQuery,verifyDescentQueryCost,descentQuerySource,planDescentBatch,verifyDescentBatch,descentBatchSource}=modules.compiler;const {runEvidencePresentationBrowserChecks}=modules.presentationChecks;const {runEvidenceTransportBrowserChecks}=modules.transportChecks;const {runEvidenceRefinementBrowserChecks}=modules.refinementChecks;const {runEvidenceInterfaceBrowserChecks}=modules.interfaceChecks;const {runDescentBatchBrowserChecks}=modules.batchChecks;const {runDescentQueryBrowserChecks}=modules.queryChecks;const {runDescentExtensionBrowserChecks}=modules.extensionChecks;const {diagnosticCases}=modules.diagnosticCases;const {selectDiagnostic}=modules.navigation;const {createRuntime,createCapability}=modules.abi;const {reference}=modules.reference;const {corpus,unsupportedCorpus,exampleSource}=modules.corpus;\n';
+    code+='const {runChunkCompositionBrowserChecks}=modules.chunkScanChecks;';
     code+='document.body.innerHTML="<pre id=report></pre>";document.body.dataset.result="pending";globalThis.asslangEngineOnly=true;\n';
     code+=await read('test/browser.mjs');
     code+='\nawait modules.descentChecks.runDescentBrowserChecks(modules.compiler,modules.abi.createRuntime,report);\ndocument.querySelector("#report").textContent=JSON.stringify(report,null,2);\n';

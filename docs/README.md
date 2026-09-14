@@ -95,3 +95,6 @@ implementation, then reconcile the documents with actual tests. See the
 revisions. Old benchmark files and `history/` are historical evidence, not current
 performance promises. A mathematical derivation and finite test suite do not
 establish worldwide novelty or substitute for a proof-assistant check.
+
+[Chunk scan integration](CHUNK-SCAN-INTEGRATION.md) extends arithmetic families
+with buffer-free local scan flattening, while preserving existing guard/work policies.
