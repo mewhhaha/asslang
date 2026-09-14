@@ -1,0 +1,42 @@
+// Real-arithmetic residual bound is not an arbitrary-f64 accuracy guarantee.
+fn feedback_finite = x -> x-x == 0;
+fn error_quantizer = unit -> do {
+  let correct = {
+    initial:0,
+    step:previous -> ports -> do {
+      let value = ports.input+ports.feedback;
+      require (feedback_finite ports.input && feedback_finite value) value
+    },
+    finish:x -> x,
+  };
+  let round = {
+    initial:0,
+    step:previous -> value -> do {
+      let rounded = unit*floor (value/unit+0.5);
+      require (feedback_finite rounded) rounded
+    },
+    finish:x -> x,
+  };
+  let circuit = correct |> machine_then round;
+  machine_feedback circuit (state -> state.left-state.right)
+};
+
+// The saved pair is the previous corrected value and previous quantized value.
+export fn quantize = (samples:[Num]) -> (unit:Num) -> (saved:{left:Num,right:Num}) -> do {
+  let machine = error_quantizer unit;
+  let history = machine_states_from samples machine saved;
+  require (unit>0 && feedback_finite unit && feedback_finite saved.left
+    && feedback_finite saved.right && feedback_finite (saved.left-saved.right)) {
+    values:history |> map machine.finish,
+    state:history |> fold saved (previous -> next -> next),
+  }
+};
+
+// Independent blocks intentionally restart error feedback; no block arrays exist.
+export fn quantize_blocks = (samples:[Num]) -> (unit:Num) -> (width:Num) ->
+  require (unit>0 && feedback_finite unit) (
+    samples
+    |> chunks width
+    |> map (block -> block |> scan_with (error_quantizer unit))
+    |> flatten
+  );

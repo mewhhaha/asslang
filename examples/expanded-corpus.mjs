@@ -1,5 +1,17 @@
 // Canonical examples, language-pattern inspirations, and app-like fixtures.
 export const expandedCorpus = [
+  {id:'feedback-quantize',path:'case-studies/feedback/quantize.ass',name:'quantize',
+    libraries:['../lib/reducers.ass','../lib/machines.ass','../lib/machine-feedback.ass'],
+    args:[Array(8).fill(0.25),1,{left:0,right:0}],expected:{values:[0,1,0,0,0,1,0,0],state:{left:0,right:0}},
+    inspiration:'old-state error feedback retains small contributions with two scalar states',kind:'case-study'},
+  {id:'feedback-blocks',path:'case-studies/feedback/quantize.ass',name:'quantize_blocks',
+    libraries:['../lib/reducers.ass','../lib/machines.ass','../lib/machine-feedback.ass'],
+    args:[Array(8).fill(0.25),1,3],expected:[0,1,0,0,1,0,0,1],
+    inspiration:'reset a composed feedback circuit per block without segment storage',kind:'case-study'},
+  {id:'feedback-tracking',path:'case-studies/feedback/tracking.ass',name:'tracking',
+    libraries:['../lib/reducers.ass','../lib/machines.ass','../lib/machine-feedback.ass'],
+    args:[[1,1,1,1],0.5,{left:0,right:0}],expected:{values:[0.5,0.75,0.875,0.9375],state:{left:0.0625,right:0.9375}},
+    inspiration:'close a reusable numerical pipeline over its previous output',kind:'case-study'},
   {id:'operator-product-solve',path:'case-studies/operators/product_solve.ass',name:'product_solve',
     args:[{left:4,right:18}],expected:{breakdown:false,converged:true,iterations:2,
       recurrenceResidualSquared:3.4820813394521224e-31,residualSquared:1.262177448353619e-29,

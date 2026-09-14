@@ -1,3 +1,4 @@
+import {runMachineFeedbackBrowserChecks} from './machine-feedback-browser.mjs';
 import { runSourceOperatorBrowserChecks } from './source-operators-browser.mjs';
 import { runMachineSensitivityBrowserChecks } from './machine-differentials-browser.mjs';
 import { runClockedMachineBrowserChecks } from './clocked-machines-browser.mjs';
@@ -333,6 +334,13 @@ try {
     name: name+'.ass', source: globalThis.asslangSources?.['../lib/'+name+'.ass'] ?? await (await fetch('../lib/'+name+'.ass')).text(),
   })));
   await runMachineSensitivityBrowserChecks({compileSources},createRuntime,report,sensitivityLibraries);
+  const feedbackLibraries=await Promise.all(['reducers','machines','machine-feedback'].map(async name=>({
+    name:name+'.ass',source:globalThis.asslangSources?.['../lib/'+name+'.ass'] ?? await (await fetch('../lib/'+name+'.ass')).text(),
+  })));
+  const feedbackFile=async name=>({name:name+'.ass',source:globalThis.asslangSources?.['case-studies/feedback/'+name+'.ass']
+    ?? await (await fetch('../examples/case-studies/feedback/'+name+'.ass')).text()});
+  await runMachineFeedbackBrowserChecks({compileSources},createRuntime,report,feedbackLibraries,
+    await feedbackFile('quantize'),await feedbackFile('tracking'),sensitivityLibraries.find(f=>f.name==='machine-differentials.ass'));
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {

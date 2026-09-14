@@ -153,6 +153,10 @@
     {
       "path": "lib/machine-differentials.ass",
       "purpose": "Forward sensitivity lift of a numeric machine step through source JVP; scanning the augmented state needs no compiler scan derivative or tape."
+    },
+    {
+      "path": "lib/machine-feedback.ass",
+      "purpose": "Old-state feedback closure using the unchanged machine protocol; no added state or primitive."
     }
   ]
 }
