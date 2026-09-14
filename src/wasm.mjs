@@ -249,6 +249,12 @@ function lowerKernel(kernel, { memoizeReductions = true, experimentalReductionFu
       emit(node.op === 'index_add' ? 0x6a : node.op === 'index_sub' ? 0x6b : node.op === 'index_eq' ? 0x46 : 0x49);
     } else if (node.op === 'const') {
       node.type === 'Num' ? f64(node.data) : i32(node.data);
+    } else if (node.op === 'if' && a[1] === a[2]) {
+      // AD uses identical arms to retain primal demand. Evaluate the condition,
+      // but emit the shared arm once: expanding both recursively multiplies code.
+      // Node identity is essential; do not guess equivalence or drop the guard.
+      loadRegion(a[0], ctx); emit(0x1a);
+      loadRegion(a[1], ctx);
     } else if (node.op === 'if' || node.op === '&&' || node.op === '||') {
       loadRegion(a[0], ctx); emit(0x04, wasmType(node.type));
       const yes = copyContext(ctx), no = copyContext(ctx);

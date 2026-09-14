@@ -108,3 +108,6 @@ with buffer-free local scan flattening, while preserving existing guard/work pol
 correlation and local summaries without a window matrix or a new compiler primitive.
 [Window/chunk integration](WINDOW-CHUNK-INTEGRATION.md) records their combined
 contracts, regression checks, and reconciliation after the chunk-scan merge.
+
+[Source operator algebra](SOURCE-OPERATORS.md) composes derivatives, adjoints and
+bounded matrix-free solvers without new compiler primitives.

@@ -139,7 +139,9 @@ export function reusablePullback(f, point, api, at) {
     // reports graph errors at its own source location; later calls reuse facts.
     plan??=analyzeReverse(roots,outputs,api,callAt);
     const cotangent=accumulateReverse(point,seeds,roots,outputs,plan,api);
-    return api.substitute(cotangent,replacements);
+    // Weight graphs belong to the caller, not this plan's private perturbations.
+    const external = new Map([...replacements, ...seeds.map(n => [n.id, n])]);
+    return api.substitute(cotangent,external);
   }};
   return {kind:'record',fields:new Map([
     ['value',api.substitute(value,replacements)],['pullback',pullback],
