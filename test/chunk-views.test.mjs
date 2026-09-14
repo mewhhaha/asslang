@@ -193,7 +193,7 @@ test('unsupported covers, costly flattened items and ABI escapes fail explicitly
   reject(wrap('chunks (filter xs (x -> x>0)) w'),'E_ABI'); // nested export has no wire shape
   reject(wrap('count (chunks (filter xs (x -> x>0)) w)'),'E_CHUNK_DENSE');
   reject(wrap('count (chunks (scan xs 0 (s -> x -> s+x)) w)'),'E_CHUNK_ACCESS');
-  reject(wrap('xs |> chunks w |> map (b -> scan b 0 (s -> x -> s+x)) |> flatten'),'E_CHUNK_ACCESS');
+  assert(WebAssembly.validate(compile(wrap('xs |> chunks w |> map (b -> scan b 0 (s -> x -> s+x)) |> flatten')).bytes)); // Now supported; behavior covered by chunk-composition tests.
   reject(flatSource.replace('x-at block 0','x-sum block'),'E_CHUNK_WORK');
   reject(flatSource.replace('x-at block 0','(iterate x 2 (s -> {state:s+1,done:false})).state'),'E_CHUNK_WORK');
   for(const body of ['chunks xs w','map (chunks xs w) (b -> b)','chunks xs','map xs (x -> range 2)'])

@@ -1,0 +1,14 @@
+// A local scan resets per block; the global scan continues through all blocks.
+fn running_block = block -> block |> scan 0 (subtotal -> x -> subtotal+x);
+export fn block_report = (samples:[Num]) -> (width:Num) -> do {
+  let within = samples |> chunks width |> map running_block |> flatten;
+  let initial = {local:0, total:0};
+  let history =
+    zip samples within (sample -> local -> {sample, local})
+    |> scan initial (state -> row -> {local:row.local, total:state.total+row.sample});
+  {
+    local: history |> map (state -> state.local),
+    totals: history |> map (state -> state.total),
+    state: history |> fold initial (previous -> next -> next),
+  }
+};

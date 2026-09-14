@@ -96,5 +96,10 @@ revisions. Old benchmark files and `history/` are historical evidence, not curre
 performance promises. A mathematical derivation and finite test suite do not
 establish worldwide novelty or substitute for a proof-assistant check.
 
+[Chunk scan integration](CHUNK-SCAN-INTEGRATION.md) extends arithmetic families
+with buffer-free local scan flattening, while preserving existing guard/work policies.
+
 [Neighborhood maps](WINDOW-MAPS.md) use overlapping read-only views for smoothing,
 correlation and local summaries without a window matrix or a new compiler primitive.
+[Window/chunk integration](WINDOW-CHUNK-INTEGRATION.md) records their combined
+contracts, regression checks, and reconciliation after the chunk-scan merge.

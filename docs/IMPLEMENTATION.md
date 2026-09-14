@@ -97,8 +97,9 @@ one inner cursor and checked arithmetic, not per-chunk data/descriptor buffers.
 Block callbacks use existing scalar/record reductions and causal schedules.
 Cover-preserving `flatten` substitutes quotient/remainder coordinates and restores
 source event alignment. Independent block selection issues a fresh domain.
-Structural block guards use a metered preflight; costly flattened reductions and
-causal inner flattening are rejected rather than silently replayed. The existing
+Structural block guards use a metered preflight; costly per-item reductions are
+rejected rather than silently replayed. Complete local scans can flatten with
+boundary-reset scalar state; see [scan integration](CHUNK-SCAN-INTEGRATION.md). The existing
 value ABI still rejects nested arrays. See [chunk views](CHUNK-VIEWS.md).
 
 ## Native finite ordering
