@@ -17,6 +17,7 @@ checks and regression runs for this change.
 | Area | Executed validation |
 | --- | --- |
 | Source operator composition | [Matrix-free actions, solver and sharing repairs](SOURCE-OPERATORS-VALIDATION.md). |
+| Source-defined clocked machines | [Composition, checkpoint and storage checks](CLOCKED-MACHINES-VALIDATION.md). |
 | Source prelude and compiler basis | [Core extraction, compatibility and counterexamples](CORE-AND-PRELUDE-VALIDATION.md). |
 | Arithmetic chunk covers | [Block programs without nested-array buffers](CHUNK-VIEWS-VALIDATION.md). |
 | Cut-cover array views | [No-buffer composition and recovered alignment](ARRAY-VIEWS-VALIDATION.md). |

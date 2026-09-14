@@ -1,0 +1,29 @@
+// Ordinary source, using the same {initial,step,finish} protocol as reducers.
+// Pairing/adaptation/held updates already live in lib/reducers.ass.
+fn machine_then = left -> right -> {
+  initial: {left:left.initial, right:right.initial},
+  step: state -> input -> do {
+    let next = left.step state.left input;
+    {left:next, right:right.step state.right (left.finish next)}
+  },
+  finish: state -> right.finish state.right,
+};
+
+// Reset to the DECLARED initial state, then process the current event.
+fn machine_reset_when = machine -> reset -> {
+  initial: machine.initial,
+  step: state -> input ->
+    machine.step (if reset input then machine.initial else state) input,
+  finish: machine.finish,
+};
+
+// Histories are sequential plans, not stored arrays of state records.
+fn machine_states = inputs -> machine ->
+  scan inputs machine.initial machine.step;
+
+// Starting from a checkpoint does not change an enclosed reset's target.
+fn machine_states_from = inputs -> machine -> state -> do {
+  // Check seed/transition compatibility without demanding the declared seed.
+  let initial_step = machine.step machine.initial;
+  scan inputs state machine.step
+};

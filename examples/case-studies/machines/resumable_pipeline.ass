@@ -1,0 +1,35 @@
+fn monitor_machine = config -> do {
+  let smooth = {
+    initial: 0,
+    step: mean -> value -> do {
+      let next = mean+config.alpha*(value-mean);
+      require (value-value == 0 && next-next == 0) next
+    },
+    finish: mean -> mean,
+  };
+  let alarm = {
+    initial: false,
+    step: on -> mean -> if on then mean > config.low else mean >= config.high,
+    finish: on -> on,
+  };
+  smooth
+  |> machine_then alarm
+  |> reducer_map_input (event -> event.value)
+  |> machine_reset_when (event -> event.reset)
+};
+
+export fn monitor_chunk = (samples:[Num]) -> (resets:[Bool]) ->
+  (config:{alpha:Num,low:Num,high:Num}) -> (saved:{left:Num,right:Bool}) -> do {
+    let machine = monitor_machine config;
+    let events =
+      require (config.alpha > 0 && config.alpha <= 1
+        && config.low-config.low == 0 && config.high-config.high == 0
+        && config.low < config.high && saved.left-saved.left == 0)
+        (zip_checked samples resets (value -> reset -> {value, reset}));
+    let history = events |> machine_states_from machine saved;
+    {
+      means: history |> map (state -> state.left),
+      alarms: history |> map machine.finish,
+      state: history |> fold saved (previous -> next -> next),
+    }
+};

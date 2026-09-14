@@ -145,6 +145,14 @@
     {
       "path": "lib/patterns.ass",
       "purpose": "Function, predicate, reader, lens and structural result/option composition."
+    },
+    {
+      "path": "lib/machines.ass",
+      "purpose": "Serial stateful composition, reset and typed checkpoint runners over the reducer protocol; products and held updates reuse reducers."
+    },
+    {
+      "path": "lib/machine-differentials.ass",
+      "purpose": "Forward sensitivity lift of a numeric machine step through source JVP; scanning the augmented state needs no compiler scan derivative or tape."
     }
   ]
 }

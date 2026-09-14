@@ -1,4 +1,6 @@
 import { runSourceOperatorBrowserChecks } from './source-operators-browser.mjs';
+import { runMachineSensitivityBrowserChecks } from './machine-differentials-browser.mjs';
+import { runClockedMachineBrowserChecks } from './clocked-machines-browser.mjs';
 import { runCorePreludeBrowserChecks } from './core-prelude-browser.mjs';
 import { runChunkCompositionBrowserChecks } from './chunk-composition-browser.mjs';
 import { runChunkViewBrowserChecks } from './chunk-views-browser.mjs';
@@ -324,6 +326,13 @@ try {
       ?? await (await fetch(`../lib/${name}.ass`)).text(),
   })));
   await runSourceOperatorBrowserChecks({compile,compileSources},createRuntime,report,operatorLibraries);
+  const clockedLibraries=await Promise.all(['reducers','machines'].map(async name=>({name:name+'.ass',
+    source:globalThis.asslangSources?.['../lib/'+name+'.ass'] ?? await (await fetch('../lib/'+name+'.ass')).text()})));
+  await runClockedMachineBrowserChecks({compileSources,checkSources},createRuntime,report,clockedLibraries);
+  const sensitivityLibraries = await Promise.all(['reducers','machines','machine-differentials'].map(async name => ({
+    name: name+'.ass', source: globalThis.asslangSources?.['../lib/'+name+'.ass'] ?? await (await fetch('../lib/'+name+'.ass')).text(),
+  })));
+  await runMachineSensitivityBrowserChecks({compileSources},createRuntime,report,sensitivityLibraries);
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {

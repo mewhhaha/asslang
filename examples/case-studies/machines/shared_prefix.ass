@@ -1,0 +1,22 @@
+fn smooth_signal = alpha -> {
+  initial: 0,
+  step: mean -> value -> mean+alpha*(value-mean),
+  finish: mean -> mean,
+};
+fn peak_signal = () -> {
+  initial: 0,
+  step: peak -> value -> max peak (abs value),
+  finish: peak -> peak,
+};
+
+// One smoothing state feeds two observers. No smoothed array is stored.
+export fn shared_prefix = (samples:[Num]) -> (alpha:Num) -> do {
+  let observers = reducer_product (sum_reducer ()) (peak_signal ());
+  let machine = smooth_signal alpha |> machine_then observers;
+  let history = samples |> machine_states machine;
+  {
+    totals: history |> map (state -> (machine.finish state).left),
+    peaks: history |> map (state -> (machine.finish state).right),
+    summary: machine.finish (history |> fold machine.initial (previous -> next -> next)),
+  }
+};

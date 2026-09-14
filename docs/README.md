@@ -47,6 +47,12 @@ in one native stable sort, including reusable nested subkeys.
 [Chunk views](CHUNK-VIEWS.md) compose block reductions and aligned pointwise
 flattening without arrays of block data or descriptors.
 
+## Source-defined state machines
+
+[Clocked machines](CLOCKED-MACHINES.md) compose serial stages, share prefixes,
+hold independent lanes on one event clock, and resume/reset explicit product state.
+They reuse the reducer protocol without adding compiler primitives.
+
 ## Numerical differentiation
 
 | Task | Contract |
@@ -111,3 +117,7 @@ contracts, regression checks, and reconciliation after the chunk-scan merge.
 
 [Source operator algebra](SOURCE-OPERATORS.md) composes derivatives, adjoints and
 bounded matrix-free solvers without new compiler primitives.
+[Streaming sensitivities](MACHINE-SENSITIVITY.md) lift a source machine with JVP,
+then scan and resume its value/tangent state without a reverse tape.
+
+[Machine publication validation](CLOCKED-MACHINES-PUBLICATION.md) records the integration with operator-enabled main.
