@@ -1,0 +1,26 @@
+// One Horner algorithm, with arithmetic supplied as ordinary source functions.
+// Coefficients are highest-degree first. Empty coefficients give algebra.zero.
+fn polynomial_with = algebra -> coefficients -> x -> do {
+  infixl (+) = algebra.add;
+  infixl (*) = algebra.multiply;
+  coefficients |> fold algebra.zero
+    (total -> coefficient -> total*x + algebra.constant coefficient)
+};
+
+fn scalar_polynomial_algebra = () -> {
+  zero: 0,
+  constant: x -> x,
+  add: (+),
+  multiply: (*),
+};
+
+// Forward dual arithmetic, not differentiation of a fold by the compiler.
+fn dual_polynomial_algebra = () -> {
+  zero: {value:0, tangent:0},
+  constant: x -> {value:x, tangent:0},
+  add: a -> b -> {value:a.value+b.value, tangent:a.tangent+b.tangent},
+  multiply: a -> b -> {
+    value:a.value*b.value,
+    tangent:a.tangent*b.value+a.value*b.tangent,
+  },
+};

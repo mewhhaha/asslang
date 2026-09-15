@@ -1,0 +1,15 @@
+// The policy expression is shared; callers supply Boolean or numeric logic.
+fn policy_with = logic -> left -> right -> override -> do {
+  infixl (&&) = logic.both;
+  infixl (||) = logic.either;
+  prefix (!) = logic.complement;
+  !left && right || override
+};
+export fn source_policy = (left:Num) -> (right:Num) -> (override:Num) -> do {
+  let boolean = {both:(&&), either:(||), complement:(!)};
+  let scores = {both:min, either:max, complement:x -> 1-x};
+  {
+    allowed: policy_with boolean false true false,
+    score: policy_with scores left right override,
+  }
+};

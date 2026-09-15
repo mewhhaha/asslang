@@ -126,6 +126,15 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
   const definitions = new Map(program.definitions.map(d => [d.name, d]));
   const preludeDefinitions = new Map((inferred.preludeDefinitions ?? []).map(d => [d.name,d]));
   const steps = [], kernels = [], nodes = [], intern = new Map();
+  // Parser-issued factory bindings are closed over the scalar bootstrap only.
+  // Reuse staged callables, never user arguments/results, within this invocation.
+  const sourceOperatorCache = new Map();
+  function bindingValue(binding, env) {
+    if (!binding.sourceOperatorDefault) return expression(binding.value,env);
+    const key=binding.sourceOperatorDefault;
+    if (!sourceOperatorCache.has(key)) sourceOperatorCache.set(key,expression(binding.value,env));
+    return sourceOperatorCache.get(key);
+  }
   let work = 0, staticZips = 0, checkedZips = 0;
   let activeIndices = new Set();
   let nextMachine = 0, activeLoops = 0;
@@ -291,6 +300,26 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     if (item.kind === 'stream' && inputs.some(p => p.item.kind === 'stream')) leaves(item.item, at);
     else leaves(item, at);
   }
+  // Avoid restaging a straight-line scalar body already hash-consed for these
+  // exact scalar nodes. No calls, free captures, records or event constructors.
+  const scalarBodyEligibility = new WeakMap(), scalarApplications = new WeakMap();
+  function scalarApplicationCache(callee, args) {
+    if (callee.params.length !== args.length || !args.every(a=>a.kind==='scalar')) return null;
+    let eligible=scalarBodyEligibility.get(callee);
+    if (eligible===undefined) {
+      const names=new Set(callee.params);
+      const pure=n=>n.kind==='name' ? names.has(n.name) :
+        ['number','boolean'].includes(n.kind) ? true :
+        n.kind==='unary' ? pure(n.value) :
+        n.kind==='binary' ? pure(n.left)&&pure(n.right) :
+        n.kind==='if' ? pure(n.condition)&&pure(n.yes)&&pure(n.no) : false;
+      eligible=pure(callee.body); scalarBodyEligibility.set(callee,eligible);
+    }
+    if (!eligible) return null;
+    let entries=scalarApplications.get(callee);
+    if (!entries) scalarApplications.set(callee,entries=new Map());
+    return {entries,key:args.map(a=>a.id).join(',')};
+  }
   function invoke(callee, args, at) {
     if (++work > maxExpansion) fail('Staging expansion limit exceeded; recursive/expansive abstraction is not supported', at, 'E_LIMIT');
     if (callee.kind === 'callable_choice') {
@@ -308,6 +337,8 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
       // Legacy f() and canonical f () both apply the unit value.
       if (callee.params.length && !args.length) args = [{ kind: 'record', fields: new Map() }];
       if (!callee.params.length && args[0]?.kind === 'record' && !args[0].fields.size) args = args.slice(1);
+      const specialization=scalarApplicationCache(callee,args);
+      if (specialization?.entries.has(specialization.key)) return specialization.entries.get(specialization.key);
       const local = new Map(callee.env), count = Math.min(callee.params.length, args.length);
       for (let i = 0; i < count; i++) local.set(callee.params[i], args[i]);
       if (count < callee.params.length) return { ...callee, params: callee.params.slice(count), env: local };
@@ -315,6 +346,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
       // their own locations. A partial application retains its source identity.
       const body = callee.sourcePrelude ? relocatePrelude(callee.body, at.pos) : callee.body;
       const result = expression(body, local);
+      if (specialization) specialization.entries.set(specialization.key,result);
       return count < args.length ? invoke(result, args.slice(count), at) : result;
     }
     if (callee.kind !== 'builtin') fail('Only statically known functions can be called', at, 'E_LOWER');
@@ -503,7 +535,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
       case 'block': {
         const local = new Map(env);
         // Pure graph bindings share computations; only demanded values execute.
-        for (const b of ast.bindings) local.set(b.name, expression(b.value, local));
+        for (const b of ast.bindings) local.set(b.name, bindingValue(b, local));
         return expression(ast.result, local);
       }
       case 'unary': {
@@ -563,7 +595,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
           const args=values.flatMap((v,i)=>flattenHost(v,h.parameters[i],b.value));
           value=scalar('host_call',h.result.kind,[int(effects.length),...args],h.index,true);
           effects.push(value);
-        } else value=expression(b.value,env);
+        } else value=bindingValue(b,env);
         if(b.name) env.set(b.name,value);
       }
       result=expression(d.body.result,env);

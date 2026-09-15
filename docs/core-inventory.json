@@ -158,5 +158,30 @@
       "path": "lib/machine-feedback.ass",
       "purpose": "Old-state feedback closure using the unchanged machine protocol; no added state or primitive."
     }
-  ]
+  ],
+  "expressionOperators": {
+    "implementation": "lib/expression-operators.ass",
+    "binary": [
+      "+",
+      "-",
+      "*",
+      "/",
+      "==",
+      "!=",
+      "<",
+      "<=",
+      ">",
+      ">=",
+      "&&",
+      "||",
+      "|>"
+    ],
+    "prefix": [
+      "-",
+      "!"
+    ],
+    "scalarBootstrap": "src/operator-library.mjs",
+    "scalarInstructionFunctions": 11,
+    "scope": "Source expression meanings; grammar, scalar instructions, guards, ABI and effects still require compiler mechanisms."
+  }
 }

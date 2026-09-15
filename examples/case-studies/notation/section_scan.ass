@@ -1,0 +1,10 @@
+// The source alias preserves concat's checked cover and the following zip.
+export fn section_scan = (samples:[Num]) -> (cut:Num) -> do {
+  infixl (<>) like (+) = concat;
+  let {left,right} = samples |> split_at cut;
+  let adjusted =
+    (left |> map (x -> 2*x))
+    <> (right |> map (x -> 3*x));
+  zip samples adjusted (original -> changed -> changed-original)
+  |> scan 0 (total -> difference -> total+difference)
+};

@@ -1,6 +1,7 @@
+import { isCustomInfix, isNativeInfixFunction, createInfixScope, extendInfixScope, infixBindsInside } from './infix.mjs';
 // Canonical surface grammar. It lowers to the existing checked core AST.
 // See docs/SYNTAX.md before changing parsing or product representation.
-export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, node, fail, readSymbolKey }) {
+export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, node, fail, readSymbolKey, sourceOperators }) {
   const reserved = new Set(['fn', 'export', 'host', 'let', 'if', 'then', 'else',
     'true', 'false', 'do', 'effect', 'perform']);
   const isName = text => /^[A-Za-z_]\w*$/.test(text) && !reserved.has(text);
@@ -19,7 +20,9 @@ export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, n
       if (open !== undefined && tokens[open].text === close[text]) paired.set(open, i);
     }
   }
-  let fresh = 0, depth = 0;
+  let fresh = 0, depth = 0, operatorDeclarations = 0, operatorFresh = 0, prefixBindings = 0;
+  let operators = createInfixScope();
+  let prefixes = new Map([['-', null], ['!', null]]);
   function bounded(run) {
     if (++depth > 256) fail('Syntax nesting limit exceeded', peek(), 'E_LIMIT');
     try { return run(); } finally { depth--; }
@@ -27,8 +30,7 @@ export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, n
   const hole = () => ({ tag: 'Hole' });
   const product = (fields, tail = null) => ({ tag: 'Record', fields: new Map(fields), tail });
   const tuple = values => product(values.map((value, i) => [`_${i}`, value]));
-  const rank = { '|>': 1, '||': 2, '&&': 3, '==': 4, '!=': 4,
-    '<': 5, '<=': 5, '>': 5, '>=': 5, '+': 6, '-': 6, '*': 7, '/': 7 };
+
   const nameNode = token => node('name', token.pos, { name: token.text });
   const call = (callee, arg, pos = callee.pos) => node('call', pos, { callee, args: [arg] });
   const separated = () => cursor() > 0 &&
@@ -160,35 +162,105 @@ export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, n
       value: node('field', leaf.pos, { value: node('name', leaf.pos, { name }), name: leaf.name }) }))];
   }
   function block(token, effect = false) {
-    need('{'); const bindings = [], names = new Set();
-    const bind = (binding, performed = false) => bindings.push({ ...binding, ...(effect ? { performed } : {}) });
-    while (at('let') || effect && at('perform')) {
-      let p = null, pos = peek().pos;
-      if (eat('let')) { pos = peek().pos; p = pattern(new Set(), [], '='); need('='); }
-      const performed = effect && Boolean(eat('perform'));
-      let value = expression(); need(';');
-      for (const leaf of p?.leaves ?? []) {
-        if (names.has(leaf.name)) fail('Duplicate local binding', leaf, 'E_NAME');
-        names.add(leaf.name);
-      }
-      if (performed) {
-        // Keep a direct saturated host call separate from any pure unpacking.
-        const args = []; let callee = value;
-        while (callee.kind === 'call') { args.unshift(...callee.args); callee = callee.callee; }
-        if (args.length) value = node('call', value.pos, { callee, args });
-      }
-      if (!p || p.simple && !p.annotation && !(p.constraints?.length)) {
-        bind({ name: p?.simple ?? null, value }, performed);
-      } else {
-        if (performed) {
-          const name = `$performed${fresh++}`;
-          bind({ name, value }, true); value = node('name', pos, { name });
+    const outerOperators = operators, outerPrefixes = prefixes, outerPrefixBindings = prefixBindings, operatorNames = new Set(), prefixNames = new Set();
+    try {
+      need('{'); const bindings = [], names = new Set();
+      const bind = (binding, performed = false) => bindings.push({ ...binding, ...(effect ? { performed } : {}) });
+      while (at('let') || effect && at('perform') || infixDeclarationAhead() || prefixDeclarationAhead()) {
+        if (prefixDeclarationAhead()) { bind(prefixDeclaration(prefixNames)); continue; }
+        if (infixDeclarationAhead()) {
+          const binding = infixDeclaration(operatorNames); bind(binding); continue;
         }
-        for (const binding of localPattern(p, value, pos)) bind(binding);
+        let p = null, pos = peek().pos;
+        if (eat('let')) { pos = peek().pos; p = pattern(new Set(), [], '='); need('='); }
+        const performed = effect && Boolean(eat('perform'));
+        let value = expression(); need(';');
+        for (const leaf of p?.leaves ?? []) {
+          if (names.has(leaf.name)) fail('Duplicate local binding', leaf, 'E_NAME');
+          names.add(leaf.name);
+        }
+        if (performed) {
+          // Keep a direct saturated host call separate from any pure unpacking.
+          const args = []; let callee = value;
+          while (callee.kind === 'call') { args.unshift(...callee.args); callee = callee.callee; }
+          if (args.length) value = node('call', value.pos, { callee, args });
+        }
+        if (!p || p.simple && !p.annotation && !(p.constraints?.length)) {
+          bind({ name: p?.simple ?? null, value }, performed);
+        } else {
+          if (performed) {
+            const name = `$performed${fresh++}`;
+            bind({ name, value }, true); value = node('name', pos, { name });
+          }
+          for (const binding of localPattern(p, value, pos)) bind(binding);
+        }
       }
+      const result = expression(); eat(';'); need('}');
+      return node(effect ? 'effect' : 'block', token.pos, { bindings, result });
+    } finally { operators = outerOperators; prefixes = outerPrefixes; prefixBindings = outerPrefixBindings; }
+  }
+  const infixKinds = {infixl: 'left', infixr: 'right', infix: 'none'};
+  function infixDeclarationAhead() {
+    const i = cursor();
+    return Object.hasOwn(infixKinds, peek().text) && tokens[i+1]?.text === '('
+      && tokens[i+3]?.text === ')' && ['=', 'like', 'above', 'below'].includes(tokens[i+4]?.text);
+  }
+  function infixDeclaration(names) {
+    const kind = take(); need('('); const symbol = take(); need(')');
+    if (names.has(symbol.text)) fail('Duplicate local operator binding', symbol, 'E_NAME');
+    if (operators.bindings+prefixBindings>=64) fail('At most 64 active operator bindings',symbol,'E_LIMIT');
+    if (++operatorDeclarations > 256) fail('At most 256 operator declarations per compilation', symbol, 'E_LIMIT');
+    const relations = [];
+    while (['like', 'above', 'below'].includes(peek().text)) {
+      const relation = take(); need('('); const token = take(); need(')');
+      const anchor = operators.symbols.get(token.text);
+      if (!anchor) fail(`Unknown precedence anchor '${token.text}'`, token, 'E_OPERATOR');
+      relations.push({kind: relation.text, anchor});
+      if (relations.length > 64) fail('At most 64 precedence relations per declaration', relation, 'E_LIMIT');
     }
-    const result = expression(); eat(';'); need('}');
-    return node(effect ? 'effect' : 'block', token.pos, { bindings, result });
+    const name = `$operator${operatorFresh++}`;
+    const next = extendInfixScope(operators, symbol.text, infixKinds[kind.text], relations, name, symbol, fail);
+    need('='); const value = expression(); need(';');
+    // Check two curried arguments, even for unused aliases. The initializer is
+    // outside its own operator scope; ordinary let-generalization stays intact.
+    const checkedName = `$operatorType${operatorFresh++}`;
+    const identity = node('lambda', symbol.pos, {params:[checkedName],
+      annotations:[{tag:'Fn',args:[hole(),hole()],result:hole()}],
+      body:node('name',symbol.pos,{name:checkedName})});
+    operators = next; names.add(symbol.text);
+    return {name,value:call(identity,value,symbol.pos)};
+  }
+  function prefixDeclarationAhead() {
+    const i=cursor();
+    return at('prefix') && tokens[i+1]?.text==='(' && tokens[i+3]?.text===')' && tokens[i+4]?.text==='=';
+  }
+  function prefixDeclaration(names) {
+    take(); need('('); const symbol=take(); need(')');
+    if (!['-','!'].includes(symbol.text) && !isCustomInfix(symbol.text))
+      fail('Invalid or reserved prefix operator',symbol,'E_OPERATOR');
+    if (names.has(symbol.text)) fail('Duplicate local prefix binding',symbol,'E_NAME');
+    if (++operatorDeclarations>256 || operators.bindings+prefixBindings>=64)
+      fail('Operator declaration limit exceeded',symbol,'E_LIMIT');
+    need('='); const value=expression(); need(';');
+    const name=`$prefixOperator${operatorFresh++}`, check=`$prefixType${operatorFresh++}`;
+    const identity=node('lambda',symbol.pos,{params:[check],annotations:[{tag:'Fn',args:[hole()],result:hole()}],
+      body:node('name',symbol.pos,{name:check})});
+    prefixBindings++; prefixes=new Map(prefixes); prefixes.set(symbol.text,name); names.add(symbol.text);
+    return {name,value:call(identity,value,symbol.pos)};
+  }
+  function prefixValue(token) {
+    if (!prefixes.has(token.text)) fail('Unknown prefix operator',token,'E_OPERATOR');
+    const binding=prefixes.get(token.text);
+    return binding ? node('name',token.pos,{name:binding}) : sourceOperators.value(token.text,token.pos,true);
+  }
+  function infixValue(token) {
+    const descriptor = operators.symbols.get(token.text);
+    if (!descriptor) {
+      if (prefixes.has(token.text)) return prefixValue(token);
+      fail(`Unknown operator '${token.text}' in this scope`, token, 'E_OPERATOR');
+    }
+    return descriptor.binding ? node('name',token.pos,{name:descriptor.binding})
+      : sourceOperators.value(token.text,token.pos);
   }
   function prefix(minimum) {
     const token = peek();
@@ -196,7 +268,7 @@ export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, n
       if (minimum > 0) fail('Group a function argument in parentheses', token, 'E_PARSE');
       return lambda();
     }
-    if (eat('-') || eat('!')) return node('unary', token.pos, { op: token.text, value: expression(8) });
+    if (prefixes.has(token.text)) { take(); return call(prefixValue(token),expression(8),token.pos); }
     if (eat('if')) {
       const condition = expression(); need('then'); const yes = expression(); need('else');
       return node('if', token.pos, { condition, yes, no: expression() });
@@ -214,6 +286,12 @@ export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, n
       need('}'); return node('record', token.pos, { fields });
     }
     if (eat('(')) {
+      if (at('prefix') && tokens[cursor()+1]?.text==='(') {
+        take(); need('('); const token=take(); need(')'); need(')'); return prefixValue(token);
+      }
+      if ((operators.symbols.has(peek().text) || prefixes.has(peek().text) || isCustomInfix(peek().text)) && tokens[cursor()+1]?.text === ')') {
+        const operator = take(); need(')'); return infixValue(operator);
+      }
       if (eat(')')) return node('record', token.pos, { fields: [] });
       const first = expression();
       if (!eat(',')) { need(')'); return first; }
@@ -227,11 +305,12 @@ export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, n
       return node('number', token.pos, { value });
     }
     if (eat('true') || eat('false')) return node('boolean', token.pos, { value: token.text === 'true' });
+    if (isCustomInfix(token.text)) fail(`Unknown prefix operator '${token.text}'`,token,'E_OPERATOR');
     return nameNode(identifier());
   }
-  function expression(minimum = 0) {
+  function expression(minimum = 0, parent = null) {
     return bounded(() => {
-      let left = prefix(minimum);
+      let left = prefix(parent ? 1 : minimum);
       while (true) {
         if (eat('.')) { const field = identifier(); left = node('field', field.pos, { value: left, name: field.text }); continue; }
         if (at('[')) { const field = readSymbolKey(); left = node('field', field.pos, { value: left, name: field.text }); continue; }
@@ -239,14 +318,24 @@ export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, n
           left = call(left, expression(10)); continue;
         }
         if (at('(') && !separated()) fail('Calls require whitespace: write f (value), not f(value)', peek(), 'E_PARSE');
-        const precedence = rank[peek().text];
-        if (precedence === undefined || precedence < minimum) break;
+        const descriptor = operators.symbols.get(peek().text);
+        if (!descriptor) {
+          if (isCustomInfix(peek().text)) fail(`Unknown operator '${peek().text}' in this scope`, peek(), 'E_OPERATOR');
+          break;
+        }
+        // Unary and application are fixed stronger boundaries. Relational
+        // precedence is used only for ordinary binary operands below them.
+        if (minimum >= 8) break;
+        if (parent && !infixBindsInside(operators, descriptor, parent, peek(), fail)) break;
         const op = take();
         if (op.text === '|>') {
           let callee = expression(10);
-          left = call(callee, left, op.pos);
+          left = call(call(infixValue(op),left,op.pos),callee,op.pos);
           while (startsAtom() && separated()) left = call(left, expression(10), op.pos);
-        } else left = node('binary', op.pos, { op: op.text, left, right: expression(precedence + 1) });
+        } else {
+          const right = expression(0, descriptor);
+          left = node('call',op.pos,{callee:infixValue(op),args:[left,right]});
+        }
       }
       return left;
     });

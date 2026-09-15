@@ -178,3 +178,30 @@ pointwise transforms. It does not allocate an array of arrays. Nested streams
 remain compiler-only and cannot cross the value ABI. The builtin names `chunks`
 and `flatten` are newly reserved; no punctuation, precedence or layout rule changes.
 See [chunk programs and their explicit limits](CHUNK-VIEWS.md).
+
+## Lexically bound source operators
+
+Canonical blocks support `infixl`, `infixr`, and `infix` declarations. For example,
+`infixl (<+>) like (+) = vector.add;` binds an ordinary binary source function to
+local notation. `( <+> )` retrieves that function for ordinary partial application.
+Relations `above`/`below` express relative precedence; unrelated competing
+operators require parentheses rather than a guessed numeric rank. A local
+`infixl (+) = algebra.add;` replaces only binary addition in that lexical scope,
+retaining its established fixity. There is no type-directed overload resolution.
+
+Libraries expose named functions, not global operator syntax. No declaration
+changes a previously defined function or a sibling linked file. Pipeline, Boolean
+short-circuit syntax, arrows and delimiters cannot be rebound. Read
+[the full declaration, lexical and demand contract](LEXICAL-OPERATORS.md) before
+adding operators. There are no sections, custom unary forms or operator macros.
+
+## Source-backed standard operators and prefixes
+
+The defaults for every binary expression operator, unary negation and Boolean
+not are source factories. `infixl (&&)`, `infixl (||)` and `infixl (|>)` can now
+be rebound like arithmetic. `prefix (-) = function;` binds only unary negation;
+`(prefix (-))` captures that role while `(-)` captures binary subtraction.
+`(!)` is a prefix function value. Prefixes use the established unary precedence.
+Default Boolean short-circuiting comes from source conditionals; changing a
+binding changes its semantics explicitly, not other lexical scopes. See
+[the complete contract](ALL-SOURCE-OPERATORS.md) for the scalar bootstrap and limits.

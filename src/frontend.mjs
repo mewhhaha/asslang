@@ -1,3 +1,4 @@
+import { createSourceOperators } from './operator-library.mjs';
 import { createPrelude, preludeArities } from './prelude.mjs';
 import { symbolKey, displayRecordKey } from './record-keys.mjs';
 import { intrinsicArities, inferIntrinsic } from './intrinsics.mjs';
@@ -25,7 +26,7 @@ export function tokenize(source) {
   if (typeof source !== 'string') throw new TypeError('Source must be a string');
   if (source.length > 1_000_000) fail('Source limit is 1,000,000 characters', null, 'E_LIMIT');
   const tokens = [];
-  const pattern = /\s+|\/\/[^\n]*|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|[A-Za-z_][A-Za-z_0-9]*|\|>|->|=>|==|!=|<=|>=|&&|\|\||[(){}\[\]:;,.=+*/<>!\-]/y;
+  const pattern = /\s+|\/\/[^\n]*|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|[A-Za-z_][A-Za-z_0-9]*|(?:(?!\/\/)[~^%?&|<>=+*/]){2,}|[~^%?&|]|\|>|->|=>|==|!=|<=|>=|&&|\|\||[(){}\[\]:;,.=+*/<>!\-]/y;
   let pos = 0;
   while (pos < source.length) {
     pattern.lastIndex = pos;
@@ -61,6 +62,7 @@ export function parse(source) {
     if (++nodes > 50_000) fail('Syntax node limit exceeded', { pos }, 'E_LIMIT');
     return { kind, pos, ...rest };
   };
+  const sourceOperators = createSourceOperators(parse, node, tokenize);
   const symbols = new Map(), symbolReferences = [];
   const symbolIdentifier = () => {
     const name = identifier();
@@ -75,7 +77,7 @@ export function parse(source) {
     return { ...name, text: symbolKey(name.text), symbol: true };
   };
   let unary;
-  const canonical = () => unary ??= createUnaryParser({ tokens, cursor: () => cursor, peek, at, take, eat, need, node, fail, readSymbolKey });
+  const canonical = () => unary ??= createUnaryParser({ tokens, cursor: () => cursor, peek, at, take, eat, need, node, fail, readSymbolKey, sourceOperators });
   const precedence = { '|>': 1, '||': 2, '&&': 3, '==': 4, '!=': 4,
     '<': 5, '<=': 5, '>': 5, '>=': 5, '+': 6, '-': 6, '*': 7, '/': 7 };
   function annotation() {
@@ -118,7 +120,7 @@ export function parse(source) {
   }
   function prefix() {
     const t = peek();
-    if (eat('-') || eat('!')) return node('unary', t.pos, { op: t.text, value: expression(8) });
+    if (eat('-') || eat('!')) return node('call', t.pos, {callee:sourceOperators.value(t.text,t.pos,true),args:[expression(8)]});
     if (eat('if')) {
       const condition = expression(); need('then');
       const yes = expression(); need('else');
@@ -205,9 +207,10 @@ export function parse(source) {
           callee = node('field', field.pos, { value: callee, name: field.text });
         }
         const args = at('(') ? argumentsList() : [];
-        left = node('call', op.pos, { callee, args: [left, ...args] });
+        const piped = node('call',op.pos,{callee:sourceOperators.value('|>',op.pos),args:[left,callee]});
+        left = args.length ? node('call',op.pos,{callee:piped,args}) : piped;
       } else {
-        left = node('binary', op.pos, { op: op.text, left, right: expression(rank + 1) });
+        left = node('call',op.pos,{callee:sourceOperators.value(op.text,op.pos),args:[left,expression(rank+1)]});
       }
     }
     return left;
@@ -237,16 +240,17 @@ export function parse(source) {
     }
     const exported = Boolean(eat('export')); need('fn');
     const name = identifier();
+    sourceOperators.begin();
     if (eat('=')) {
       if (definitionNames.has(name.text)) fail(`Duplicate function '${name.text}'`, name, 'E_NAME');
-      definitionNames.add(name.text); definitions.push(canonical().definition(name, exported)); continue;
+      definitionNames.add(name.text); definitions.push(sourceOperators.finish(canonical().definition(name, exported))); continue;
     }
     const { names, annotations } = params(true);
     const resultAnnotation = eat(':') ? annotation() : null; need('=');
     const body = expression(); need(';');
     if (definitionNames.has(name.text)) fail(`Duplicate function '${name.text}'`, name, 'E_NAME');
     definitionNames.add(name.text);
-    definitions.push(node('definition', name.pos, { name: name.text, params: names, annotations, resultAnnotation, body, exported }));
+    definitions.push(sourceOperators.finish(node('definition', name.pos, { name: name.text, params: names, annotations, resultAnnotation, body, exported })));
   }
   if (!definitions.length) fail('Program contains no functions', null, 'E_PARSE');
   for (const reference of symbolReferences) if (!symbols.has(reference.name))

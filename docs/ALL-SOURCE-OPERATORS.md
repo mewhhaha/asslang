@@ -1,5 +1,57 @@
 # All expression operators are source-defined
 
+## One expression, different source algebras
+
+All 13 binary forms and both unary forms are backed by the source factories in
+[lib/expression-operators.ass](../lib/expression-operators.ass). The prior lexical
+proposal's protected Boolean, pipe and unary meanings are now replaceable too.
+The existing matrix-free `lib/operators.ass` is a different library and is unchanged.
+
+<!-- all-operator-example: source_policy -->
+```ass
+// The policy expression is shared; callers supply Boolean or numeric logic.
+fn policy_with = logic -> left -> right -> override -> do {
+  infixl (&&) = logic.both;
+  infixl (||) = logic.either;
+  prefix (!) = logic.complement;
+  !left && right || override
+};
+export fn source_policy = (left:Num) -> (right:Num) -> (override:Num) -> do {
+  let boolean = {both:(&&), either:(||), complement:(!)};
+  let scores = {both:min, either:max, complement:x -> 1-x};
+  {
+    allowed: policy_with boolean false true false,
+    score: policy_with scores left right override,
+  }
+};
+```
+
+Calling `source_policy` with `0.25, 0.5, 0.125` returns
+`{allowed:true, score:0.5}`. The same parsed policy is instantiated with Boolean
+logic or numeric minimum/maximum/complement. Dictionary choices are explicit;
+there is no global overload or type-class search. This example is a demonstration
+of supplied logic, not an authorization policy or a probabilistic interpretation.
+
+Unary and binary minus can be bound independently. `(-)` captures subtraction;
+`(prefix (-))` captures negation. `(!)` captures the current unary not. Use
+`prefix (~) = function;` for a custom prefix, grouped when passed as an argument.
+Fixed unary precedence avoids introducing another relation system.
+
+A pipe may also have source-defined behavior: `infixl (|>) = value -> transform ->
+{before:value, after:transform value};`. Piping 3 through `x -> x*x` then returns
+`{before:3,after:9}`. Its established argument-placement grammar still applies.
+
+```sh
+npm run example:all-operators
+npm run test:all-operators
+npm run check:operators
+npm run audit:core
+```
+
+[Validation](ALL-SOURCE-OPERATORS-VALIDATION.md) records the combined revision,
+including binary differences caused by source Boolean conditionals. The previous
+lexical package's validation describes its narrower original snapshot, not this one.
+
 ## Design recorded before implementation
 
 Base: main `7583876ae99b48917fffde9a21924df05cec393e`, tree

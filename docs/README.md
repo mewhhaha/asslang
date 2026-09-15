@@ -124,3 +124,9 @@ then scan and resume its value/tangent state without a reverse tape.
 
 [Old-state feedback](MACHINE-FEEDBACK.md) closes reusable source pipelines over their
 previous state, with error-feedback quantization and closed-loop sensitivities.
+
+[Lexical source operators](LEXICAL-OPERATORS.md) bind local notation to ordinary
+functions, with relative precedence and no global overload registry.
+
+[All source-defined expression operators](ALL-SOURCE-OPERATORS.md) completes Boolean,
+pipe, and unary notation with a source-backed default library.
