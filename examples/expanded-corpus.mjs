@@ -1,5 +1,16 @@
 // Canonical examples, language-pattern inspirations, and app-like fixtures.
 export const expandedCorpus = [
+  {id:'source-policy-notation',path:'case-studies/notation/source_policy.ass',name:'source_policy',args:[0.25,0.5,0.125],expected:{allowed:true,score:0.5},kind:'case-study',inspiration:'one policy expression with source-defined Boolean or numeric operators'},
+  {id:'notation-polynomial',path:'case-studies/notation/polynomial.ass',name:'polynomial',
+    libraries:['../lib/polynomials.ass'],args:[[2,3,5],2],expected:{value:19,derivative:11},
+    inspiration:'one source algorithm, lexical arithmetic and staged scalar/dual dictionaries',kind:'case-study'},
+  {id:'notation-machine-report',path:'case-studies/notation/machine_report.ass',name:'notation_report',
+    libraries:['../lib/reducers.ass','../lib/machines.ass'],args:[[0,8,8,0],0.5],
+    expected:{totals:[0,4,10,13],peaks:[0,4,6,6],summary:{left:13,right:6}},
+    inspiration:'local serial/product notation with an explicit precedence relation and one shared history',kind:'case-study'},
+  {id:'notation-section-scan',path:'case-studies/notation/section_scan.ass',name:'section_scan',
+    args:[[1,2,3,4],2],expected:[1,3,9,17],
+    inspiration:'source-defined joining retains cut-cover evidence and scan fusion',kind:'case-study'},
   {id:'feedback-quantize',path:'case-studies/feedback/quantize.ass',name:'quantize',
     libraries:['../lib/reducers.ass','../lib/machines.ass','../lib/machine-feedback.ass'],
     args:[Array(8).fill(0.25),1,{left:0,right:0}],expected:{values:[0,1,0,0,0,1,0,0],state:{left:0,right:0}},

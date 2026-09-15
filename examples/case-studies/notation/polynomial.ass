@@ -1,0 +1,6 @@
+// Reuse exactly one source algorithm for values and value/derivative pairs.
+export fn polynomial = (coefficients:[Num]) -> (x:Num) -> do {
+  let value = polynomial_with (scalar_polynomial_algebra ()) coefficients x;
+  let dual = polynomial_with (dual_polynomial_algebra ()) coefficients {value:x,tangent:1};
+  {value, derivative:dual.tangent}
+};

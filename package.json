@@ -92,6 +92,12 @@
     "test:machine-differentials": "node --test test/machine-differentials.test.mjs",
     "example:machine-sensitivity": "node examples/interop/machine-sensitivity.mjs",
     "example:machine-feedback": "node examples/interop/machine-feedback.mjs",
-    "test:machine-feedback": "node --test test/machine-feedback.test.mjs"
+    "test:machine-feedback": "node --test test/machine-feedback.test.mjs",
+    "test:lexical-operators": "node --test test/lexical-operators.test.mjs",
+    "example:lexical-operators": "node examples/interop/lexical-operators.mjs",
+    "build:operators": "node scripts/build-operators.mjs",
+    "check:operators": "node scripts/build-operators.mjs --check",
+    "test:all-operators": "node --test test/all-source-operators.test.mjs",
+    "example:all-operators": "node examples/interop/all-source-operators.mjs"
   }
 }

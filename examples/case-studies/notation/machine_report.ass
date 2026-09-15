@@ -1,0 +1,25 @@
+fn notation_smooth = alpha -> {
+  initial:0,
+  step:state -> value -> state+alpha*(value-state),
+  finish:state -> state,
+};
+fn notation_peak = () -> {
+  initial:0,
+  step:state -> value -> max state (abs value),
+  finish:state -> state,
+};
+
+// Composition is sequential; product is tighter and shares the smoothing stage.
+export fn notation_report = (samples:[Num]) -> (alpha:Num) -> do {
+  infixl (>>>) below (+) = machine_then;
+  infixl (***) above (>>>) below (+) = reducer_product;
+  let machine =
+    notation_smooth alpha
+    >>> sum_reducer () *** notation_peak ();
+  let history = samples |> machine_states machine;
+  {
+    totals: history |> map (state -> (machine.finish state).left),
+    peaks: history |> map (state -> (machine.finish state).right),
+    summary: machine.finish (history |> fold machine.initial (previous -> next -> next)),
+  }
+};

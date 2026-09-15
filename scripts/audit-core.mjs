@@ -1,3 +1,5 @@
+import {sourceOperatorNames,sourcePrefixNames} from '../src/operator-library.mjs';
+import {operatorSource} from '../src/operator-source.mjs';
 import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
 import { builtinArities, primitiveArities, parse } from '../src/frontend.mjs';
@@ -25,6 +27,10 @@ const program = parse(preludeSource);
 assert.deepEqual(Object.fromEntries(program.definitions.map(d=>[d.name,d.params.length])),preludeArities);
 for (const library of inventory.sourceLibraries)
   assert((await stat(new URL('../'+library.path,import.meta.url))).isFile());
+assert.deepEqual(inventory.expressionOperators.binary,Object.keys(sourceOperatorNames));
+assert.deepEqual(inventory.expressionOperators.prefix,Object.keys(sourcePrefixNames));
+assert.equal(inventory.expressionOperators.scalarInstructionFunctions,11);
+assert.equal(await readFile(new URL('../'+inventory.expressionOperators.implementation,import.meta.url),'utf8'),operatorSource);
 console.log(JSON.stringify({publicCallableNames:seen.size,compilerPrimitives:layers.compiler.length,
   sourcePreludeFunctions:layers.source.length,layers,scope:inventory.scope,
-  sourceLibraries:inventory.sourceLibraries},null,2));
+  sourceLibraries:inventory.sourceLibraries,expressionOperators:inventory.expressionOperators},null,2));

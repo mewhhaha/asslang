@@ -1,0 +1,19 @@
+// Default expression meanings. The compiler supplies only scalar instruction
+// functions in `scalar`; these factories are ordinary, replaceable source.
+fn operator_add = scalar -> scalar.add;
+fn operator_subtract = scalar -> scalar.subtract;
+fn operator_multiply = scalar -> scalar.multiply;
+fn operator_divide = scalar -> scalar.divide;
+fn operator_equal = scalar -> scalar.equal;
+fn operator_not_equal = scalar -> scalar.not_equal;
+fn operator_less = scalar -> scalar.less;
+fn operator_less_equal = scalar -> scalar.less_equal;
+fn operator_greater = scalar -> scalar.greater;
+fn operator_greater_equal = scalar -> scalar.greater_equal;
+fn operator_negate = scalar -> scalar.negate;
+fn operator_and = scalar -> (left:Bool) -> (right:Bool) ->
+  if left then right else false;
+fn operator_or = scalar -> (left:Bool) -> (right:Bool) ->
+  if left then true else right;
+fn operator_not = scalar -> (value:Bool) -> if value then false else true;
+fn operator_pipe = scalar -> value -> transform -> transform value;

@@ -16,6 +16,8 @@ checks and regression runs for this change.
 
 | Area | Executed validation |
 | --- | --- |
+| All expression operators in source | [Complete operator library and lexical roles](ALL-SOURCE-OPERATORS-VALIDATION.md). |
+| Lexical source notation | [Operators, partial-order fixity and exact lowering](LEXICAL-OPERATORS-VALIDATION.md). |
 | Source operator composition | [Matrix-free actions, solver and sharing repairs](SOURCE-OPERATORS-VALIDATION.md). |
 | Source-defined clocked machines | [Composition, checkpoint and storage checks](CLOCKED-MACHINES-VALIDATION.md). |
 | Source prelude and compiler basis | [Core extraction, compatibility and counterexamples](CORE-AND-PRELUDE-VALIDATION.md). |
