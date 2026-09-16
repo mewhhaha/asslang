@@ -1,0 +1,4 @@
+// The shape chooses the number of ranges; each extent is still a runtime value.
+export fn shape_ranges = (counts:{a:Num, b:{c:Num, d:Num}}) ->
+  product_fold counts (range 0) (joined -> n -> concat joined (range n))
+  |> scan 0 (+);

@@ -1,0 +1,16 @@
+// Numeric structure is checked/elaborated by product_*; algorithms stay source.
+fn product_like = witness -> value ->
+  product_zip witness value (ignored -> x -> x);
+
+fn numeric_algebra = witness -> {
+  zero: product_map witness (ignored -> 0),
+  constant: value -> product_map witness (ignored -> value),
+  add: left -> right -> product_zip (product_like witness left) right (+),
+  multiply: left -> right -> product_zip (product_like witness left) right (*),
+};
+
+fn product_total = value -> product_fold value 0 (+);
+fn product_dot = left -> right -> product_total (product_zip left right (*));
+fn product_scale = value -> factor -> product_map value (x -> factor*x);
+fn product_axpy = value -> direction -> rate ->
+  product_zip value direction (x -> dx -> x+rate*dx);

@@ -1,5 +1,15 @@
 // Canonical examples, language-pattern inspirations, and app-like fixtures.
 export const expandedCorpus = [
+  {id:'shape-polynomial',path:'case-studies/products/polynomial.ass',name:'shape_polynomial',
+    args:[[2,3,5],{mass:4,position:{x:2,y:3}}],expected:{mass:49,position:{x:19,y:32}},
+    libraries:['../lib/products.ass','../lib/polynomials.ass'],
+    inspiration:'numeric shape-derived arithmetic using the same source Horner algorithm',kind:'case-study'},
+  {id:'shape-stages',path:'case-studies/products/stages.ass',name:'shape_stages',
+    args:[{a:2,b:{c:3,d:4}},1],expected:41,
+    inspiration:'type structure elaborates an ordinary function pipeline with dynamic parameters',kind:'case-study'},
+  {id:'shape-ranges',path:'case-studies/products/ranges.ass',name:'shape_ranges',
+    args:[{a:2,b:{c:3,d:1}}],expected:[0,1,1,2,4,4],
+    inspiration:'shape-folded range plans, virtual joins and one continuing scan',kind:'case-study'},
   {id:'source-policy-notation',path:'case-studies/notation/source_policy.ass',name:'source_policy',args:[0.25,0.5,0.125],expected:{allowed:true,score:0.5},kind:'case-study',inspiration:'one policy expression with source-defined Boolean or numeric operators'},
   {id:'notation-polynomial',path:'case-studies/notation/polynomial.ass',name:'polynomial',
     libraries:['../lib/polynomials.ass'],args:[[2,3,5],2],expected:{value:19,derivative:11},

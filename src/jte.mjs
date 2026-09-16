@@ -1,3 +1,4 @@
+import { productArities, stageProduct } from './products.mjs';
 import { relocatePrelude } from './prelude.mjs';
 import { createChunkViews } from './chunk-views.mjs';
 import { createArrayViews } from './array-views.mjs';
@@ -355,6 +356,7 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     args = [...(callee.args ?? []), ...args];
     if (args.length < arity) return { ...callee, args };
     if (args.length > arity) return invoke(invoke({ kind: 'builtin', name }, args.slice(0, arity), at), args.slice(arity), at);
+    if (Object.hasOwn(productArities,name)) return stageProduct(name, args, {invoke, fail}, at);
     if (Object.hasOwn(intrinsicArities,name)) return stageIntrinsic(name,args,{
       scalar,num,int,boolean,shape,leaves,fields,choose,guardValue,substitute,
       invoke,iteration,source,record,scopedPlan,requireScalar,requireStream,steps,fail,maxExpansion,

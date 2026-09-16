@@ -130,3 +130,8 @@ functions, with relative precedence and no global overload registry.
 
 [All source-defined expression operators](ALL-SOURCE-OPERATORS.md) completes Boolean,
 pipe, and unary notation with a source-backed default library.
+
+## Shape-directed compile-time programming
+
+[Numeric products](TYPE-PROGRAMMING.md) derive arithmetic and staged function/array
+plans from finite type shapes; field data stays dynamic and no reflection table is emitted.

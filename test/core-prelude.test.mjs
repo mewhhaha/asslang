@@ -24,13 +24,13 @@ test('source and generated snapshot agree; every callable has an explicit bounda
   const guide=await readFile(new URL('../docs/CORE-AND-PRELUDE.md',import.meta.url),'utf8');
   assert.equal(guide.match(/<!-- core-prelude-source -->\n```ass\n([\s\S]*?)\n```/)[1]+'\n',preludeSource);
   assert.equal(guide.match(/<!-- core-example -->\n```ass\n([\s\S]*?)\n```/)[1]+'\n',sourceBasis);
-  assert.equal(Object.keys(builtinArities).length,34);assert.equal(Object.keys(primitiveArities).length,30);
+  assert.equal(Object.keys(builtinArities).length,37);assert.equal(Object.keys(primitiveArities).length,33);
   assert.deepEqual(Object.keys(preludeArities).sort(),['grad','jvp','sum','vjp']);
   for(const name of Object.keys(preludeArities)){assert(!Object.hasOwn(primitiveArities,name));assert(!Object.hasOwn(intrinsicArities,name));}
   assert(Object.isFrozen(preludeArities));
   for(const path of ['scripts/build-prelude.mjs','scripts/audit-core.mjs']){
     const result=run([path,...(path.includes('build-')?['--check']:[])]);assert.equal(result.status,0,result.stderr);
-    if(path.includes('audit-'))assert.equal(JSON.parse(result.stdout).compilerPrimitives,30);
+    if(path.includes('audit-'))assert.equal(JSON.parse(result.stdout).compilerPrimitives,33);
   }
 });
 

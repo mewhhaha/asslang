@@ -131,6 +131,17 @@
       ],
       "implementation": "src/intrinsics.mjs",
       "reason": "Graph and product-shape access; perturbation/activity and limit checks."
+    },
+    {
+      "layer": "compiler",
+      "family": "numeric-shape",
+      "names": [
+        "product_map",
+        "product_zip",
+        "product_fold"
+      ],
+      "implementation": "src/products.mjs",
+      "reason": "Bounded static numeric-product traversal; unknown field enumeration cannot be expressed by existing source projections."
     }
   ],
   "sourceLibraries": [
@@ -157,6 +168,10 @@
     {
       "path": "lib/machine-feedback.ass",
       "purpose": "Old-state feedback closure using the unchanged machine protocol; no added state or primitive."
+    },
+    {
+      "path": "lib/products.ass",
+      "purpose": "Shape-derived numeric algebras, dot products and pointwise parameter updates through static product traversal."
     }
   ],
   "expressionOperators": {

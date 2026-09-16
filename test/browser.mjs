@@ -1,3 +1,4 @@
+import { runTypeProgrammingBrowserChecks } from './type-programming-browser.mjs';
 import { runAllSourceOperatorBrowserChecks } from './all-source-operators-browser.mjs';
 import {runLexicalOperatorBrowserChecks} from './lexical-operators-browser.mjs';
 import {runMachineFeedbackBrowserChecks} from './machine-feedback-browser.mjs';
@@ -345,6 +346,7 @@ try {
     await feedbackFile('quantize'),await feedbackFile('tracking'),sensitivityLibraries.find(f=>f.name==='machine-differentials.ass'));
   await runLexicalOperatorBrowserChecks({compile,check},createRuntime,report);
   await runAllSourceOperatorBrowserChecks({compile,check},createRuntime,report);
+  await runTypeProgrammingBrowserChecks({compile,check},createRuntime,report);
   document.body.dataset.result='pass';
   report.status='PASS';
 } catch(error) {

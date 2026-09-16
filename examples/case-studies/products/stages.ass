@@ -1,0 +1,7 @@
+// Build three staged functions from the record shape, not a runtime closure list.
+export fn shape_stages = (gains:{a:Num, b:{c:Num, d:Num}}) -> (input:Num) -> do {
+  let transform =
+    product_fold gains (x -> x)
+      (previous -> gain -> x -> gain*(previous x)+1);
+  transform input
+};

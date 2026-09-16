@@ -23,7 +23,7 @@ test('all fifteen expression roles have real source factories and a checked text
   const process=spawnSync('node',['scripts/build-operators.mjs','--check'],{cwd:new URL('../',import.meta.url),encoding:'utf8'});
   assert.equal(process.status,0,process.stderr);
   assert.throws(()=>validateOperatorText('fn recursive = scalar -> 1+2;',tokenize),/scalar fields/);
-  assert.equal(Object.keys(primitiveArities).length,30);
+  assert.equal(Object.keys(primitiveArities).length,33);
 });
 
 test('default arithmetic, comparison, Boolean, unary and pipeline values across all modes',async()=>{

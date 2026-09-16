@@ -98,6 +98,8 @@
     "build:operators": "node scripts/build-operators.mjs",
     "check:operators": "node scripts/build-operators.mjs --check",
     "test:all-operators": "node --test test/all-source-operators.test.mjs",
-    "example:all-operators": "node examples/interop/all-source-operators.mjs"
+    "example:all-operators": "node examples/interop/all-source-operators.mjs",
+    "test:type-programming": "node --test test/type-programming.test.mjs",
+    "example:type-programming": "node examples/interop/type-programming.mjs"
   }
 }

@@ -16,6 +16,7 @@ checks and regression runs for this change.
 
 | Area | Executed validation |
 | --- | --- |
+| Numeric shape programming | [Type restrictions, structural staging and generated plans](TYPE-PROGRAMMING-VALIDATION.md). |
 | All expression operators in source | [Complete operator library and lexical roles](ALL-SOURCE-OPERATORS-VALIDATION.md). |
 | Lexical source notation | [Operators, partial-order fixity and exact lowering](LEXICAL-OPERATORS-VALIDATION.md). |
 | Source operator composition | [Matrix-free actions, solver and sharing repairs](SOURCE-OPERATORS-VALIDATION.md). |
