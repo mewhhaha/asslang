@@ -135,3 +135,7 @@ pipe, and unary notation with a source-backed default library.
 
 [Numeric products](TYPE-PROGRAMMING.md) derive arithmetic and staged function/array
 plans from finite type shapes; field data stays dynamic and no reflection table is emitted.
+
+[Structured optimization](STRUCTURED-OPTIMIZATION.md) composes those finite numeric
+products with source `grad`, derived vector dictionaries, gradient steps and explicit
+momentum state without adding an optimizer primitive or runtime parameter-tree registry.
