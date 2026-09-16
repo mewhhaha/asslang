@@ -1,0 +1,56 @@
+name: Direct-main candidate validation
+
+on:
+  push:
+    branches: [automation/asslang-validate]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: direct-main-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 099437ccfda8bc9ce8555a32d31e5cb011cb7f56
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Full Node suite
+        run: npm test | tee node-tests.tap
+      - name: Required examples
+        run: |
+          npm run example:host
+          npm run example:reducers
+          npm run example:case-studies
+      - name: Structured optimization example
+        run: node examples/interop/structured-optimization.mjs | tee structured-optimization.json
+      - name: Core and source audits
+        run: |
+          npm run audit:core
+          npm run check:prelude
+          npm run check:operators
+      - name: Chromium engine suite
+        run: npm run test:browser -- --output browser-tests.json
+      - name: Snapshot exact tested tree
+        if: always()
+        run: git archive --format=tar -o validation-source.tar HEAD
+      - name: Retain validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: direct-main-candidate-${{ github.sha }}
+          path: |
+            node-tests.tap
+            structured-optimization.json
+            browser-tests.json
+            validation-source.tar
+          retention-days: 7
