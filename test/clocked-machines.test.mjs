@@ -34,7 +34,7 @@ for(const c of clockedMachineCases)test(`source machine: ${c.name}`,async()=>{
 });
 
 test('explicit renamed source and core-only mode have no privileged compiler body',()=>{
-  assert.equal(Object.keys(primitiveArities).length,30);assert.equal(Object.keys(builtinArities).length,34);
+  assert.equal(Object.keys(primitiveArities).length,33);assert.equal(Object.keys(builtinArities).length,37);
   const renamed=text=>text.replace(/\bmachine_(then|reset_when|states_from|states)\b/g,'ordinary_$1');
   for(const c of clockedMachineCases)for(const mode of modes){
     const cpl=compileSources(files(c.source),mode);

@@ -40,7 +40,7 @@ test('operator declarations enforce callable shape without losing generalization
   reject(program('infixl (%%)= x -> y -> x x; 0'),'E_OCCURS');
   reject(program('infixl (%%)=(+); (%%)'),'E_ABI');
   reject(program('infixl (%%)=(%%);0'),'E_OPERATOR');
-  assert.equal(Object.keys(primitiveArities).length,30);
+  assert.equal(Object.keys(primitiveArities).length,33);
 });
 
 test('operator-valued factories and higher-order results retain lexical meaning',async()=>{

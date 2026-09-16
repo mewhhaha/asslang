@@ -1,0 +1,4 @@
+// Same Horner algorithm; the algebra is derived from the nested numeric shape.
+export fn shape_polynomial = (coefficients:[Num]) ->
+  (point:{mass:Num, position:{x:Num, y:Num}}) ->
+  polynomial_with (numeric_algebra point) coefficients point;

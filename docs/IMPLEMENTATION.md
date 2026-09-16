@@ -146,3 +146,13 @@ Correctness evidence should include parser shape and error tests, inferred types
 Wasm execution, ABI compatibility, effects, JTE certificates, source composition,
 and default/optimized equivalence. Timing measurements must separate parsing from
 inference and emission, disclose the workload, and avoid timing-based CI gates.
+
+## Numeric shape programs
+
+`src/products.mjs` elaborates bounded `product_map`, `product_zip` and
+`product_fold` operations over numeric records. Inference propagates their shape
+restriction through generic helpers; staging checks the actual shape again and
+invokes ordinary source callbacks. A fold can construct staged functions or
+array plans without a new runtime type or opcode. See [the contract](TYPE-PROGRAMMING.md)
+for traversal order, demand, limits and the difference between static shape and
+dynamic numeric/array work.

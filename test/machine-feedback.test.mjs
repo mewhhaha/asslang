@@ -163,7 +163,7 @@ test('ordinary source expansion, renaming and core-only mode preserve bytes and 
   const expanded=libraries.map(f=>f.name==='machine-feedback.ass'?{...f,source:f.source.replace(
     'body.step state {input, feedback:observe state}',
     'do { let feedback=observe state; body.step state {input,feedback} }')}:f);
-  assert.equal(Object.keys(primitiveArities).length,30);
+  assert.equal(Object.keys(primitiveArities).length,33);
   for(const mode of modes){const all=[...libraries,quantizer],c=compileSources(all,mode);
     assert.deepEqual(c.bytes,compileSources(all,{...mode,prelude:false}).bytes);
     assert.deepEqual(c.bytes,compileSources(all.map(f=>({...f,source:f.source.replaceAll('machine_feedback','close_previous')})),mode).bytes);

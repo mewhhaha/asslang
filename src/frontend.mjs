@@ -1,3 +1,4 @@
+import { productArities, inferProduct, createProductConstraints } from './products.mjs';
 import { createSourceOperators } from './operator-library.mjs';
 import { createPrelude, preludeArities } from './prelude.mjs';
 import { symbolKey, displayRecordKey } from './record-keys.mjs';
@@ -296,7 +297,7 @@ export function showType(type, curried = false) {
   return show(type);
 }
 
-export const primitiveArities = Object.freeze({ ...intrinsicArities, range: 1, map: 2, filter: 2, sort_by: 2, split_at: 2, concat: 2, chunks: 2, flatten: 1, scan: 3,
+export const primitiveArities = Object.freeze({ ...intrinsicArities, ...productArities, range: 1, map: 2, filter: 2, sort_by: 2, split_at: 2, concat: 2, chunks: 2, flatten: 1, scan: 3,
   transduce: 3, iterate: 3, zip: 3, zip_checked: 3, count: 1, fold: 3,
   fold_until: 3, sqrt: 1, abs: 1, min: 2, max: 2, floor: 1, at: 2,
   byte_length: 1, utf8: 1, byte_values: 1, require: 2 });
@@ -330,6 +331,7 @@ export function infer(program, { prelude: usePrelude = true } = {}) {
   const definitions = new Map(program.definitions.map(d => [d.name, d]));
   const hosts = new Map((program.hosts ?? []).map(h => [h.name, h]));
   const occurs = (v, t) => free(t).has(v);
+  const products = createProductConstraints({ prune, fail, row });
   // Record-row unification. Open tails infer just the fields a helper observes.
   function row(t) {
     t = prune(t); const fields = new Map(t.fields); let tail = t.tail && prune(t.tail);
@@ -357,6 +359,7 @@ export function infer(program, { prelude: usePrelude = true } = {}) {
     constraints++;
     a = prune(a); b = prune(b);
     if (a === b) return;
+    products.inherit(a, b, ast); products.inherit(b, a, ast);
     if (keyConstraints.has(a)) constrainKey(b, ast ?? keyConstraints.get(a));
     if (keyConstraints.has(b)) constrainKey(a, ast ?? keyConstraints.get(b));
     if (a.tag === 'Var') {
@@ -380,6 +383,7 @@ export function infer(program, { prelude: usePrelude = true } = {}) {
     }
     if (a.tag === 'Record') {
       unifyRows(a,b,ast);
+      products.inherit(a, a, ast); products.inherit(b, b, ast);
       if (keyConstraints.has(a)) constrainKey(a, ast ?? keyConstraints.get(a));
       if (keyConstraints.has(b)) constrainKey(b, ast ?? keyConstraints.get(b));
       return;
@@ -402,6 +406,7 @@ export function infer(program, { prelude: usePrelude = true } = {}) {
       else if (t.tag === 'Fn') result = fn(t.args.map(copy), copy(t.result));
       else if (t.tag === 'Record') result = {tag:'Record',fields:new Map([...t.fields].map(([k,v])=>[k,copy(v)])),tail:t.tail && copy(t.tail)};
       if (keyConstraints.has(t)) constrainKey(result, at ?? keyConstraints.get(t));
+      products.inherit(t, result, at);
       return result;
     }
     return copy(s.type);
@@ -437,7 +442,7 @@ export function infer(program, { prelude: usePrelude = true } = {}) {
       case 'byte_values': return fn([{tag:'Bytes'}],stream(Num));
       case 'require': return fn([Bool,a],a);
       case 'min': case 'max': return fn([Num, Num], Num);
-      default: return inferIntrinsic(name,{a,b,c,Num,Bool,fn,stream});
+      default: return inferProduct(name,{a,b,Num,fn,constrainProduct:products.track},at) ?? inferIntrinsic(name,{a,b,c,Num,Bool,fn,stream});
     }
   };
   function annotationType(t) {
@@ -561,6 +566,7 @@ export function infer(program, { prelude: usePrelude = true } = {}) {
       validateKey(value, at, state, depth+1);
   }
   for (const [type, at] of keyConstraints) validateKey(type, at);
+  products.validateAll();
   return { schemes, constraints, variables: next, preludeDefinitions: [...sourcePrelude.definitions.values()],
     preludeSyntaxNodes: sourcePrelude.syntaxNodes, signatures: Object.fromEntries([...schemes].filter(([k]) => definitions.has(k)).map(([k, s]) => [k, showType(s.type, definitions.get(k)?.syntax === 'unary')])) };
 }

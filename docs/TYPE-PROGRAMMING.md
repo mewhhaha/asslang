@@ -2,6 +2,51 @@
 
 [Documentation](README.md) · [Core boundary](CORE-AND-PRELUDE.md)
 
+## Run the source examples
+
+```sh
+npm run example:type-programming
+npm run test:type-programming
+```
+
+Link `lib/products.ass` and `lib/polynomials.ass` for the first example. The
+registered case-study CLI supplies these explicit source libraries automatically.
+Coefficients [2,3,5] at {mass:4,position:{x:2,y:3}} produce
+{mass:49,position:{x:19,y:32}} with one loop and no intermediate arrays.
+
+<!-- product-example: polynomial -->
+```ass
+// Same Horner algorithm; the algebra is derived from the nested numeric shape.
+export fn shape_polynomial = (coefficients:[Num]) ->
+  (point:{mass:Num, position:{x:Num, y:Num}}) ->
+  polynomial_with (numeric_algebra point) coefficients point;
+```
+
+<!-- product-example: stages -->
+```ass
+// Build three staged functions from the record shape, not a runtime closure list.
+export fn shape_stages = (gains:{a:Num, b:{c:Num, d:Num}}) -> (input:Num) -> do {
+  let transform =
+    product_fold gains (x -> x)
+      (previous -> gain -> x -> gain*(previous x)+1);
+  transform input
+};
+```
+
+<!-- product-example: ranges -->
+```ass
+// The shape chooses the number of ranges; each extent is still a runtime value.
+export fn shape_ranges = (counts:{a:Num, b:{c:Num, d:Num}}) ->
+  product_fold counts (range 0) (joined -> n -> concat joined (range n))
+  |> scan 0 (+);
+```
+
+Gains {a:2,b:{c:3,d:4}} with input 1 produce 41 with no loop. Counts
+{a:2,b:{c:3,d:1}} produce [0,1,1,2,4,4] with one loop and 48 bytes of final
+array storage. The driver checks exact loop allowances 3, 0 and 6; it does not
+claim that runtime array lengths or numerical values are known at compilation.
+Result descriptors and input/output host copies are additional storage.
+
 ## Design before implementation
 
 Main `6be919cf32041208b208d8764508c398d1ad2677` exposes higher-order staged
@@ -135,3 +180,8 @@ Checked September 15, 2026. These are related mechanisms, not evidence of Asslan
 correctness or a priority claim. This smaller numeric-product interface does not
 implement their full metaprogramming facilities. No new theorem, universal
 minimality, proof-assistant verification or independent formal audit is claimed.
+
+## Executed evidence
+
+[Validation report](TYPE-PROGRAMMING-VALIDATION.md) records the actual runs,
+independent source comparisons, exact capacities and remaining limitations.

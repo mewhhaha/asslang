@@ -42,6 +42,42 @@ export function reference(source, name, args, {hosts={}}={}) {
         return blocks;
       });
       case 'flatten': return stream(() => xs().flatMap(block => block().items()));
+      // Value oracle: product-fold shape discovery forces leaf thunks. As with
+      // the eager scan oracle, dedicated Wasm tests certify demand/guard behavior.
+      case 'product_map': case 'product_zip': case 'product_fold': {
+        const keys = value => {
+          const names = Object.keys(value);
+          return names.every((_, i) => Object.hasOwn(value, `_${i}`))
+            ? names.map((_, i) => `_${i}`) : names.sort();
+        };
+        // Structural validation belongs to inference. Keep values lazy here so
+        // using a witness does not force ignored numeric leaves or callbacks.
+        const transform = (a, b) => {
+          if (!a?.[recordTag]) return invoke(thunks[name === 'product_map' ? 1 : 2](),
+            b === null ? [constant(a)] : [constant(a), constant(b)]);
+          const result = {[recordTag]:true};
+          for (const key of keys(a)) Object.defineProperty(result, key, {
+            get:memo(() => transform(a[key], b === null ? null : b[key])), enumerable:true,
+          });
+          return result;
+        };
+        if (name !== 'product_fold') return transform(thunks[0](), name === 'product_map' ? null : thunks[1]());
+        let accumulator = thunks[1];
+        const visit = value => {
+          if (value?.[recordTag]) { for (const key of keys(value)) {
+            // Determine nested product shape, but retain leaf argument thunks.
+            const leaf = memo(() => value[key]);
+            const next = leaf();
+            if (next?.[recordTag]) visit(next);
+            else { const previous = accumulator; accumulator = memo(() => invoke(thunks[2](), [previous, leaf])); }
+          }} else {
+            const previous = accumulator;
+            accumulator = memo(() => invoke(thunks[2](), [previous, constant(value)]));
+          }
+        };
+        visit(thunks[0]());
+        return accumulator();
+      }
       case 'map': return stream(() => xs().map(x => memo(() => invoke(thunks[1](), [x]))));
       case 'filter': return stream(() => xs().filter(x => invoke(thunks[1](), [x])));
       case 'split_at': {
