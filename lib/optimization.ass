@@ -1,0 +1,29 @@
+// Source-only optimization over statically known numeric products.
+// Link with lib/products.ass; no optimizer name is recognized by the compiler.
+
+fn numeric_vector = witness -> {
+  zero: product_map witness (ignored -> 0),
+  add: left -> right -> product_zip (product_like witness left) right (+),
+  scale: value -> factor -> product_scale (product_like witness value) factor,
+  dot: left -> right -> product_dot (product_like witness left) right,
+  axpy: value -> direction -> rate ->
+    product_axpy (product_like witness value) direction rate,
+};
+
+fn gradient_step_with = vector -> objective -> point -> rate ->
+  vector.axpy point (grad objective point) (-rate);
+
+fn product_gradient_step = objective -> point -> rate ->
+  gradient_step_with (numeric_vector point) objective point rate;
+
+fn momentum_step_with = vector -> objective -> state -> rate -> momentum -> do {
+  let gradient = grad objective state.point;
+  let velocity = vector.add (vector.scale state.velocity momentum) gradient;
+  {
+    point: vector.axpy state.point velocity (-rate),
+    velocity,
+  }
+};
+
+fn product_momentum_step = objective -> state -> rate -> momentum ->
+  momentum_step_with (numeric_vector state.point) objective state rate momentum;

@@ -172,6 +172,10 @@
     {
       "path": "lib/products.ass",
       "purpose": "Shape-derived numeric algebras, dot products and pointwise parameter updates through static product traversal."
+    },
+    {
+      "path": "lib/optimization.ass",
+      "purpose": "Source-derived numeric vector dictionaries plus gradient and momentum steps over bounded product shapes."
     }
   ],
   "expressionOperators": {
