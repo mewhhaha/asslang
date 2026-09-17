@@ -5,9 +5,9 @@
 ## Design status
 
 This document is the theory-first contract for a source-library change based on
-main `8e40a8fdee0b4a9eed0ea1c129d5e09b08fb1e22`. It does **not** claim the API is
-implemented or validated until an executed-evidence section is added after the
-candidate tree has passed its checks.
+main `8e40a8fdee0b4a9eed0ea1c129d5e09b08fb1e22`. The source implementation was
+validated on candidate `8db07b13aff90ede7db084fae540ac9b7897847e` as recorded
+under [Executed evidence](#executed-evidence).
 
 ## Problem and motivating program
 
@@ -32,7 +32,7 @@ The fieldwise form is not reusable when the parameter record changes. The direct
 the concrete numeric-product mechanism instead of letting an ordinary source
 dictionary provide the vector operations.
 
-The intended source is:
+The implemented source is:
 
 ```ass
 let next = product_gradient_step loss point rate;
@@ -45,12 +45,12 @@ let vector = numeric_vector point;
 let next = gradient_step_with vector loss point rate;
 ```
 
-The goal is not a compiler optimizer primitive. It is to demonstrate that bounded
-shape programming and source-defined dictionaries are sufficient to express a
-useful transformation over scalar and nested-record parameters while keeping the
-trusted compiler boundary unchanged.
+The goal is not a compiler optimizer primitive. It demonstrates that bounded shape
+programming and source-defined dictionaries are sufficient to express a useful
+transformation over scalar and nested-record parameters while keeping the trusted
+compiler boundary unchanged.
 
-## Proposed source API
+## Source API
 
 `lib/optimization.ass` defines ordinary Asslang functions:
 
@@ -72,10 +72,9 @@ product_momentum_step objective state rate momentum
 ```
 
 `numeric_vector witness` derives its operations with the existing
-`product_map`, `product_zip`, `product_fold`, `product_scale`, `product_dot`, and
-`product_axpy` source helpers. The witness contributes only its statically checked
-numeric-product shape. Its numeric contents are not metadata and are not required
-to be finite.
+`product_map`, `product_zip`, `product_scale`, `product_dot`, and `product_axpy`
+source helpers. The witness contributes only its statically checked numeric-product
+shape. Its numeric contents are not metadata and are not required to be finite.
 
 `gradient_step_with` has the mathematical update
 
@@ -137,22 +136,23 @@ operations elaborate through the existing bounded numeric-product traversal and
 then through the existing scalar graph and AD pipeline.
 
 For a finite scalar or record objective whose gradient is already representable as
-a scalar graph, the optimizer update itself should require no guest loop and no
-intermediate array. This is a validation target, not a universal performance
-claim: an objective or future vector implementation may carry its own loops,
-materialization or scratch requirements.
+a scalar graph, the optimizer update itself can require no guest loop and no
+intermediate array. The executed example below reaches that case. This is not a
+universal performance claim: an objective or future vector implementation may
+carry its own loops, materialization or scratch requirements.
 
-Renaming the library functions must not change generated Wasm. A direct source
-expansion of the same `grad` plus `product_axpy` update should emit equivalent
-Wasm under the same compiler options. These checks demonstrate absence of a
-name-recognition shortcut; they do not prove all compiler transformations correct.
+Renaming the library functions does not change generated Wasm in the tested cases.
+A direct source expansion of the same `grad` plus `product_axpy` update emitted
+identical Wasm bytes under the same compiler options. These checks demonstrate
+absence of a name-recognition shortcut for the tested programs; they do not prove
+all compiler transformations correct.
 
 ## Resource bounds
 
 The existing numeric-product limits remain unchanged: at most 128 numeric leaves,
 16 record levels and 4,096 shape nodes per product traversal. Every staged
 application still consumes the normal expansion allowance. The library adds no
-exemption and must not raise a default limit.
+exemption and does not raise a default limit.
 
 A gradient step performs one existing differentiation staging operation and one
 shape-directed AXPY. Momentum additionally stages one scale and one add. Compiler
@@ -164,8 +164,8 @@ claim is made beyond the inherited bounds.
 
 The functions live in an explicitly linked source library rather than the default
 prelude. Existing programs that do not link `lib/optimization.ass` are unchanged.
-No callable compiler primitive or default-prelude function is added, so the audited
-core counts must stay unchanged. The core inventory should list the new file only
+No callable compiler primitive or default-prelude function is added; the audited
+core boundary remains unchanged. `docs/core-inventory.json` lists the new file only
 as a source library.
 
 Keeping optimization separate from `numeric_algebra` avoids widening an existing
@@ -188,23 +188,42 @@ record/tuple shapes participate, there is no extensible runtime container regist
 and the source optimizer lowers through the existing Wasm compiler rather than a
 Python tracing API.
 
-## Validation plan
+## Executed evidence
 
-Before publishing implementation to main:
+Candidate `8db07b13aff90ede7db084fae540ac9b7897847e` was checked by GitHub Actions run
+https://github.com/mewhhaha/asslang/actions/runs/35165058909 on September 17, 2026.
+The validation workflow checked out that exact candidate SHA with credentials
+disabled; the temporary workflow wrapper itself is not part of this source tree.
+The Node pipeline used `set -o pipefail`, so a failed `npm test` could not be hidden
+by `tee`.
 
-1. Test scalar and nested-record gradient steps under the relevant optimization
-   configurations, with independent expected values.
-2. Test the dictionary-generic path with a custom clipped AXPY implementation so
-   the compiler cannot satisfy the test by recognizing library names.
-3. Test two momentum steps with explicit expected point/velocity state.
-4. Reject exact-shape mismatches and invalid numeric leaves, including an unused
-   bad caller; retain the client source name in diagnostics.
-5. Compare generated Wasm with a direct source expansion and with a renamed
-   optimizer library where semantics are identical.
-6. Assert zero loops and zero intermediate buffers for the finite pointwise example,
-   while avoiding claims about arbitrary objectives.
-7. Run `npm test`, `npm run example:host`, `npm run example:reducers`, the new
-   example driver, `npm run audit:core`, `npm run check:prelude`,
-   `npm run check:operators`, and the browser suite on the exact candidate tree.
-8. Reconcile this document and `docs/automation-progress.md` with the executed
-   revision, commands, results and limitations before the final main update.
+Fresh results on that candidate:
+
+- `npm test`: **1,788/1,788 passed**, zero failures, skips or cancellations.
+- `npm run example:host`, `npm run example:reducers`, and
+  `npm run example:case-studies`: passed.
+- `examples/interop/structured-optimization.mjs`: passed with ASABI 1,
+  **0 loops**, **0 intermediate buffer bytes**, and a **3,542-byte** Wasm module;
+  two momentum steps produced point `{gain:2,model:{bias:-1,slope:4}}` and velocity
+  `{gain:-4,model:{bias:4,slope:-4}}`.
+- `npm run audit:core`, `npm run check:prelude`, and `npm run check:operators`:
+  passed, confirming no added callable compiler primitive or default operator hook.
+- Headless Chromium 152 engine suite: **2,450 core checks passed**; experiments:
+  **276 checks / 138 cases passed**.
+- HTTP module loading and playground worker loading were not exercised by that
+  browser runner and are not claimed.
+
+The first validation attempt found a real documentation reachability failure:
+`docs/automation-progress.md` was not linked from the documentation index. The
+candidate above includes that link, and the pipefail-hardened rerun passed. This is
+why the earlier wrapper run is not used as publication evidence.
+
+The focused tests also exercise scalar and nested products across eight compiler
+option combinations, a custom clipped AXPY dictionary, lazy ignored dictionary
+fields, exact-shape and invalid-leaf rejection in unused callers with client source
+locations, two momentum steps, direct-expansion byte equality, and a renamed
+optimizer library. These are finite executable checks rather than a formal proof.
+
+The retained workflow artifact contains the TAP log, browser JSON, optimizer output
+and an archive of the exact tested source. No timing benchmark was run, so no speed
+claim is made.
