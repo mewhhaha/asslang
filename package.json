@@ -81,6 +81,8 @@
     "example:chunk-composition": "node examples/interop/chunk-composition.mjs",
     "test:window-maps": "node --test test/window-maps.test.mjs",
     "example:window-maps": "node examples/interop/window-maps.mjs",
+    "test:window-origins": "node --test test/window-origins.test.mjs",
+    "example:window-origins": "node examples/interop/window-origins.mjs",
     "test:window-chunk-integration": "node --test test/window-chunk-integration.test.mjs",
     "build:prelude": "node scripts/build-prelude.mjs",
     "check:prelude": "node scripts/build-prelude.mjs --check",

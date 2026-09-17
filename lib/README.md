@@ -49,3 +49,13 @@ inputs, tangent checkpoints and the supported per-event AD subset.
 the original event domain for ordinary `zip` without adding a slice builtin or
 intermediate guest array. Link it explicitly and see
 [source-defined range focus](../docs/RANGE-VIEWS.md) for bounds, demand and provenance.
+
+## Window origins
+
+`windows.ass` keeps `window_map` as the translation-invariant neighborhood helper
+and adds `window_map_indexed` for callbacks that need the output ordinal or source
+start. The callback receives `{index,start,window}` from the same staged traversal,
+so callers do not need to construct and `zip_checked` a second position stream.
+The metadata and symbolic window stay compiler-side. See
+[window origins](../docs/WINDOW-ORIGINS.md) for provenance, demand, and compatibility.
+

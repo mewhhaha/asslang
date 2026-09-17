@@ -99,6 +99,12 @@ reassembled after maps. Reversal, independent cuts and positional zips do not
 forge that cover. Dense/seekable requirements exclude implicit causal replay.
 See [array views](ARRAY-VIEWS.md) for bounds, demand, output ownership and proofs.
 
+`lib/windows.ass` remains ordinary explicitly linked source over those checked
+views. `window_map_indexed` threads the existing outer window ordinal and source
+start into a staged `{index,start,window}` callback record; `window_map` is its
+translation-invariant specialization. No position stream, runtime zip guard, or
+window descriptor buffer is added. See [window origins](WINDOW-ORIGINS.md).
+
 ## Arithmetic chunk families
 
 `src/chunk-views.mjs` represents fixed-width chunks by one symbolic outer cursor,

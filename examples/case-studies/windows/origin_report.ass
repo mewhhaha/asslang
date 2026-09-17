@@ -1,0 +1,10 @@
+// Coordinate-aware windows: positions come from the same staged traversal.
+export fn origin_report = (samples:[Num]) -> (width:Num) -> (stride:Num) -> do {
+  let rows = window_map_indexed samples width stride
+    ({index, start, window} -> {index, start, total:sum window});
+  {
+    indexes: rows |> map (row -> row.index),
+    starts: rows |> map (row -> row.start),
+    totals: rows |> map (row -> row.total),
+  }
+};
