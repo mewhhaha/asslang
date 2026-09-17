@@ -140,3 +140,5 @@ plans from finite type shapes; field data stays dynamic and no reflection table 
 [Structured optimization](STRUCTURED-OPTIMIZATION.md) composes those finite numeric
 products with source `grad`, derived vector dictionaries, gradient steps and explicit
 momentum state without adding an optimizer primitive or runtime parameter-tree registry.
+[Gradient norm clipping](GRADIENT-CLIPPING.md) reuses the same source dictionary
+for a bounded global-norm update, with explicit floating-point and demand behavior.

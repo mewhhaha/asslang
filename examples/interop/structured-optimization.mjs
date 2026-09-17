@@ -6,6 +6,10 @@ import { createRuntime } from '../../src/abi.mjs';
 const load = async path => ({name:path,source:await readFile(new URL('../../'+path,import.meta.url),'utf8')});
 const libraries = await Promise.all(['lib/products.ass','lib/optimization.ass'].map(load));
 const source = `
+export fn clipped = (point:{gain:Num,model:{bias:Num,slope:Num}}) ->
+  product_clipped_gradient_step
+    (p -> 6*p.gain + 8*p.model.slope) point 0.1 5;
+
 export fn optimize = (point:{gain:Num,model:{bias:Num,slope:Num}}) -> do {
   let objective = p ->
     (p.gain-2)*(p.gain-2) +
@@ -20,6 +24,8 @@ export fn optimize = (point:{gain:Num,model:{bias:Num,slope:Num}}) -> do {
 
 const artifact = compileSources([...libraries,{name:'structured-optimization.ass',source}],{maxLoopIterations:0});
 const runtime = await createRuntime(artifact);
+const clipped = runtime.call('clipped',[{gain:1,model:{bias:1,slope:2}}]);
+assert.deepEqual(clipped,{gain:0.7,model:{bias:1,slope:1.6}});
 const result = runtime.call('optimize',[{gain:0,model:{bias:1,slope:2}}]);
 const expected = {
   point:{gain:2,model:{bias:-1,slope:4}},
@@ -31,10 +37,11 @@ assert.equal(artifact.stats.functions[0].loops,0);
 assert.equal(artifact.stats.intermediateBufferBytes,0);
 
 console.log(JSON.stringify({
+  clipped,
   result,
   loops:artifact.stats.functions[0].loops,
   intermediateBufferBytes:artifact.stats.intermediateBufferBytes,
   abi:artifact.abi.version,
   wasmBytes:artifact.bytes.length,
-  note:'The optimizer dictionary, gradient step and momentum state are source. Numeric product shape is elaborated at compile time; no runtime parameter-tree reflection is used.'
+  note:'The optimizer dictionary, global-norm clipping, gradient step and momentum state are source. Numeric product shape is elaborated at compile time; no runtime parameter-tree reflection is used.'
 },null,2));

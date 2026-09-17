@@ -27,3 +27,16 @@ fn momentum_step_with = vector -> objective -> state -> rate -> momentum -> do {
 
 fn product_momentum_step = objective -> state -> rate -> momentum ->
   momentum_step_with (numeric_vector state.point) objective state rate momentum;
+
+fn clipped_gradient_step_with = vector -> objective -> point -> rate -> maxNorm ->
+  require (maxNorm >= 0) (do {
+    let gradient = grad objective point;
+    let norm = sqrt (vector.dot gradient gradient);
+    let direction = if norm > maxNorm
+      then vector.scale gradient (maxNorm / norm)
+      else gradient;
+    vector.axpy point direction (-rate)
+  });
+
+fn product_clipped_gradient_step = objective -> point -> rate -> maxNorm ->
+  clipped_gradient_step_with (numeric_vector point) objective point rate maxNorm;

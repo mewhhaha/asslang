@@ -175,7 +175,7 @@
     },
     {
       "path": "lib/optimization.ass",
-      "purpose": "Source-derived numeric vector dictionaries plus gradient and momentum steps over bounded product shapes."
+      "purpose": "Source-derived numeric vector dictionaries plus gradient, clipped-gradient and momentum steps over bounded product shapes."
     }
   ],
   "expressionOperators": {
