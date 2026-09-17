@@ -27,7 +27,7 @@ operations into ordinary source, and explains which semantic boundaries stay nat
 | Syntax and migration | [Unary syntax](SYNTAX.md), [static record symbols](RECORD-SYMBOLS.md). |
 | Streams and state | [Causality](CAUSAL.md), [JTE alignment](JTE.md), [concept mappings](CONCEPTS.md). |
 | Composition | [Reducers and linked sources](COMPOSABILITY.md), [staged callables](STAGED-CALLABLES.md). |
-| Host boundaries | [ASABI 1](ABI.md), [explicit effects](EFFECTS.md), [input leases](LEASES.md). |
+| Host boundaries | [ASABI 1](ABI.md), [explicit effects](EFFECTS.md), [input leases](LEASES.md), [byte input integrity](BYTES-INPUT-INTEGRITY.md). |
 | Resource controls | [Per-invocation loop budgets](LOOP-BUDGETS.md), [compiler limits](IMPLEMENTATION.md#resource-bounds-and-evidence). |
 | Diagnostics | [Non-executing checks and source locations](DIAGNOSTICS.md). |
 | Lowering | [Implementation](IMPLEMENTATION.md), [ordered SIMD](EXAMPLES-SIMD.md), [reduction fusion](REDUCTION-FUSION.md), [causal output fusion](OUTPUT-FUSION.md), [integration history](INTEGRATION.md). |
