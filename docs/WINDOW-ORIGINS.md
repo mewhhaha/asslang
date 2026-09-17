@@ -155,3 +155,9 @@ Before publication, validate the exact candidate with:
 
 Record executed results in a revision-specific validation document; do not turn
 this plan into a claim that unrun checks passed.
+
+## Executed evidence
+
+See [WINDOW-ORIGINS-VALIDATION.md](WINDOW-ORIGINS-VALIDATION.md) for the exact
+candidate revision, Node/browser checks, compatibility comparisons, resource
+observations, HTTP-browser limitation, and remaining scope boundaries.

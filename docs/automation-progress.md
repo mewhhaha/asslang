@@ -206,3 +206,66 @@ Next useful direction: evaluate whether read-only window construction can reuse
 `split_range` without obscuring its distinct stride/width contract, or instead
 look for another repeated array-view composition where witness preservation removes
 manual index plumbing. Do not add a slice primitive merely for notation.
+
+## 2026-09-17 — Source-defined indexed window origins
+
+Base main: `5ce234321da937cec87025089f4d46d97a1fe965`, tree
+`d26a91aa8b5c89f435e8ff7d0b200c779483f1c4`. Its retained successful CI source
+artifact was reconstructed locally and produced that exact Git tree. There were
+no open PRs or issues at the start; PR #42 remained merged and the prior range-view
+pass was already on main.
+
+Problem addressed: coordinate-aware neighborhood code had to construct a second
+`range`, recompute `index*stride`, and use `zip_checked` merely to recover positions
+that `window_map` already owns internally. This pass adds source-only
+`window_map_indexed`, whose callback receives `{index,start,window}` from the same
+outer traversal, and derives legacy `window_map` from it. It adds no parser form,
+compiler primitive, JTE rule, ABI kind, guest allocation, reflection mechanism, or
+implicit prelude name.
+
+Before:
+
+```ass
+let totals = window_map samples width stride sum;
+zip_checked (range (count totals)) totals
+  (index -> total -> {start:index*stride, total})
+```
+
+After explicit linkage:
+
+```ass
+window_map_indexed samples width stride
+  ({index,start,window} -> {index,start,total:sum window})
+```
+
+Theory commit object: `c25e2aa9d727ff5f7a92a1c46e06068ba6bb34d6`.
+Implementation commit object: `a523dc12843603a9e79d98c476f6b1676309bc02`,
+tree `2f24750822ea8335e75019a6d5700995d87f3ddd`, which exactly matched the locally
+tested implementation tree. Full evidence is in `docs/WINDOW-ORIGINS-VALIDATION.md`.
+Rust's stable `slice::windows` and `Iterator::enumerate` documentation were checked
+as established prior art for overlapping neighborhoods and zero-based positions;
+no window/enumeration novelty claim is made.
+
+Fresh local checks on Node 22.16.0: focused indexed windows 6/6, existing window
+maps 21/21, full Node suite 1,807/1,807, docs 26/26, required host/reducer/case-study
+examples, the new driver, core audit, prelude snapshot and operator snapshot all
+passed. Chromium 144 passed 2,454 core checks plus 276 experiment checks / 138
+cases. The separate HTTP-browser mode was attempted but navigation was blocked by
+the environment with `net::ERR_BLOCKED_BY_ADMINISTRATOR`; no bypass was attempted.
+
+Existing smooth/correlate/neighborhood-report artifacts are byte-, ABI-,
+certificate-, and per-function-stat identical to the embedded old library in all
+eight lowering configurations. The new direct coordinate form removes the one
+runtime positional zip check from the old workaround for the tested pattern but
+does not forge alignment with separately constructed streams. The executable
+origin report stays ASABI 1, emits 2,463 Wasm bytes, reports four loops, zero
+runtime zip checks, zero intermediate-buffer bytes, exactly 48 output bytes, and
+succeeds at the measured 12-unit loop budget while 11 traps. A selected lookup in
+virtual ranges up to `INT32_MAX` uses zero loops, no Wasm memory and no imports.
+No wall-clock benchmark was run.
+
+Next useful direction: resist adding a general `enumerate` builtin until a second
+abstraction demonstrates a coherent event-index contract across filters, causal
+streams and checked pairings. Prefer another source-level composition gap, or a
+bounded compile-time/type-programming improvement, over widening the trusted core
+for notation alone.
