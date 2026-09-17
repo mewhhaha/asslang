@@ -47,9 +47,32 @@ passed as `{ _0: 3, _1: 4 }` and unit as `{}`. JS arrays still represent streams
 An export with two leading arrow binders has two host arguments; an export with
 one pair binder has one record argument. This keeps ASABI 1 unchanged.
 
+## Immutable record updates
+
+`{record with field:value, other}` replaces existing fields and retains every
+other field, including fields a generic helper does not know about:
+
+```ass
+fn set_score = score -> record -> {record with score};
+```
+
+The base is a name or a grouped expression. Use
+`{(config.network) with retries:3}` for a selected base and nest updates explicitly.
+Replacements are simultaneous in the surrounding lexical scope; they do not bind
+new names or mutate the base. Their types must agree with the original field
+types. Missing fields and type-changing replacements are errors, even in unused
+definitions. Puns, trailing commas and declared symbol keys follow record syntax;
+at least one replacement is required. `with` remains a valid identifier elsewhere.
+
+The helper above preserves its complete open row. The compiler copies only its
+staged field map, charging the copied fields to `maxExpansion`; untouched values,
+closures and stream identities are shared. Guest computations retain ordinary
+lazy field demand. See [record updates](RECORD-UPDATES.md) for examples, limits,
+source/core reasoning and validation.
+
 ## Explicit blocks and effects
 
-Braces in canonical expressions always construct a record. Use `do` for local
+Braces in canonical expressions construct or update a record. Use `do` for local
 bindings, making `{ x }` unambiguous:
 
 ```text

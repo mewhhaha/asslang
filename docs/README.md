@@ -24,7 +24,7 @@ operations into ordinary source, and explains which semantic boundaries stay nat
 
 | Topic | Contract |
 | --- | --- |
-| Syntax and migration | [Unary syntax](SYNTAX.md), [static record symbols](RECORD-SYMBOLS.md). |
+| Syntax and migration | [Unary syntax](SYNTAX.md), [static record symbols](RECORD-SYMBOLS.md), [immutable record updates](RECORD-UPDATES.md). |
 | Streams and state | [Causality](CAUSAL.md), [JTE alignment](JTE.md), [concept mappings](CONCEPTS.md). |
 | Composition | [Reducers and linked sources](COMPOSABILITY.md), [staged callables](STAGED-CALLABLES.md). |
 | Host boundaries | [ASABI 1](ABI.md), [explicit effects](EFFECTS.md), [input leases](LEASES.md), [byte input integrity](BYTES-INPUT-INTEGRITY.md), [typed-view validity](TYPED-VIEW-INPUTS.md). |

@@ -1,5 +1,13 @@
 // Canonical examples, language-pattern inspirations, and app-like fixtures.
 export const expandedCorpus = [
+  {id:'record-configuration',path:'case-studies/records/configuration.ass',name:'configure',
+    args:[{name:'demo',enabled:false,network:{retries:0,timeout:30},payload:new Uint8Array([1,2,3])},4],
+    expected:{name:'demo',enabled:true,network:{retries:4,timeout:30},payload:[1,2,3]},
+    inspiration:'row-polymorphic nested configuration edits preserve unrelated fields and borrowed spans',kind:'case-study'},
+  {id:'record-ledger',path:'case-studies/records/ledger.ass',name:'settle',
+    args:[{balance:0,enabled:true,metadata:{revision:7,limit:50}},[2,3,-99],5],
+    expected:{state:{balance:5,enabled:true,metadata:{revision:7,limit:50}},done:true,steps:2},
+    inspiration:'immutable application state edits preserve metadata and stop before an invalid suffix',kind:'case-study'},
   {id:'shape-polynomial',path:'case-studies/products/polynomial.ass',name:'shape_polynomial',
     args:[[2,3,5],{mass:4,position:{x:2,y:3}}],expected:{mass:49,position:{x:19,y:32}},
     libraries:['../lib/products.ass','../lib/polynomials.ass'],

@@ -276,14 +276,24 @@ export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, n
     if (eat('do')) return block(token);
     if (eat('effect')) return block(token, true);
     if (eat('{')) {
+      // Contextual `with` cannot reinterpret a valid record constructor. A base
+      // is one name or a grouped expression; use the existing delimiter index.
+      let base = null;
+      if (isName(peek().text) && tokens[cursor()+1]?.text === 'with') {
+        base = nameNode(take()); take();
+      } else if (at('(') && tokens[paired.get(cursor())+1]?.text === 'with') {
+        base = prefix(10); need('with');
+      }
+      if (base && at('}')) fail('A record update needs at least one field', peek(), 'E_PARSE');
       const fields = [], names = new Set();
       if (!at('}')) do {
         const name = at('[') ? readSymbolKey() : identifier();
         if (names.has(name.text)) fail('Duplicate record field', name, 'E_NAME');
         names.add(name.text);
-        fields.push({ name: name.text, value: name.symbol ? (need(':'), expression()) : eat(':') ? expression() : nameNode(name) });
+        fields.push({ name: name.text, ...(base ? {pos: name.pos} : {}),
+          value: name.symbol ? (need(':'), expression()) : eat(':') ? expression() : nameNode(name) });
       } while (eat(',') && !at('}'));
-      need('}'); return node('record', token.pos, { fields });
+      need('}'); return base ? node('record_update', token.pos, {base, fields}) : node('record', token.pos, { fields });
     }
     if (eat('(')) {
       if (at('prefix') && tokens[cursor()+1]?.text==='(') {
@@ -353,6 +363,7 @@ export function createUnaryParser({ tokens, cursor, peek, at, take, eat, need, n
         case 'block': case 'effect': return { ...ast,
           bindings: ast.bindings.map(b => ({ ...b, value: finish(b.value) })), result: finish(ast.result) };
         case 'record': return { ...ast, fields: ast.fields.map(f => ({ ...f, value: finish(f.value) })) };
+        case 'record_update': return { ...ast, base: finish(ast.base), fields: ast.fields.map(f => ({ ...f, value: finish(f.value) })) };
         case 'field': case 'unary': return { ...ast, value: finish(ast.value) };
         case 'call': return { ...ast, callee: finish(ast.callee), args: ast.args.map(finish) };
         case 'binary': return { ...ast, left: finish(ast.left), right: finish(ast.right) };

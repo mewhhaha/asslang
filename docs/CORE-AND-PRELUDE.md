@@ -297,3 +297,15 @@ not proofs about Asslang or claims of historical novelty.
 
 No proof assistant, independent compiler audit, user-readability study or universal
 minimal-core theorem is claimed. Record executed results in a new companion report.
+
+## Static record updates — September 17, 2026
+
+The callable count is not the entire trusted core. [Record updates](RECORD-UPDATES.md)
+add one expression mechanism for replacing existing fields while preserving an
+unknown row remainder; ordinary projections cannot enumerate that remainder.
+The parser, row inference and bounded stager implement it. The inventory's
+`recordUpdates` entry and `npm run audit:core` check this boundary separately from
+the unchanged 33 primitive names and four source-prelude functions. Algorithms,
+setters, lenses and dictionary adaptation remain source functions. Updates do not
+allocate guest records or grant alignment/effect authority; normal ABI output
+and array-materialization obligations still apply.

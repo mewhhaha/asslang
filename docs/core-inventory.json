@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "scope": "Callable builtin names only; expression syntax, host authority, ABI and validation are additional trusted mechanisms.",
+  "scope": "Callable builtin names and selected expression mechanisms; host authority, ABI and validation remain additional trusted mechanisms.",
   "decisions": [
     {
       "layer": "source",
@@ -206,5 +206,17 @@
     "scalarBootstrap": "src/operator-library.mjs",
     "scalarInstructionFunctions": 11,
     "scope": "Source expression meanings; grammar, scalar instructions, guards, ABI and effects still require compiler mechanisms."
+  },
+  "recordUpdates": {
+    "ast": "record_update",
+    "syntax": "{base with field:value}",
+    "implementation": [
+      "src/unary.mjs",
+      "src/frontend.mjs",
+      "src/jte.mjs"
+    ],
+    "typing": "Existing fields, same field types and complete row preserved",
+    "stagingLimit": "maxExpansion",
+    "reason": "Source projections cannot enumerate an unknown row remainder. Shallow staged field-map replacement preserves untouched values and identities without guest allocation."
   }
 }

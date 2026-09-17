@@ -519,6 +519,20 @@ export function stage(program, inferred, { maxExpansion = 100_000 } = {}) {
     if (++work > maxExpansion) fail('Staging expansion limit exceeded', ast, 'E_LIMIT');
     switch (ast.kind) {
       case 'record': return {kind:'record',fields:new Map(ast.fields.map(f=>[f.name,expression(f.value,env)]))};
+      case 'record_update': {
+        const base=expression(ast.base,env);
+        if(base.kind!=='record') fail('Record update needs a staged record',ast,'E_LOWER');
+        // Copy only the field map, never payloads, stream plans or closures.
+        // Generated structural work must not evade the existing expansion limit.
+        work+=base.fields.size;
+        if(work>maxExpansion) fail('Staging expansion limit exceeded while updating a record',ast,'E_LIMIT');
+        const updated=new Map(base.fields);
+        for(const field of ast.fields) {
+          if(!updated.has(field.name)) fail('Missing staged record update field',field,'E_LOWER');
+          updated.set(field.name,expression(field.value,env));
+        }
+        return {kind:'record',fields:updated};
+      }
       case 'field': {
         const value=expression(ast.value,env);
         if(value.kind!=='record' || !value.fields.has(ast.name)) fail('Missing staged record field',ast,'E_LOWER');

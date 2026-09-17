@@ -162,3 +162,16 @@ invokes ordinary source callbacks. A fold can construct staged functions or
 array plans without a new runtime type or opcode. See [the contract](TYPE-PROGRAMMING.md)
 for traversal order, demand, limits and the difference between static shape and
 dynamic numeric/array work.
+
+## Shape-preserving record updates
+
+Canonical `{base with field:value}` adds one static `record_update` expression,
+not a callable builtin or guest object operation. Inference requires each label
+on the base's row with the replacement's type and returns the same complete row.
+Staging evaluates the base once, shallow-copies its field map and replaces only
+the specified entries. It retains untouched graph/closure/stream references and
+charges every copied field to `maxExpansion`. No emitter, JTE, ABI or guest
+allocation rule is added. See [the contract](RECORD-UPDATES.md) and
+[executed validation](RECORD-UPDATES-VALIDATION.md). The callable inventory stays
+at 33 primitives and four source-prelude functions; its additional expression
+entry and audit make the trusted syntax/typing/staging boundary explicit.

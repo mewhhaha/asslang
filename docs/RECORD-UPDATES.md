@@ -15,7 +15,7 @@ fn with_score = score -> record ->
   {name:record.name, score, enabled:record.enabled};
 ```
 
-Proposed canonical source:
+Canonical source:
 
 <!-- example: record-update-setter -->
 ```ass
@@ -82,7 +82,7 @@ For a concrete record with field set S and replacement set K (K subset S):
   environment, so `{r with x:r.y, y:r.x}` swaps simultaneously;
 - the base expression is staged exactly once, without duplicating causal plans.
 
-Introduce one checked `record_update` AST form with a base and named replacement
+The implementation adds one checked `record_update` AST form with a base and named replacement
 expressions. Staging copies the base's field map shallowly and replaces the named
 entries. It shares scalar graphs, closures, spans and stream plans; it never
 copies input data or creates a guest object. Replacements are staged in source
@@ -106,16 +106,18 @@ Effects remain direct `perform` bindings; updates neither hide nor replay calls.
 ## Boundary, cost and compatibility
 
 The callable primitive count remains 33, with four source-prelude names. The
-expression core does gain static record update, and the inventory/audit must say
-so. Source projections cannot enumerate a polymorphic unknown remainder, which
+expression core gains static record update, recorded separately in the inventory
+and audit. Source projections cannot enumerate a polymorphic unknown remainder, which
 is the reason for this small compiler operation rather than another handwritten
 setter or a runtime library. Algorithms and lens composition remain ordinary
 source. No Wasm opcode, JTE rule, ABI version/layout, guest allocator, global
 registry, dependency or limit increase is needed.
 
-Each update costs O(number of immediate base fields + replacements) compiler
-work and O(number of immediate fields) compiler map storage. Charge every copied
-field to the existing `maxExpansion` budget in addition to ordinary expression
+The shallow staging operation copies one reference per immediate base field
+and performs one map write per replacement, using O(number of immediate fields)
+compiler map storage. This excludes parsing, row unification, and staging the
+base/replacement expressions, which can do additional work. Every copied field
+is charged to the existing `maxExpansion` budget alongside ordinary expression
 staging. Nested payloads are shared, not traversed recursively by the update.
 Existing source/node/nesting/type/ABI bounds still apply. Large repeated updates
 must fail with `E_LIMIT`, not evade generated-work accounting. Emitted runtime
@@ -126,8 +128,9 @@ no constant-runtime or universal zero-cost claim follows from static erasure.
 Compatibility checks compare old corpus ASTs, bytes, ABI metadata and certificates
 against the actual base compiler. Explicit closed-record expansions should match
 representative update artifacts; compiler syntax/inference/staging counts need
-not match. Existing record-update/lens examples will adopt the new form without
-changing their previous outputs. Register additional application examples.
+not match. The existing record-update/lens examples adopt the new form without changing
+their previous outputs. Configuration and ledger examples are registered in the
+corpus. See [executed validation](RECORD-UPDATES-VALIDATION.md).
 
 ## Arguments and validation plan
 
@@ -165,6 +168,6 @@ Primary sources read September 17, 2026:
   assignment. Asslang borrows the readable `with` cue while keeping its own
   comma/colon/pun conventions, grouped-base disambiguation and structural typing.
 
-Record update is established prior art. The proposed contribution is its bounded
+Record update is established prior art. The contribution is its bounded
 integration with Asslang's existing rows, staged products and demand/provenance
 rules, not historical novelty or a performance improvement.

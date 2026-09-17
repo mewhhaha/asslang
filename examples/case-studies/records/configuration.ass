@@ -1,0 +1,8 @@
+// These helpers know only the fields they edit, not the application's full row.
+fn set_enabled = enabled -> config -> {config with enabled};
+fn set_retries = retries -> config ->
+  {config with network:{(config.network) with retries}};
+
+export fn configure =
+  (config:{name:Text,enabled:Bool,network:{retries:Num,timeout:Num},payload:Bytes}) ->
+  (retries:Num) -> set_enabled true (set_retries retries config);

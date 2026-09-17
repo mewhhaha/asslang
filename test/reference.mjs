@@ -201,6 +201,13 @@ export function reference(source, name, args, {hosts={}}={}) {
         for(const f of ast.fields)Object.defineProperty(record,f.name,{get:memo(()=>evaluate(f.value,env)),enumerable:true});
         return record;
       }
+      case 'record_update': {
+        const base=evaluate(ast.base,env), replacements=new Map(ast.fields.map(f=>[f.name,f.value]));
+        const record={[recordTag]:true};
+        for(const key of Object.keys(base)) Object.defineProperty(record,key,{enumerable:true,
+          get:replacements.has(key) ? memo(()=>evaluate(replacements.get(key),env)) : ()=>base[key]});
+        return record;
+      }
       case 'field': return evaluate(ast.value,env)[ast.name];
       case 'effect': {
         const local=new Map(env);

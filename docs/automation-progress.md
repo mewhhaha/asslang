@@ -356,3 +356,70 @@ in `docs/TYPED-VIEW-INPUTS-VALIDATION.md`.
 Next useful direction: return to a source-level composition gap or bounded type
 programming rather than expanding host-boundary work unless another concrete ABI
 correctness defect is reproduced.
+
+
+## 2026-09-17 — Row-preserving immutable record updates
+
+Base main: `c01612b13c264b51c16fe0315a4c17b6125c22ea`, tree
+`f4614fcc2591f181fa835d84de13eadbe8fee78f`. Fresh GitHub reads confirmed PR #42
+merged, no open PRs and green base CI. Artifact 10507420980 reproduced the full
+source tree exactly after public Git clone failed DNS. No collaborator changes
+were replaced. The remote theory commit is
+`2c846a2c2f1fecdaf9240f795eac4e992a0fc49a` (tree
+`42a84fe9bd94f19155dd0113c7febe19d9281478`); implementation follows it in a normal
+fast-forward from the real main, never from the local synthetic snapshot root.
+
+The old record-update/lens examples manually reconstructed every retained field;
+new caller metadata was lost, and selecting it reproduced a missing-field E_TYPE.
+`{record with field:value}` now replaces existing fields while retaining the
+complete row. Setters infer polymorphic input/result rows and keep unrelated
+metadata without knowing its labels. A name or grouped base is staged once;
+replacement expressions see the old lexical environment. Puns, nested updates,
+tuples, symbol keys, source dictionary callbacks and local operators compose.
+Different field types, new fields and invalid unused definitions are rejected.
+
+The new trusted boundary is one static expression in the canonical parser,
+existing row inference and bounded stager. Source code cannot enumerate an unknown
+row remainder, justifying this mechanism. Shallow field-map copies share graph,
+closure and stream references, charge every copied entry to maxExpansion and
+introduce no guest object, Wasm opcode, JTE rule or ABI migration. The inventory and
+core audit now explicitly include this expression; 33 primitives + four source
+prelude names remain. The Elm core-language guide and OCaml 5.3 record-expression
+manual are established prior art, cited in `docs/RECORD-UPDATES.md`; no novelty or
+wall-clock performance claim. Type-changing extension was rejected for this pass
+because it needs a row-subtraction/lacks contract, not a weakened equality check.
+
+Fresh Node 22.16.0 checks: baseline npm test 1,830/1,830; focused
+`npm run test:record-updates` 28/28; final npm test 1,862/1,862, no skips/failures;
+`npm run test:docs` 26/26; host, reducer, case-study and record-update example
+commands passed; audit:core, check:prelude, check:operators, build:example and
+`git diff --check` passed. Chromium 144 passed 2,614 core + 276 experiment checks
+(138 experimental cases), including 152 dedicated eight-mode update checks.
+HTTP navigation was attempted but policy-blocked; other engines were not run.
+An initial browser-bundler newline typo was fixed, and initial incorrect test
+expectations were reconciled with existing error codes/floor differentiation;
+failed logs are retained, not reclassified as passes.
+
+Independent actual-base comparisons matched 126 old ASTs and 1,008 Wasm/ABI/JTE/
+non-timing-stat artifacts. The two migrated examples matched 16 old artifacts;
+six explicit expansions matched 48 artifacts including ASABI 1/2. The focused
+suite includes 256 seeded field/lens-law cases, native analytic/finite-difference
+AD, source locations, unused-helper restrictions, lazy field/scan demand, stream
+identity, cut covers, stopped suffixes, effect sequencing, prepared disposal,
+post-trap reuse, exact sort scratch/output capacities and expansion limits.
+
+Configuration edits use 7 copied input bytes + 1 padding + 40 descriptor = 48
+arena bytes, zero loops and 2,230 unmetered Wasm bytes. Ledger edits copy all 24
+input bytes but visit only two entries before stopping; they use 48 descriptor
+bytes, one emitted loop and 2,817 Wasm bytes. Both have zero extra guest output,
+scratch and intermediate buffers for these workloads. Ledger state is not zero:
+three Num + one Bool leaves are 28 logical bytes, lowered into locals (160 total
+logical local bytes including bookkeeping). A one-field edit of an 80-field
+record adds 82 charged staging units; exact capacity succeeds and one less fails.
+Full limits and commands are in `docs/RECORD-UPDATES-VALIDATION.md`.
+
+Next general-language priority: genuine tagged alternatives and elimination,
+rather than Boolean-plus-placeholder Option/Result encodings. Bound the type,
+demand and ABI representation first. General recursion, modules, escaping closures
+and a managed heap remain separate work; this pass does not announce a complete
+general-purpose language or substitute host execution for native Wasm.

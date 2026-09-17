@@ -68,3 +68,13 @@ and fixed-size matrices are explicitly documented encodings, not new primitive
 language types. SIMD retains f64 and ordered addition. App kernels do not provide
 networking, persistence, dynamic allocation or implicit authority. Historical
 benchmark JSON under `docs/` remains unchanged.
+
+## Row-preserving application records
+
+`npm run example:record-updates` runs two application examples: nested
+configuration edits retaining text/bytes and unrelated settings, and an immutable
+ledger transition that retains metadata and stops before an invalid suffix.
+`patterns/record_update.ass` and `patterns/record_lens.ass` also use
+`{record with field:value}` instead of copying every untouched field.
+See [the contract](../docs/RECORD-UPDATES.md): updates preserve existing field
+types and unknown row fields; they do not extend records or allocate a guest heap.

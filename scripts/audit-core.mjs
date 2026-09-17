@@ -2,7 +2,7 @@ import {sourceOperatorNames,sourcePrefixNames} from '../src/operator-library.mjs
 import {operatorSource} from '../src/operator-source.mjs';
 import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
-import { builtinArities, primitiveArities, parse } from '../src/frontend.mjs';
+import { builtinArities, primitiveArities, parse, infer } from '../src/frontend.mjs';
 import { preludeArities, preludeSource } from '../src/prelude.mjs';
 
 // Every callable name needs a decision; this is not a theorem of minimality.
@@ -31,6 +31,13 @@ assert.deepEqual(inventory.expressionOperators.binary,Object.keys(sourceOperator
 assert.deepEqual(inventory.expressionOperators.prefix,Object.keys(sourcePrefixNames));
 assert.equal(inventory.expressionOperators.scalarInstructionFunctions,11);
 assert.equal(await readFile(new URL('../'+inventory.expressionOperators.implementation,import.meta.url),'utf8'),operatorSource);
+assert.equal(inventory.recordUpdates.ast,'record_update');
+assert.equal(inventory.recordUpdates.stagingLimit,'maxExpansion');
+for(const path of inventory.recordUpdates.implementation)
+  assert((await stat(new URL('../'+path,import.meta.url))).isFile());
+const update=parse('fn put = r -> x -> {r with x};');
+assert.equal(update.definitions[0].body.kind,inventory.recordUpdates.ast);
+assert.match(infer(update).signatures.put,/x: 'a, \.\.'b/);
 console.log(JSON.stringify({publicCallableNames:seen.size,compilerPrimitives:layers.compiler.length,
   sourcePreludeFunctions:layers.source.length,layers,scope:inventory.scope,
-  sourceLibraries:inventory.sourceLibraries,expressionOperators:inventory.expressionOperators},null,2));
+  sourceLibraries:inventory.sourceLibraries,expressionOperators:inventory.expressionOperators,recordUpdates:inventory.recordUpdates},null,2));

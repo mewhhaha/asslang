@@ -104,6 +104,8 @@
     "test:all-operators": "node --test test/all-source-operators.test.mjs",
     "example:all-operators": "node examples/interop/all-source-operators.mjs",
     "test:type-programming": "node --test test/type-programming.test.mjs",
-    "example:type-programming": "node examples/interop/type-programming.mjs"
+    "example:type-programming": "node examples/interop/type-programming.mjs",
+    "test:record-updates": "node --test test/record-updates.test.mjs",
+    "example:record-updates": "node examples/interop/record-updates.mjs"
   }
 }

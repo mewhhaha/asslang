@@ -1,0 +1,11 @@
+// The transition preserves metadata without enumerating it. No mutation occurs.
+fn credit = amount -> account ->
+  if account.enabled then {account with balance:account.balance+amount} else account;
+
+export fn settle =
+  (account:{balance:Num,enabled:Bool,metadata:{revision:Num,limit:Num}}) ->
+  (amounts:[Num]) -> (target:Num) ->
+  fold_until amounts account (state -> amount -> do {
+    let next=credit (require (amount>=0) amount) state;
+    {state:next,done:next.balance>=target}
+  });

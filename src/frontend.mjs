@@ -492,6 +492,14 @@ export function infer(program, { prelude: usePrelude = true } = {}) {
       case 'boolean': type = Bool; break;
       case 'effect': fail('effect blocks are only allowed as the entire body of an exported function',ast,'E_EFFECT'); break;
       case 'record': type={tag:'Record',fields:new Map(ast.fields.map(f=>[f.name,expression(f.value,env)])),tail:null}; break;
+      case 'record_update': {
+        // Keep R itself as the result: the open row describes requirements,
+        // not a closed reconstruction that would discard the unknown remainder.
+        type=expression(ast.base,env);
+        for (const field of ast.fields) unify(type,{tag:'Record',
+          fields:new Map([[field.name,expression(field.value,env)]]),tail:variable()},field);
+        break;
+      }
       case 'field': {
         type=variable(); unify(expression(ast.value,env),{tag:'Record',fields:new Map([[ast.name,type]]),tail:variable()},ast); break;
       }
