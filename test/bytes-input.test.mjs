@@ -160,12 +160,12 @@ test('byte prototype impostors and proxies reject without executing input hooks'
   assert.equal(hooks,0);
 });
 
-test('detached byte inputs still reject and leave the runtime reusable', async () => {
+test('detached byte inputs normalize to ABI value errors and leave the runtime reusable', async () => {
   const runtime = await createRuntime(compile(source));
   const detached = new Uint8Array([1,2,3]);
   structuredClone(detached.buffer,{transfer:[detached.buffer]});
-  assert.throws(() => runtime.call('size',[detached]),TypeError);
-  assert.throws(() => runtime.prepare('size',[detached]),TypeError);
+  rejectsCode(() => runtime.call('size',[detached]),'E_ABI_VALUE');
+  rejectsCode(() => runtime.prepare('size',[detached]),'E_ABI_VALUE');
   assert.equal(runtime.call('total',[Uint8Array.of(10,20,30)]),60);
 });
 

@@ -11,7 +11,15 @@ const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 const encoder = new TextEncoder();
 // Wasm is little-endian; bulk f64 copying is valid only on matching hosts.
 const littleEndian = new Uint8Array(new Uint16Array([1]).buffer)[0] === 1;
-const typedArrayLength = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(Float64Array.prototype), 'length').get;
+const typedArrayPrototype = Object.getPrototypeOf(Float64Array.prototype);
+const typedArrayLength = Object.getOwnPropertyDescriptor(typedArrayPrototype, 'length').get;
+const typedArrayAt = typedArrayPrototype.at;
+function checkedTypedArrayLength(value, message) {
+  // Validate internal typed-array/buffer state before allocating. Intrinsic `at`
+  // is non-generic, accepts valid empty views, and does not consult user hooks.
+  try { typedArrayAt.call(value, 0); } catch { bad(message); }
+  return typedArrayLength.call(value);
+}
 
 function checkSchema(schema, depth = 0, budget = { count: 0 }) {
   if (!schema || typeof schema !== 'object' || depth > 24 || ++budget.count > 4096) bad('Invalid or excessive ABI schema', 'E_ABI_SCHEMA');
@@ -128,15 +136,15 @@ export function lowerValue(arena, schema, value) {
     if (!ArrayBuffer.isView(value) || !(value instanceof Uint8Array)) bad('Bytes requires Uint8Array');
     // Public size properties can be shadowed. Reserve, copy and advertise the
     // same intrinsic span, without invoking input getters or array-like hooks.
-    const length = typedArrayLength.call(value);
+    const length = checkedTypedArrayLength(value, 'Bytes requires a valid Uint8Array view');
     const pointer = arena.allocate(length,1);
     new Uint8Array(arena.memory.buffer,pointer,length).set(value); return [pointer,length];
   }
   const element = schema.element.kind, stride = element === 'Num' ? 8 : 4;
   const array = Array.isArray(value);
-  const typed = element === 'Num' && value instanceof Float64Array && ArrayBuffer.isView(value);
+  const typed = element === 'Num' && ArrayBuffer.isView(value) && value instanceof Float64Array;
   if (!array && !typed) bad('Expected an Array, or Float64Array for [Num]');
-  const length = typed ? typedArrayLength.call(value) : value.length;
+  const length = typed ? checkedTypedArrayLength(value, '[Num] requires a valid Float64Array view') : value.length;
   const pointer = arena.allocate(length * stride, stride);
   if (typed && littleEndian) {
     // Intrinsic typed-array copying never calls a user iterator or element
