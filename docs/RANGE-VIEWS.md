@@ -157,3 +157,5 @@ Run the focused range-view test and example, `npm test`, host/reducer/case-study
 examples, documentation checks, the core/prelude/operator audits, and the browser
 suite when Chromium is available. Record exact results against the exact source
 revision rather than treating this plan as evidence.
+
+[Executed checks and limitations](RANGE-VIEWS-VALIDATION.md) record the resulting revision-specific evidence.

@@ -145,3 +145,64 @@ Next useful direction: use the same small vector dictionary for a materially
 different algorithm only if it exposes a real composition gap; otherwise shift
 attention back to array/view ergonomics or bounded compile-time programming rather
 than accumulating optimizer names.
+
+## 2026-09-17 — Source-defined contiguous range focus
+
+Base main: `755cafaa2b335c1c848500aedafd87ce600c3324`, tree
+`bf14645250d02e9d102fd02a9505715b017978dc`. Its retained CI source archive was
+reconstructed locally and matched that tree exactly. There were no open PRs, and
+PR #42 was already merged.
+
+Problem addressed: contiguous edits repeatedly spelled two nested `split_at`
+operations and two ordered `concat` operations. The nesting is not mere index
+bookkeeping: those exact complementary cut witnesses are what restore the original
+event domain. This pass adds explicitly linked `lib/views.ass` with polymorphic
+`split_range` and endomorphic `map_range`. `map_range` edits only the focused
+region and rejoins inner then outer covers, so ordinary `zip` with the original
+source needs no runtime positional check. A bare focused subview remains distinct.
+No parser form, compiler primitive, ABI change, reflection registry, guest
+allocation mechanism, or default-prelude name was added.
+
+Before:
+
+```ass
+let {left: before, right: tail} = split_at samples start;
+let {left: focus, right: after} = split_at tail length;
+concat before (concat (map focus adjust) after)
+```
+
+After explicit linkage:
+
+```ass
+map_range samples start length adjust
+```
+
+Theory precedes implementation at
+`a5201816c3fa813963c0d9e2e9c50943644f8d96`; implementation is
+`1f69eab5a9557aa2675c35dd6e76fc1ee292a848`, tree
+`361efbb7765760a38c4fee6f2d5fac5a2b0678c0`, which exactly matched the locally
+tested implementation tree. Full executed evidence is preserved in
+`docs/RANGE-VIEWS-VALIDATION.md`.
+
+Fresh local checks: focused range views 7/7, existing array views 35/35, full Node
+suite 1,799/1,799, documentation 26/26, required host/reducer/case-study examples,
+core audit, prelude/operator snapshots, and the new range example all passed.
+Chromium 144 passed 2,450 core checks plus the 276-check / 138-case experiment
+bundle; HTTP module and playground-worker loading were not exercised. The example
+stayed ASABI 1, emitted 2,783 Wasm bytes, used one loop per exported array result,
+restored four domains across its two exports, had zero runtime zip checks and zero
+intermediate-buffer bytes. A scalar lookup in a virtual billion-element range had
+zero loops and no Wasm memory/import requirement.
+
+The helper's emitted Wasm, ABI object, and JTE certificate match the explicit
+source expansion in all eight lowering configurations. This and the interval
+argument are evidence, not a formal proof. No timing benchmark was run. Existing
+64-segment/view nesting and global compiler limits are unchanged; returned arrays
+still require output materialization. Futhark's official performance guide was
+checked 2026-09-17 for established view/materialization prior art; no slicing or
+range-update novelty is claimed.
+
+Next useful direction: evaluate whether read-only window construction can reuse
+`split_range` without obscuring its distinct stride/width contract, or instead
+look for another repeated array-view composition where witness preservation removes
+manual index plumbing. Do not add a slice primitive merely for notation.
