@@ -132,9 +132,22 @@ Run the new regressions against the exact old `src/abi.mjs`, then the fix. Inclu
 independent byte-sum and content oracles, low-level slot/offset/canary assertions,
 throwing getter and proxy counters, source-located rejection of wrong guest types,
 prepared ownership/disposal/post-trap cases and capability sequencing. Extract and
-execute both snippets above. Add browser coverage to the existing dual HTTP/engine
-harness. Compare representative emitted Wasm/ABI/JTE artifacts with the actual
-baseline. Run `npm test`, required host/reducer/case-study examples, focused ABI,
-lease and effect tests, docs, core audit and prelude/operator snapshot checks.
-Report browser engine and HTTP loading separately. Preserve exact commands,
-results, provenance and limitations in a companion validation report and journal.
+execute both snippets above. Exercise the existing browser engine harness and, when
+retained safely, dedicated browser adversarial cases. Compare representative
+emitted Wasm/ABI/JTE artifacts with the actual baseline. Run `npm test`, required
+host/reducer/case-study examples, focused ABI, lease and effect tests, docs, core
+audit and prelude/operator snapshot checks. Report browser engine and HTTP loading
+separately. Preserve exact commands, results, provenance and limitations in a
+companion validation report and journal.
+
+## Implemented result
+
+The bounded marshalling repair and Node regressions are implemented. The remote
+history keeps the theory object `d5a509ab98397d7dfa1bf77fec73e3642aaf8693`
+ahead of implementation object `9d88199d5800b780046860c2d25749150912d92c`.
+[Executed validation](BYTES-INPUT-INTEGRITY-VALIDATION.md) records the red/green
+baseline, exact artifact comparisons, browser checks, resource observations and
+limits. The published implementation keeps the large pre-existing browser harness
+byte-identical; a stronger 64-check byte-specific browser insertion was exercised
+locally but is not claimed as a retained regression. The dedicated Node suite is
+the durable adversarial regression for this host-boundary bug.

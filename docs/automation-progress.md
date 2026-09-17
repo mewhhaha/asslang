@@ -269,3 +269,47 @@ abstraction demonstrates a coherent event-index contract across filters, causal
 streams and checked pairings. Prefer another source-level composition gap, or a
 bounded compile-time/type-programming improvement, over widening the trusted core
 for notation alone.
+
+## 2026-09-17 — Byte input span integrity
+
+Base main: `499563c03b6054da7ec49abc2c629bd11e1f54d2`, tree
+`e749665fc976eb4621766482ccebc7608e20b774`, reproduced exactly from retained
+CI source artifact 10488603385. PR #42 was merged and no PR was open.
+
+Confirmed defect: Bytes reserved through public `byteLength` but copied and
+advertised public `length`. False or throwing properties could desynchronize the
+call frame, overlap later allocations, or execute host getters. The repair uses
+one intrinsic typed-array length for allocation, copying and wire slots, and
+requires an actual view before Uint8Array classification. No language/core/ABI/
+guest-allocation/resource-limit boundary changes.
+
+Theory object `d5a509ab98397d7dfa1bf77fec73e3642aaf8693` precedes implementation
+object `9d88199d5800b780046860c2d25749150912d92c`, implementation tree
+`1995bb7c268e5e4b9a653a9cba198ea789ac9275`. ECMA-262 intrinsic length,
+typed-array copy and `ArrayBuffer.isView` algorithms were checked September 17;
+`docs/BYTES-INPUT-INTEGRITY.md` records the representation argument.
+
+Validation: old adapter with the new regressions 2 pass/13 fail; fix 15/15; focused
+Bytes/ABI/lease/effects 53/53; an exact full Node run with the final production and
+`test/*.test.mjs` blobs 1,822/1,822; docs 26/26; required host/reducer/case-study
+examples and core/prelude/operator checks passed. Fresh publishable-tree Chromium
+144 engine validation passed 2,454 core checks plus 276 experiment checks / 138
+cases. HTTP navigation was policy-blocked; other engines were not run. Later fresh
+full-suite retries timed out after more than 1,600 tests with no observed failure
+and are not counted as additional passes.
+
+Thirty-two actual old/new artifacts match across eight lowering modes. A 3-byte
+report uses 32 arena bytes (3 input + 5 padding + 24 descriptor), no additional
+guest output/scratch/intermediate bytes, and a separate owned 3-byte host result.
+Its one loop visits three bytes; no timing claim. A temporary 64-check dedicated
+browser insertion also passed but is not retained in the published large harness;
+the 15-case Node regression is the durable adversarial test.
+
+An initial normal UTF-8 object upload was safety-status blocked. No alternate
+encoding or transport was attempted. The same ordinary Git-object flow later
+succeeded, so publication continued without circumvention. Full evidence and
+limitations are in `docs/BYTES-INPUT-INTEGRITY-VALIDATION.md`.
+
+Next useful direction: normalize detached/invalid typed-view diagnostics across
+Num and Bytes only if it can preserve current realm/proxy authority and ownership
+boundaries; otherwise prefer the next bounded source-level composition gap.
