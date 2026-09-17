@@ -125,9 +125,12 @@ export function lowerValue(arena, schema, value) {
     arena.allocate(written,1); return [pointer,written];
   }
   if (schema.kind === 'Bytes') {
-    if (!(value instanceof Uint8Array)) bad('Bytes requires Uint8Array');
-    const pointer = arena.allocate(value.byteLength,1);
-    new Uint8Array(arena.memory.buffer,pointer,value.length).set(value); return [pointer,value.length];
+    if (!ArrayBuffer.isView(value) || !(value instanceof Uint8Array)) bad('Bytes requires Uint8Array');
+    // Public size properties can be shadowed. Reserve, copy and advertise the
+    // same intrinsic span, without invoking input getters or array-like hooks.
+    const length = typedArrayLength.call(value);
+    const pointer = arena.allocate(length,1);
+    new Uint8Array(arena.memory.buffer,pointer,length).set(value); return [pointer,length];
   }
   const element = schema.element.kind, stride = element === 'Num' ? 8 : 4;
   const array = Array.isArray(value);

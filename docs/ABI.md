@@ -123,6 +123,13 @@ fixed-size, unshared memory. `pages` defaults to 1; one page is 65,536 bytes.
 `initial` and `maximum` are equal, and calls never grow memory. The runtime exposes
 capacity/high-water counters, not its instance or memory.
 
+Bytes inputs retain the existing Uint8Array classification, but must be genuine
+typed views rather than proxies or plain prototype impostors. One intrinsic
+element count determines input reservation, copying and wire slots. Shadowed
+`length`, `byteLength`, `buffer` or offset properties do not provide size authority
+and their getters are not invoked. See [byte input integrity](BYTES-INPUT-INTEGRITY.md)
+for the reproduced defect, ownership/capacity argument and explicit limitations.
+
 Inputs are copied into a reusable frame. Outputs are copied into independently
 owned JS values before the entire arena is zeroed and reset in `finally`, including
 after traps or host exceptions. An earlier result therefore survives later calls.
