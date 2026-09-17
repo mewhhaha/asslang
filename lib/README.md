@@ -41,3 +41,11 @@ These helpers are source definitions, not new compiler primitives.
 the source prelude; core-only clients must explicitly link `lib/prelude.ass`.
 [Streaming sensitivities](../docs/MACHINE-SENSITIVITY.md) explains directional
 inputs, tangent checkpoints and the supported per-event AD subset.
+
+## Contiguous range focus
+
+`views.ass` composes two checked splits into `{before, focus, after}` and derives
+`map_range` by rejoining the nested cut covers in order. The edit therefore keeps
+the original event domain for ordinary `zip` without adding a slice builtin or
+intermediate guest array. Link it explicitly and see
+[source-defined range focus](../docs/RANGE-VIEWS.md) for bounds, demand and provenance.

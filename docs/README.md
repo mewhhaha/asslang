@@ -35,7 +35,8 @@ operations into ordinary source, and explains which semantic boundaries stay nat
 ## No-buffer array composition
 
 [Split and rejoin views](ARRAY-VIEWS.md) carry cut-cover alignment through maps,
-then feed zips and scans without intermediate guest arrays.
+then feed zips and scans without intermediate guest arrays. [Source range focus](RANGE-VIEWS.md)
+packages nested cuts into reusable contiguous edits while retaining the same witnesses.
 
 ## Ordering by several priorities
 

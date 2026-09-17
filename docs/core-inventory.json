@@ -150,6 +150,10 @@
       "purpose": "Products/adaptors, means, any/all, threshold and stopping policies."
     },
     {
+      "path": "lib/views.ass",
+      "purpose": "Contiguous split focus and aligned range edits derived from checked cut-cover views."
+    },
+    {
       "path": "lib/windows.ass",
       "purpose": "Complete overlapping read-only neighborhoods over checked views."
     },

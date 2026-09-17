@@ -1,0 +1,14 @@
+// Contiguous indexed focus built only from checked split/rejoin views.
+// start and length use split_at's exact integer bounds; there is no clamping.
+fn split_range = xs -> start -> length -> do {
+  let {left: before, right: tail} = split_at xs start;
+  let {left: focus, right: after} = split_at tail length;
+  {before, focus, after}
+};
+
+// Edit one contiguous range while restoring the source event domain.
+// The mapper is endomorphic so untouched prefix/suffix can be rejoined.
+fn map_range = xs -> start -> length -> f -> do {
+  let {before, focus, after} = split_range xs start length;
+  concat before (concat (map focus f) after)
+};

@@ -20,8 +20,8 @@ cut must be inside the first cut's right side, and the joins must rebuild the
 inner cover before the outer cover. Equal lengths alone cannot recover Asslang's
 event domain.
 
-Add an explicitly linked source library `lib/views.ass` with two ordinary
-functions:
+The implementation uses an explicitly linked source library `lib/views.ass` with
+two ordinary functions:
 
 ```text
 split_range : [a] -> Num -> Num -> {before:[a], focus:[a], after:[a]}
@@ -93,10 +93,9 @@ alias escapes to JavaScript. User callbacks retain their own scalar, loop, guard
 and staging costs. Existing 64-segment / 64-view nesting bounds and global
 parser/inference/staging limits remain unchanged.
 
-No core-inventory callable moves layers. The implementation commit should list
-`lib/views.ass` among source libraries so the audit documents where the abstraction
-lives; `split_at`, `concat`, `map`, and the cut-cover verifier remain the trusted
-mechanisms.
+No core-inventory callable moves layers. The inventory lists `lib/views.ass` among
+source libraries so the audit documents where the abstraction lives; `split_at`,
+`concat`, `map`, and the cut-cover verifier remain the trusted mechanisms.
 
 ## Correctness argument
 

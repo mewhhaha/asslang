@@ -73,6 +73,8 @@
     "test:lexicographic-keys": "node --test test/lexicographic-keys.test.mjs",
     "example:array-views": "node examples/interop/array-views.mjs",
     "test:array-views": "node --test test/array-views.test.mjs",
+    "test:range-views": "node --test test/range-views.test.mjs",
+    "example:range-views": "node examples/interop/range-views.mjs",
     "test:chunk-views": "node --test test/chunk-views.test.mjs",
     "example:chunk-views": "node examples/interop/chunk-views.mjs",
     "test:chunk-composition": "node --test test/chunk-composition.test.mjs",
