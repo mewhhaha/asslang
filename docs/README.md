@@ -114,6 +114,8 @@ with buffer-free local scan flattening, while preserving existing guard/work pol
 
 [Neighborhood maps](WINDOW-MAPS.md) use overlapping read-only views for smoothing,
 correlation and local summaries without a window matrix or a new compiler primitive.
+[Window origins](WINDOW-ORIGINS.md) expose each existing window's ordinal and source
+start to source callbacks without constructing and checked-zipping a second position stream.
 [Window/chunk integration](WINDOW-CHUNK-INTEGRATION.md) records their combined
 contracts, regression checks, and reconciliation after the chunk-scan merge.
 
