@@ -86,8 +86,8 @@ These are explicit models and generated protocols, not inferred laws about arbit
 ## Native finite ordering
 
 [Stable ordering and scratch ownership](NATIVE-ORDERING.md) describes `sort_by`,
-strict finite materialization, new event provenance, and the opt-in ASABI 2
-scratch convention. Existing non-sorting modules stay ASABI 1.
+strict finite materialization, new provenance, cached keys and disjoint scratch.
+Existing non-sorting modules stay ASABI 1.
 
 ## Language design experiments
 
@@ -100,7 +100,8 @@ proposed; the subsequent native `sort_by` substrate is documented separately abo
 Follow [AGENTS.md](../AGENTS.md): document semantics and invariants before changing
 implementation, then reconcile the documents with actual tests. See the
 [architecture](IMPLEMENTATION.md), [related work](RELATED-WORK.md), and
-[publication provenance](PROVENANCE.md).
+[publication provenance](PROVENANCE.md). The [automation development journal](automation-progress.md)
+records bounded direct-main passes separately from revision-specific validation reports.
 
 [Validation reports](EVIDENCE.md) preserve what was actually measured at particular
 revisions. Old benchmark files and `history/` are historical evidence, not current

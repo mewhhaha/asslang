@@ -18,14 +18,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 099437ccfda8bc9ce8555a32d31e5cb011cb7f56
+          ref: 8db07b13aff90ede7db084fae540ac9b7897847e
           persist-credentials: false
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Full Node suite
-        run: npm test | tee node-tests.tap
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test | tee node-tests.tap
       - name: Required examples
         run: |
           npm run example:host
