@@ -313,3 +313,46 @@ limitations are in `docs/BYTES-INPUT-INTEGRITY-VALIDATION.md`.
 Next useful direction: normalize detached/invalid typed-view diagnostics across
 Num and Bytes only if it can preserve current realm/proxy authority and ownership
 boundaries; otherwise prefer the next bounded source-level composition gap.
+
+
+## 2026-09-17 — Typed-view input validity
+
+Base main: `e82260f398ddcc69164439ec95a475e40bd8e2ba`, tree
+`d467984f3251d0b155c2c77f7afce0dbfac3e7c7`, reconstructed exactly from successful
+CI artifact 10503998005. No pull request was open. This pass follows the previous
+byte-integrity priority by normalizing detached and resizable-buffer out-of-bounds
+`Uint8Array` / `Float64Array` inputs before arena allocation.
+
+Before, genuine but invalid typed views reached the intrinsic copy and leaked a
+native `TypeError`; the numeric path could align the arena first, and a numeric
+proxy could execute `getPrototypeOf` during classification. After, one captured
+non-generic `%TypedArray%.prototype.at` preflight validates backing storage, then
+the existing intrinsic length drives reservation and copy. Invalid views become
+`ABIError` / `E_ABI_VALUE`; valid empty views, subviews, subclasses, Node Buffer,
+prepared ownership and capability sequencing remain intact. No source syntax,
+compiler primitive, JTE/Wasm rule, ASABI version/layout, guest allocation,
+dependency or limit changed.
+
+Theory object: `3e756b5c804dcc7922ebb7d5db9a981c9a85cbf9`. Implementation object:
+`7b098726dbfc17f2ecca506999b5aaf640cd6ec7`, tree
+`23955a5095cabbe10281b9df986cf49efb6a625d`, exactly matching the tested local
+implementation tree. ECMA-262 typed-array `at`, out-of-bounds validation and
+`ArrayBuffer.isView` were checked as primary standards sources; no novelty claim.
+
+Fresh implementation checks on Node 22.16.0: old adapter with new regressions
+2 pass/6 fail; fix 8/8; focused typed-view/Bytes/ABI/ergonomics/lease/effects
+77/77; full Node suite 1,830/1,830; docs 26/26; required host/reducer/case-study
+examples and core/prelude/operator audits passed. Chromium 144 passed 2,454 core
+checks plus 276 experiment checks / 138 cases. HTTP navigation was attempted but
+blocked with `net::ERR_BLOCKED_BY_ADMINISTRATOR`; no bypass.
+
+Twenty-four representative old/new Wasm, ABI, JTE certificate and non-timing-stat
+comparisons match across eight lowering modes. A rejected detached numeric view
+uses zero arena bytes from a fresh runtime; valid three-element Bytes and f64 inputs
+measure 3 and 24 payload bytes respectively, with ASABI 1, one reduction loop and
+zero intermediate-buffer bytes. No timing claim. Full details and limitations are
+in `docs/TYPED-VIEW-INPUTS-VALIDATION.md`.
+
+Next useful direction: return to a source-level composition gap or bounded type
+programming rather than expanding host-boundary work unless another concrete ABI
+correctness defect is reproduced.
