@@ -158,4 +158,37 @@ all floating-point inputs, or compiler correctness.
 
 ## Executed evidence
 
-Not yet executed for this design revision.
+The implementation candidate `06710f2d8711f6b2c5f6bec7db10e3a30eaffd4f` was
+reconstructed locally from the retained validation archive for base main
+`cde8ed35415f894180fbb6557a75d4dec2b42d95`; Git blob hashes for every changed
+implementation/test/example/index file matched the blobs used to build that GitHub
+commit. Node 22.16.0 executed the following checks before main was advanced:
+
+- `node --test test/structured-optimization.test.mjs`: **10/10 passed**. The four
+  clipping-focused tests cover eight SIMD/fusion/memoization configurations, an
+  independent JS `Math.hypot` oracle for a 6-8-10 gradient, exact-bound lazy
+  non-demand of a trapping `scale`, zero and negative bounds, unused generic/type
+  failures with `app.ass` locations, direct source-expansion byte equality, and a
+  renamed library.
+- `npm test`: **1,792/1,792 passed**, with zero failures, skips or cancellations.
+- `npm run example:host`, `npm run example:reducers`, and
+  `npm run example:case-studies`: passed.
+- `examples/interop/structured-optimization.mjs`: passed. Its clipped nested product
+  changed `{gain:1,model:{bias:1,slope:2}}` to
+  `{gain:0.7,model:{bias:1,slope:1.6}}`; the existing two-step momentum oracle also
+  passed. The combined module is ASABI 1, **5,272 bytes**, with **0 loops** and
+  **0 intermediate buffer bytes** for the reported export statistics.
+- `npm run audit:core`, `npm run check:prelude`, and `npm run check:operators`: passed.
+  The callable inventory remains 37 public names / 33 compiler primitives / 4
+  source-prelude functions; clipping is only an explicitly linked source-library
+  function.
+- `npm run test:docs`: **26/26 passed**.
+- `npm run test:browser -- --output ...`: local headless Chromium 144 reported
+  **2,450 core checks passed** and the experiment bundle reported **276 checks /
+  138 cases passed**. HTTP module loading and playground-worker loading were not
+  exercised by that runner.
+
+The candidate makes no timing claim. The zero-loop/zero-intermediate result is one
+finite scalar-graph example, not a guarantee for arbitrary objectives or custom
+dictionaries. Finite tests do not prove vector-space laws, numerical robustness for
+all non-finite inputs, or compiler correctness.

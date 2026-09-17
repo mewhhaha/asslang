@@ -87,3 +87,61 @@ Next useful direction: evaluate whether another algorithm can consume the same
 small dictionary without adding compiler surface, or whether the current dictionary
 should remain intentionally minimal after real source use. Do not add optimizer
 names merely for breadth.
+
+## 2026-09-17 — Source-defined gradient norm clipping
+
+Base main: `cde8ed35415f894180fbb6557a75d4dec2b42d95`. There were no open PRs,
+and the latest main CI run for that base had completed successfully. The previous
+structured-optimization pass was therefore the live starting point.
+
+Problem addressed: `numeric_vector` already exposed `dot`, `scale` and `axpy`, but
+no reusable algorithm consumed all three. Callers that wanted a global gradient
+norm cap had to spell the protocol manually. This pass adds ordinary-source
+`clipped_gradient_step_with` and `product_clipped_gradient_step`; no parser form,
+compiler primitive, scalar/JTE opcode, ABI change, guest allocation, reflection
+registry or default-prelude name was added.
+
+Before:
+
+```ass
+let gradient = grad objective point;
+let norm = sqrt (vector.dot gradient gradient);
+let direction = if norm > maxNorm
+  then vector.scale gradient (maxNorm / norm)
+  else gradient;
+vector.axpy point direction (-rate)
+```
+
+After:
+
+```ass
+product_clipped_gradient_step objective point rate maxNorm
+```
+
+The theory-first commit is `5141944aaaae2692253fb79bf31d88ef5dc46e6c`; the
+implementation/tests/example commit is `06710f2d8711f6b2c5f6bec7db10e3a30eaffd4f`.
+Pascanu, Mikolov and Bengio's arXiv:1211.5063 was checked as prior art for norm
+clipping; no novelty claim is made for that policy. Asslang's contribution in this
+pass is the source-dictionary integration over its existing static numeric products
+and AD graph.
+
+Fresh local validation used Node 22.16.0: 10/10 focused optimization tests and
+1,792/1,792 full Node tests passed; required host/reducer/case-study examples, the
+structured optimizer driver, core audit, prelude snapshot, operator snapshot and
+26/26 documentation tests passed. Headless Chromium 144 passed 2,450 core checks;
+the experiment bundle passed 276 checks / 138 cases. The structured example stayed
+ASABI 1 and reported 5,272 Wasm bytes, zero loops and zero intermediate buffer
+bytes. HTTP module and playground-worker loading were not exercised. No timing
+benchmark was run.
+
+The clipping branch is strict (`norm > maxNorm`), a negative bound traps through
+`require`, an exact/under-bound gradient does not demand `scale`, and zero is a
+valid cap without a hidden epsilon. NaN/infinite gradients are not sanitized; the
+existing IEEE behavior remains visible. Product shape limits remain 128 leaves,
+16 record levels and 4,096 shape nodes. Tests are regression evidence, not formal
+proofs of algebraic laws or all floating-point cases.
+
+Next useful direction: use the same small vector dictionary for a materially
+different algorithm only if it exposes a real composition gap; otherwise shift
+attention back to array/view ergonomics or bounded compile-time programming rather
+than accumulating optimizer names.
