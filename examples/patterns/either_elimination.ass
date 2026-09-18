@@ -1,0 +1,8 @@
+// Left and right payloads have unrelated shapes; no placeholder field is needed.
+fn classify = x -> if x >= 0 then either_right x else either_left {magnitude: -x};
+
+export fn main = (x:Num) ->
+  either_match
+    (error -> 0-error.magnitude)
+    (value -> value*value+1)
+    (classify x);
