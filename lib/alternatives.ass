@@ -1,0 +1,22 @@
+// Kernel-local alternatives encoded by their eliminator.
+// Link explicitly. Encoded values are staged callables and cannot cross ASABI.
+fn either_left = value -> onLeft -> onRight -> onLeft value;
+fn either_right = value -> onLeft -> onRight -> onRight value;
+fn either_match = onLeft -> onRight -> alternative -> alternative onLeft onRight;
+fn either_map_left = f -> alternative ->
+  either_match (value -> either_left (f value)) (value -> either_right value) alternative;
+fn either_map_right = f -> alternative ->
+  either_match (value -> either_left value) (value -> either_right (f value)) alternative;
+fn either_bimap = leftMap -> rightMap -> alternative ->
+  either_match
+    (value -> either_left (leftMap value))
+    (value -> either_right (rightMap value))
+    alternative;
+
+// Maybe A is Either () A. None carries only unit, never a dummy A.
+fn maybe_some = value -> either_right value;
+fn maybe_none = () -> either_left ();
+fn maybe_match = onNone -> onSome -> maybe -> either_match onNone onSome maybe;
+fn maybe_map = f -> maybe -> either_map_right f maybe;
+fn maybe_default = fallback -> maybe ->
+  maybe_match (unit -> fallback) (value -> value) maybe;
