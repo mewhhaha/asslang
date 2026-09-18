@@ -1,0 +1,5 @@
+// None carries unit instead of a fake numeric success payload.
+export fn main = (x:Num) -> (present:Bool) -> do {
+  let maybe = if present then maybe_some x else maybe_none ();
+  maybe_default (-1) (maybe_map (value -> value*value) maybe)
+};
