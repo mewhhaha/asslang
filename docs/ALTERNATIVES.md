@@ -1,54 +1,35 @@
-# Source-defined alternatives without placeholder payloads
+# Source-defined kernel-local alternatives
 
 [Documentation](README.md) · [Syntax](SYNTAX.md) · [Implementation](IMPLEMENTATION.md)
 
-## Problem and acceptance criteria
+## Problem
 
-The existing `lib/patterns.ass` Option/Result examples use a Boolean tag plus a
-payload slot. That representation is useful at the concrete ABI, but it makes a
-kernel-local `None` or error carry a dummy value of the success type:
+Existing `lib/patterns.ass` Option/Result examples use a Boolean plus payload fields.
+That concrete record encoding is useful at ABI/storage boundaries, but a local
+`None` must carry a dummy success payload and a local error must carry fields for
+the success branch. The placeholder is not data and becomes especially awkward
+when the two branches have unrelated shapes or staged functions.
+
+Before:
 
 ```ass
 let choice = if present then option_some x else option_none 0;
 option_default (-1) (option_map (value -> value*value) choice)
 ```
 
-The `0` is not data; it exists only so both records have one structural type. The
-same pressure makes errors carry placeholder success values and successes carry
-placeholder error fields. This becomes especially awkward when the two branches
-have unrelated shapes or one branch contains a staged callable.
-
-This pass should provide one ordinary-source alternative abstraction with these
-acceptance criteria:
-
-1. left and right payloads may have different Asslang types and neither constructor
-   requires a payload for the other branch;
-2. elimination is explicit and exhaustive at each use site: callers provide one
-   handler for each branch, and both handlers are statically checked even when the
-   runtime condition selects only one;
-3. unselected handler *runtime* work is not demanded, including guards, stream
-   seeds, causal state and host effects already protected by the language's normal
-   demand/effect rules;
-4. mapping either side and a `Maybe` specialization are derived in source, with no
-   parser form, compiler builtin, runtime tag table, guest allocation or ABI change;
-5. the abstraction remains honest about its boundary: encoded alternatives are
-   staged callables and must be eliminated before a concrete ABI or stream element
-   boundary. This is not a first-class stored tagged-union representation.
-
-Readable source after the change should be:
+After explicit linkage of `lib/alternatives.ass`:
 
 ```ass
 let choice = if present then maybe_some x else maybe_none ();
 maybe_default (-1) (maybe_map (value -> value*value) choice)
 ```
 
-For two meaningful payloads, `either_left error` and `either_right value` should
-compose with `either_match onError onValue` without inventing a common record.
+The bounded goal is kernel-local choice without dummy payloads. It is not a new
+storable algebraic-data representation.
 
 ## Semantics
 
-Use an eliminator encoding. A left value is a staged function that accepts both
-handlers and invokes the left one; a right value invokes the right one:
+The library uses an eliminator encoding:
 
 ```text
 left a   = onLeft -> onRight -> onLeft a
@@ -56,143 +37,105 @@ right b  = onLeft -> onRight -> onRight b
 match l r choice = choice l r
 ```
 
-In type notation, an individual use has the shape
-`Either A B ~ (A -> R) -> (B -> R) -> R`. Asslang's ordinary Hindley–Milner
-inference supplies the type variables; the library adds no explicit universal
-syntax. A let-bound constructor result can generalize result variables under the
-existing value/environment rules. Handler result types must unify, exactly as the
-result arms of an ordinary conditional must unify.
+`either_left`, `either_right`, `either_match`, left/right maps and `either_bimap`
+are ordinary source functions. `Maybe A` is the convention `Either () A`, exposed
+through `maybe_some`, `maybe_none`, `maybe_match`, `maybe_map` and `maybe_default`.
+No Boolean is treated as proof or authority.
 
-`either_map_left`, `either_map_right` and `either_bimap` reconstruct the same
-eliminator after transforming the selected payload. `Maybe A` is the convention
-`Either () A`: `maybe_none ()` is the left branch and `maybe_some value` is the
-right branch. `maybe_match`, `maybe_map` and `maybe_default` are ordinary source
-specializations.
+For a *particular elimination*, the familiar Church-sum shape is
+`(A -> R) -> (B -> R) -> R`. Asslang currently has rank-1 Hindley–Milner inference,
+not higher-rank universal values. Therefore the encoded value is not a genuine
+first-class `Either A B` whose hidden result type can be instantiated independently
+at every elimination. A dynamic `if` choosing left or right unifies the callable
+shapes and ties both handler results to one `R`. A statically known constructor may
+erase the unused handler's result constraint after staging. Tests record both facts.
 
-No Boolean is treated as proof or authority. A runtime `if` that chooses between
-encoded alternatives is still an ordinary conditional. During staging, callable
-choice is represented by the compiler's existing conditional callable plan. When
-it is later applied to handlers, the normal staged call path checks both handler
-bodies and carries the runtime condition into the selected result. The library
-cannot forge JTE alignment, capabilities, effect permission or causal access.
+This limitation is deliberate and visible. The library is useful when a choice is
+constructed and eliminated inside one compiled kernel. It is not a substitute for
+a future native tagged-sum type needed by arrays, persistent storage or the ABI.
 
-## Invariants and proof obligations
+## Invariants
 
-For pure handlers `l` and `r`, beta-reduction gives the constructor laws:
+For total pure handlers, ordinary beta reduction gives:
 
 ```text
 match l r (left a)  = l a
 match l r (right b) = r b
 ```
 
-The three mapping helpers should satisfy those two cases by the same reductions;
-finite tests are regression evidence, not a mechanized proof. Nested alternatives
-must not collapse their payload types or require a runtime registry.
+The mapping helpers follow by the same two constructor cases. These equations are
+structural arguments, not a mechanized proof; emitted-Wasm tests provide finite
+regression evidence.
 
-Lexical scope and hygiene are inherited from ordinary closures. Both handlers are
-type-checked because they are source expressions passed to the eliminator; a bad
-handler in an unused definition must still be rejected by ordinary inference.
-Runtime demand is separate: only the selected result of a dynamic callable choice
-may be demanded. Tests must include a trapping guard in each branch to distinguish
-static checking from runtime branch demand.
+Lexical scope and hygiene are those of ordinary closures. Dynamic alternatives
+still type-check both handlers. Runtime demand is separate: only the selected
+handler result is demanded, so an unselected `require`, scan seed, causal state or
+host effect remains unperformed according to the existing language rules. The
+library cannot create JTE alignment, capability authority or causal access.
 
-The abstraction must not change floating-point operators, signed-zero/NaN rules,
-AD activity checks, JTE provenance, scan seeds, stopping folds, effect sequencing,
-prepared-call ownership, scratch lifetime or output ownership. It has no mechanism
-to do so: all payload computations remain existing staged values and all execution
-uses existing Wasm lowering.
+The abstraction does not change floating-point ordering, signed-zero/NaN rules,
+AD activity checks, scan/fold stopping, prepared-call disposal, scratch ownership
+or post-trap recovery. It has no compiler hook by which to do so.
 
-## Representation, lowering and resources
+## Representation and lowering
 
-`lib/alternatives.ass` will contain only ordinary canonical source. Constructors
-produce compiler-staged closures; dynamic selection uses the existing
-`callable_choice` representation already needed for conditionals between
-callables. Elimination specializes those closures before the concrete emitter.
-There is no guest tag byte, payload buffer, closure object, descriptor table or
-host-language substitute for the emitted computation.
+`lib/alternatives.ass` is canonical Asslang source only. Constructors stage to
+ordinary closures. A runtime conditional between constructors reuses the existing
+conditional callable plan; elimination specializes the chosen callable before the
+concrete emitter. There is no runtime tag byte, closure object, payload registry,
+host-language interpreter, guest allocation, parser form or callable primitive.
 
-Compile-time work is the normal parsing, inference and staging of the helper
-source and its instantiated function bodies, charged to the existing syntax,
-type and `maxExpansion` limits. Runtime work is precisely the selected payload and
-handler work after ordinary optimization; a scalar example can therefore have no
-loop or guest memory, but this document makes no general constant-work claim.
-Arrays returned by a selected handler still require normal output storage and
-loops; sorting still owns explicit scratch; effects remain direct `perform` calls.
-No limit is raised.
-
-Because functions cannot cross ASABI, an exported encoded alternative must remain
-an `E_ABI` error. Likewise a stream of encoded alternatives is outside the current
-concrete stream ABI. Adding a storable tagged representation would be a distinct
-language/ABI design with layout, ownership, demand and nested-value obligations.
-This pass intentionally does not smuggle such a representation through records.
+Functions cannot cross ASABI, so an exported encoded alternative is rejected with
+`E_ABI`; a stream element that remains callable is likewise not representable.
+Arrays returned *after* elimination still use normal output memory and loops. The
+compiler charges parsing, inference and staged expansion to existing limits. No
+limit is raised.
 
 ## Alternatives considered
 
-**Keep Boolean-plus-placeholder records.** They remain useful when a value must
-cross today's concrete ABI, and existing examples stay compatible. They do not
-solve the kernel-local dummy-payload problem, so they remain a separate structural
-encoding rather than being silently reinterpreted.
+**Keep Boolean-plus-placeholder records.** Retained for concrete ABI/storage uses;
+it does not solve the local dummy-payload problem.
 
-**Add native `variant` syntax and a tagged ABI now.** This would give first-class
-storage, but it immediately requires row/sum inference, exhaustiveness,
-representation tags, nested ABI layouts, arrays of variants, AD rules and demand
-semantics. That is too large for the reproduced authoring problem. The source
-encoding earns experience with elimination before extending the trusted core.
+**Add native tagged variants now.** Rejected for this pass. A real sum requires
+sum inference, exhaustive elimination, a concrete tag/payload layout, nested ABI
+rules, arrays of variants, AD/demand rules and explicit ownership. Those obligations
+should be justified by concrete storage or stream use cases rather than hidden in
+this small library feature.
 
-**Use `{tag, left, right}` with two placeholders.** This only doubles the original
-problem and risks confusing an ordinary Boolean/number with authority or proof.
+**Use `{tag,left,right}`.** Rejected because it preserves both placeholders and can
+invite treating a scalar tag as authority.
 
-**Use host JavaScript objects/functions.** Rejected. The language must execute its
-payload and handlers through the existing compiler and emitted WebAssembly, not a
-host interpreter advertised as a native language feature.
+**Use host JavaScript values.** Rejected; values and handlers must compile to the
+existing WebAssembly path.
 
-## Prior art and integration claim
+## Prior art and project-specific integration
 
-Böhm and Berarducci's 1985 work shows that typed lambda calculus can represent
-term-algebra elements and iterative functions through typed lambda programs; it is
-established prior art for representing data by eliminators rather than by a new
-runtime data constructor. The paper is *Automatic Synthesis of Typed
-Lambda-Programs on Term Algebras*, Theoretical Computer Science 39, 135–154,
-DOI 10.1016/0304-3975(85)90135-5. This pass claims no novelty for encoded sums.
+Böhm and Berarducci, *Automatic Synthesis of Typed Lambda-Programs on Term
+Algebras*, Theoretical Computer Science 39 (1985), 135–154,
+DOI `10.1016/0304-3975(85)90135-5`, is established prior art for representing
+algebraic data by typed lambda eliminators. The University of Pisa publication
+record was checked on 2026-09-18. No novelty claim is made.
 
-Asslang's proposed integration is narrower: exploit its already-staged closures,
-conditionals and let-polymorphism so a source library can remove dummy branch
-payloads while retaining the current no-closure ABI. The useful project-specific
-observation is conditional: if the existing callable-choice lowering preserves
-static checking and selected-branch demand for these eliminators, no new compiler
-primitive is justified for this kernel-local use case.
+The project-specific result is narrower: Asslang's existing staged closures and
+conditional callable lowering are sufficient to remove dummy payloads for one
+kernel-local class of choices without widening the compiler core, while rank-1
+inference sharply identifies where that encoding stops.
 
-Primary source checked September 18, 2026:
+## Validation obligations
 
-- Corrado Böhm and Alessandro Berarducci, 1985, DOI
-  `10.1016/0304-3975(85)90135-5`; the University of Pisa publication record gives
-  the abstract, bibliographic data and journal DOI.
+Publication requires:
 
-## Validation plan
+- direct emitted-Wasm cases for unrelated payload types, `Maybe`, maps and bimap
+  in all eight SIMD × reduction-fusion × memoization configurations;
+- seeded independent value oracles and constructor/mapping law checks;
+- rejection of invalid dynamic handler combinations, unused-definition errors and
+  ABI escapes with source locations;
+- trapping guards proving selected-branch demand and post-trap reuse;
+- byte/ABI/JTE comparison against explicit eliminator expansions and a renamed
+  library to demonstrate absence of name-sensitive compiler hooks;
+- an array-producing handler with exact output capacity and loop budgets;
+- two registered examples and an executable driver;
+- full Node, host/reducer/case-study, documentation, core/prelude/operator and
+  browser-engine checks, with HTTP loading reported separately.
 
-Before publication:
-
-- run direct Wasm examples for unrelated left/right payload shapes, `Maybe`, maps,
-  nested alternatives and polymorphic let-bound values in all eight SIMD ×
-  reduction-fusion × memoization configurations;
-- compare values with an independent JavaScript oracle over a seeded family and
-  check the two constructor laws plus mapping cases structurally;
-- reject mismatched handler result types, invalid branch payload uses in unused
-  definitions and encoded alternatives at ABI boundaries, with stable source
-  locations;
-- place trapping `require` work in opposite handlers to prove selected runtime
-  demand while retaining static checking of both;
-- compare representative helper calls with explicit source expansions, including
-  emitted Wasm/ABI/JTE artifacts where the existing compiler makes equality a
-  meaningful compatibility claim;
-- register at least two materially different `.ass` examples, execute their
-  documented snippets and add browser-engine coverage;
-- measure emitted Wasm, loops, output/intermediate storage and compiler staging
-  work for the runnable examples without making timing or asymptotic claims;
-- run `npm test`, `npm run example:host`, `npm run example:reducers`, documentation,
-  core/prelude/operator audits and the supported browser suite. HTTP loading is a
-  separate check and must remain reported separately if policy-blocked.
-
-If these checks expose eager unselected branch work, lost lexical constraints or
-an ABI escape, keep the experiment out of main rather than weakening those
-invariants.
+See [the executed validation](ALTERNATIVES-VALIDATION.md).

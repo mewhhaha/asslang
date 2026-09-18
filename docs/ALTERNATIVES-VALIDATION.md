@@ -1,143 +1,118 @@
-# Source-defined alternatives: validation checkpoint
+# Kernel-local alternatives: validation checkpoint
 
 [Contract](ALTERNATIVES.md) · [Implementation](IMPLEMENTATION.md)
 
-## Provenance and publication status — September 18, 2026
+## Provenance and status — September 18, 2026
 
-This is a **blocked checkpoint, not a publication validation report**. Fresh GitHub
-reads found main at `93ee7f253b00c470a56b27091bb278764700c98f`, tree
-`6e6c53b476592e88abdaeb84887bb0018bb3cc65`, with no open pull requests and a
-successful exact-main GitHub Actions run `35270399166`. Its retained artifact
-`10518349029` contains `validation-source.tar`; extracting it and writing a local
-Git tree reproduced `6e6c53b476592e88abdaeb84887bb0018bb3cc65` exactly.
-No old workspace was reused.
+Fresh GitHub reads found `main` at
+`93ee7f253b00c470a56b27091bb278764700c98f`, tree
+`6e6c53b476592e88abdaeb84887bb0018bb3cc65`, with no open pull requests. PR #42
+is merged. GitHub Actions run `35270399166` is successful for that exact main.
+Its retained artifact `10518349029` supplied `validation-source.tar`; a fresh local
+Git index reproduced the main tree SHA exactly before this candidate was rebuilt.
+No older working directory was trusted.
 
-The theory-first remote commit object is
-`5808075050192200e2146aaa7fa61c1755b34be4`, tree
-`430dd505b21a10d613c35af7807c493b5c013763`. It is parented directly on the live
-main commit but main was not advanced. The durable handoff branch is
-`automation/source-alternatives-checkpoint-20260918`. It retains the theory,
-source library, focused regression suite and executable examples, but intentionally
-is not a publishable replacement for the fully integrated local candidate because
-the required unsuffixed `npm test` command could not complete in this execution
-environment. Per repository policy, partial test output is not relabeled as a pass
-and the implementation is not published to main.
+This change resumes the durable branch
+`automation/source-alternatives-checkpoint-20260918`. The branch already preserved
+the theory-first design and source experiment after an earlier local full-suite
+blocker. This pass reconciled the design with the discovered rank-1 inference limit,
+registered the examples, documented the source-library/core boundary and reran the
+available checks from the exact reconstructed main source.
 
-## What was implemented
+This remains a **checkpoint, not a main publication** because the repository's
+required unsuffixed `npm test` command did not complete in the available execution
+environment. Main must not be advanced until that exact check reaches its final TAP
+summary on the same candidate content.
 
-`lib/alternatives.ass` adds ordinary-source `either_left`, `either_right`,
-`either_match`, maps/bimap, and a `Maybe` specialization. A dynamic conditional may
-select constructors with unrelated payload types, and later elimination supplies
-one handler per branch. This removes placeholder success/error payloads from
-kernel-local programs while reusing the compiler's existing staged callable-choice
-lowering. There is no parser form, compiler primitive, runtime tag table, guest
-closure allocation or ABI change; the core remains 33 compiler primitives plus
-four source-prelude functions.
+## Implemented behavior
 
-The fully integrated local candidate also registered both examples in the expanded
-corpus, added npm scripts, documented the library in the core inventory and docs
-index/implementation guide, and appended the automation journal. Its exact local
-Git tree was `b35959eea3a9900cf346c337eb67610b811d1fa3`. Those integration edits are not
-claimed to be present on this checkpoint branch; they must be reconstructed and
-revalidated rather than treated as published source.
+`lib/alternatives.ass` provides source-only `either_left`, `either_right`,
+`either_match`, left/right maps, `either_bimap`, and a `Maybe` specialization.
+Runtime selection may carry unrelated payload types without a fake payload for the
+other branch, provided the dynamic elimination has one shared handler result type.
+The implementation reuses ordinary staged closures and the existing conditional
+callable lowering. There is no parser form, compiler primitive, runtime tag table,
+guest closure allocation or ABI change; the audited callable core remains 33
+compiler primitives plus four source-prelude functions.
 
-Experimentation found an important limit and the design must be read with this
-correction: Asslang's rank-1 Hindley–Milner inference cannot express the inner
-universal result type of a Church sum. A dynamic left/right conditional unifies the
-callable shapes and therefore ties both handler results. A statically known
-`either_left`, however, can leave the ignored right handler's result type
-unconstrained. The library is therefore an eliminator-encoded kernel-local choice,
-**not** a genuine algebraic sum type and not a substitute for a future native
-tagged representation.
+The important limit is explicit: rank-1 inference does not make the Church result
+parameter universally hidden inside a first-class `Either A B`. A statically known
+constructor may erase the ignored handler's result constraint. Encoded alternatives
+must be eliminated before ASABI or stream-element boundaries. This is a useful
+kernel-local abstraction, not a genuine stored algebraic sum type.
 
-## Fresh checks that completed on the integrated candidate
+## Fresh completed checks
 
-Environment: Node v22.16.0, npm 10.9.2, Linux x64, Chromium
-144.0.7559.96. No compiler limit, assertion or language contract was weakened.
+Environment: Node v22.16.0, npm 10.9.2, Linux x64, Chromium 144.0.7559.96.
+No compiler limit, assertion or production contract was relaxed.
 
-| Command / check | Result |
+| Command / check | Fresh result |
 | --- | --- |
 | `npm run test:alternatives` | 8/8 passed |
-| `node --test test/expanded-corpus.test.mjs` | 108/108 passed, including both new examples in four scalar/SIMD × fusion modes |
-| `npm run example:alternatives` | Passed; outputs and resource observations below |
+| `node --test test/expanded-corpus.test.mjs` | 108/108 passed, including both registered examples in four scalar/SIMD × fusion modes |
+| `npm run example:alternatives` | Passed |
 | `npm run example:host` | Passed |
 | `npm run example:reducers` | Passed |
-| `npm run example:case-studies` | Passed, including both registered alternatives examples in scalar/SIMD runs |
-| `npm run test:docs` | 26/26 passed on the final local checkpoint tree |
-| `npm run audit:core` | Passed; 33 compiler primitives + four source-prelude callables unchanged |
+| `npm run example:case-studies` | Passed |
+| `npm run build:example` | Passed; standard `energy.ass` CLI build still emits and explains Wasm |
+| `npm run test:docs` | 26/26 passed |
+| `npm run audit:core` | Passed; 33 compiler primitives + four source-prelude functions |
 | `npm run check:prelude` | Passed |
 | `npm run check:operators` | Passed |
-| `npm run test:browser -- --output .../browser.json` | PASS: 2,622 core checks + 276 experiment checks / 138 experiment cases |
-| `npm run test:browser:http` | Attempted; failed with `net::ERR_BLOCKED_BY_ADMINISTRATOR` |
+| `npm run test:browser -- --output /mnt/data/alternatives-browser.json` | PASS: 2,622 core checks + 276 experiment checks / 138 experiment cases |
+| `npm run test:browser:http` | Attempted; `net::ERR_BLOCKED_BY_ADMINISTRATOR` |
 
-The focused suite exercises all eight SIMD × reduction-fusion × memoization
-configurations. It checks unrelated branch payloads, `Maybe`, maps/bimap, 64 seeded
-oracle cases per mode, constructor/mapping reductions, selected-branch guard demand,
-post-trap reuse, dynamic type mismatches inside unused definitions, source names and
-offsets, ABI rejection, helper renaming, byte-identical explicit expansions, array
-output capacity and exact loop budgets. All executed values come from emitted Wasm
-through `createRuntime`; the JavaScript oracle only supplies expected values.
-
-Across eight modes, a representative helper call and its explicit eliminator
-expansion have identical Wasm bytes, ABI metadata and JTE certificates. Renaming all
-library functions also preserves the emitted Wasm. These finite comparisons are
-compatibility evidence, not a proof of contextual equivalence or parametricity.
+The focused suite executes emitted Wasm through `createRuntime` in all eight SIMD ×
+reduction-fusion × memoization configurations. It includes a seeded 64-case value
+family per mode, constructor/mapping laws, dynamic handler type rejections in unused
+definitions with source locations, selected-handler guard demand and post-trap reuse,
+ABI escape rejection, explicit-expansion/renaming artifact comparisons, and an
+array-producing handler with exact output-capacity and loop-budget checks.
 
 ## Required full-suite blocker
 
-The exact repository command `npm test` was attempted repeatedly with output
-retained outside the source tree. It did not report an assertion failure, but the
-local Node test runner did not finish before the execution harness limits:
+The exact repository command `npm test` was attempted twice on this candidate:
 
-- a 300-second attempt reached 551 reported passing subtests;
-- a 600-second attempt again reached 551 reported passing subtests;
-- a final 900-second unsuffixed attempt reached 550 reported passing subtests and
-  no `not ok` line before termination;
-- a diagnostic run showed the test parent actively running CPU-heavy theory-test
-  child processes rather than an idle deadlock.
+- a 900-second run reached `ok 1407 - captured effects retain one issued call when
+  used by shared seeds`;
+- a second 1,500-second run again reached that same `ok 1407` and did not advance
+  to the final TAP summary before the execution harness terminated it.
 
-A reduced-affinity experiment was slower and is not counted as validation. Because
-`npm test` did not reach its final TAP summary, there is no full-suite pass for this
-candidate. The successful historical CI for `93ee7f...` validates the base only; it
-is not evidence for these changes. This missing check is the publication blocker.
-No main update or fresh candidate CI is claimed.
+Neither retained log contains a `not ok` line, but partial output is not a pass.
+The successful main CI validates only the base commit. The candidate therefore is
+not eligible to advance `main` in this pass. The HTTP policy failure is reported
+separately and was not bypassed.
 
 ## Resource observations
 
-No timing benchmark was run. The scalar examples have no loops, no intermediate
-buffer and no guest memory at all; their scalar arguments/results stay in the ABI
-value slots.
+No timing or performance claim is made. The scalar executable examples use no guest
+memory, loops or intermediate buffer:
 
 | Resource | distinct-payload Either | Maybe |
 | --- | ---: | ---: |
 | Complete module bytes | 510 | 555 |
 | ABI version | 1 | 1 |
-| Guest memory required | no | no |
-| Runtime loops / state machines | 0 / 0 | 0 / 0 |
+| Runtime loops | 0 | 0 |
 | Intermediate guest bytes | 0 | 0 |
+| Guest memory required | no | no |
 | Scalar graph nodes | 9 | 6 |
-| Wasm locals / logical local value bytes | 9 / 64 | 5 / 36 |
+| Wasm locals / logical local bytes | 9 / 64 | 5 / 36 |
 | Syntax nodes / inference constraints / staging work | 275 / 339 / 123 | 203 / 267 / 158 |
 
-A separate selected-array fixture emits one ordinary loop, zero state machines,
-zero state slots and zero intermediate-buffer bytes. Four `Num` results require
-exactly 32 output bytes; 31 traps. Its exact loop allowance is four visited units;
-three traps. The compiled module is 1,044 bytes and requires guest memory only for
-normal array output. This demonstrates that the eliminator does not hide array
-materialization or work.
+The focused array case still uses one ordinary Wasm loop and normal owned array
+output; it accepts exactly 32 output bytes for four `Num` values, rejects 31, and
+uses the existing loop allowance rather than hiding work in the eliminator.
 
-## Prior art, limits and next action
+## Prior art and next action
 
-Böhm and Berarducci's 1985 typed-lambda encoding of term algebras is prior art for
-eliminator-style representations (DOI `10.1016/0304-3975(85)90135-5`). This pass
-claims no novelty. The project-specific result is narrower: existing staged
-callables can remove dummy payloads for dynamic kernel-local choices without
-widening the compiler core, while rank-1 inference precisely marks where the
-encoding stops short of a genuine sum type.
+Böhm and Berarducci's 1985 typed-lambda encoding of term algebras is established
+prior art (Theoretical Computer Science 39, 135–154,
+DOI `10.1016/0304-3975(85)90135-5`). The University of Pisa publication record was
+rechecked on September 18, 2026. No novelty claim is made.
 
-The checkpoint must not be merged or fast-forwarded to main until a fresh execution
-of the exact full Node suite completes successfully on the same implementation
-content, followed by the exact-tree documentation/audit checks and normal
-fast-forward publication. If that succeeds, the next design question is whether a
-first-class tagged alternative type earns its core/ABI complexity from concrete
-storage or stream use cases rather than from this kernel-local case alone.
+The next action is validation, not new design: rerun the exact unsuffixed `npm test`
+in an environment where it can reach its final TAP summary on this same checkpoint.
+If it passes, rerun the exact-tree docs/audits and supported browser engine, re-read
+main, reconcile any advance, and only then use a normal non-forced fast-forward.
+A future genuine tagged alternative should be justified by concrete storage/stream
+use cases and separately specify sum inference, exhaustiveness and ABI layout.

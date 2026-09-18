@@ -1,0 +1,119 @@
+diff --git a/docs/IMPLEMENTATION.md b/docs/IMPLEMENTATION.md
+index 04bb6bc..b596924 100644
+--- a/docs/IMPLEMENTATION.md
++++ b/docs/IMPLEMENTATION.md
+@@ -163,6 +163,17 @@ array plans without a new runtime type or opcode. See [the contract](TYPE-PROGRA
+ for traversal order, demand, limits and the difference between static shape and
+ dynamic numeric/array work.
+ 
++## Source-defined kernel-local alternatives
++
++`lib/alternatives.ass` derives eliminator-encoded Either/Maybe choices from ordinary
++staged closures. Dynamic constructor choice reuses the existing callable conditional
++plan and elimination specializes before the concrete emitter. This adds no parser
++form, callable primitive, runtime tag object, guest allocation or ABI layout. Rank-1
++inference means the encoding is intentionally kernel-local rather than a genuine
++higher-rank or storable sum type; callable alternatives must be eliminated before
++ASABI or stream-element boundaries. See [the contract](ALTERNATIVES.md) and
++[validation](ALTERNATIVES-VALIDATION.md).
++
+ ## Shape-preserving record updates
+ 
+ Canonical `{base with field:value}` adds one static `record_update` expression,
+diff --git a/docs/README.md b/docs/README.md
+index 135783f..98d4f80 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -26,7 +26,7 @@ operations into ordinary source, and explains which semantic boundaries stay nat
+ | --- | --- |
+ | Syntax and migration | [Unary syntax](SYNTAX.md), [static record symbols](RECORD-SYMBOLS.md), [immutable record updates](RECORD-UPDATES.md). |
+ | Streams and state | [Causality](CAUSAL.md), [JTE alignment](JTE.md), [concept mappings](CONCEPTS.md). |
+-| Composition | [Reducers and linked sources](COMPOSABILITY.md), [staged callables](STAGED-CALLABLES.md). |
++| Composition | [Reducers and linked sources](COMPOSABILITY.md), [staged callables](STAGED-CALLABLES.md), [kernel-local alternatives](ALTERNATIVES.md). |
+ | Host boundaries | [ASABI 1](ABI.md), [explicit effects](EFFECTS.md), [input leases](LEASES.md), [byte input integrity](BYTES-INPUT-INTEGRITY.md), [typed-view validity](TYPED-VIEW-INPUTS.md). |
+ | Resource controls | [Per-invocation loop budgets](LOOP-BUDGETS.md), [compiler limits](IMPLEMENTATION.md#resource-bounds-and-evidence). |
+ | Diagnostics | [Non-executing checks and source locations](DIAGNOSTICS.md). |
+diff --git a/docs/automation-progress.md b/docs/automation-progress.md
+index 4c3bfc6..8b9ce2d 100644
+--- a/docs/automation-progress.md
++++ b/docs/automation-progress.md
+@@ -423,3 +423,38 @@ rather than Boolean-plus-placeholder Option/Result encodings. Bound the type,
+ demand and ABI representation first. General recursion, modules, escaping closures
+ and a managed heap remain separate work; this pass does not announce a complete
+ general-purpose language or substitute host execution for native Wasm.
++
++## 2026-09-18 — Kernel-local alternatives checkpoint resumed
++
++Base main was freshly read as `93ee7f253b00c470a56b27091bb278764700c98f`,
++tree `6e6c53b476592e88abdaeb84887bb0018bb3cc65`; its successful GitHub Actions
++artifact 10518349029 reconstructed that tree exactly in a new workspace. PR #42 is
++merged, no PR is open, and the existing durable branch
++`automation/source-alternatives-checkpoint-20260918` was resumed rather than racing
++or duplicating it.
++
++Problem addressed: Boolean-plus-placeholder Option/Result records force local
++`None`/error values to invent data for the unselected branch. The checkpoint adds
++source-only eliminator-encoded Either/Maybe helpers, two registered examples and an
++executable driver. This run reconciled the theory with the discovered rank-1 limit:
++dynamic choices share one elimination result type, and the abstraction is not a
++first-class storable sum. No parser form, compiler primitive, guest allocation,
++ABI layout or resource limit changes; core audit remains 33 compiler primitives
++plus four source-prelude callables. Böhm/Berarducci 1985 is cited as prior art; no
++novelty or timing claim.
++
++Fresh completed checks: alternatives 8/8; expanded corpus 108/108; docs 26/26;
++host, reducers, case studies, standard example build and alternatives driver passed;
++core, prelude and operator audits passed. Chromium 144 passed 2,622 core checks plus
++276 experiment checks / 138 experiment cases. HTTP navigation was attempted and
++policy-blocked with `net::ERR_BLOCKED_BY_ADMINISTRATOR`. Scalar examples emit 510
++and 555 byte modules with ASABI 1, zero loops, zero intermediate guest bytes and no
++guest memory; exact compiler-work counts are retained in
++`docs/ALTERNATIVES-VALIDATION.md`.
++
++Publication remains blocked. Exact unsuffixed `npm test` attempts of 900 seconds and
++1,500 seconds both reached passing subtest 1407 with no `not ok` line but never
++reached the final TAP summary before harness termination. Per repository policy this
++is not a pass, so main was not changed. The durable alternatives checkpoint branch
++is the handoff; the next pass should finish that exact validation before considering
++any main fast-forward or a separate native tagged-sum design.
+diff --git a/docs/core-inventory.json b/docs/core-inventory.json
+index 7a8ee98..1144ece 100644
+--- a/docs/core-inventory.json
++++ b/docs/core-inventory.json
+@@ -161,6 +161,10 @@
+       "path": "lib/patterns.ass",
+       "purpose": "Function, predicate, reader, lens and structural result/option composition."
+     },
++    {
++      "path": "lib/alternatives.ass",
++      "purpose": "Kernel-local eliminator-encoded Either/Maybe choices without dummy payloads; values remain staged callables and cannot cross ASABI."
++    },
+     {
+       "path": "lib/machines.ass",
+       "purpose": "Serial stateful composition, reset and typed checkpoint runners over the reducer protocol; products and held updates reuse reducers."
+diff --git a/examples/expanded-corpus.mjs b/examples/expanded-corpus.mjs
+index 0fb0cd3..bfe9cbc 100644
+--- a/examples/expanded-corpus.mjs
++++ b/examples/expanded-corpus.mjs
+@@ -140,6 +140,8 @@ export const expandedCorpus = [
+   {"id":"nested-products","path":"patterns/nested_products.ass","name":"main","args":[3],"expected":50,"inspiration":"ML destructuring"},
+   {"id":"record-lens","path":"patterns/record_lens.ass","name":"main","args":[10],"expected":{"score":15,"active":true},"inspiration":"functional lenses","libraries":["../lib/patterns.ass"]},
+   {"id":"option-map","path":"patterns/option_map.ass","name":"main","args":[3,true],"expected":9,"inspiration":"Rust Option / ML Maybe encoded as a record","libraries":["../lib/patterns.ass"]},
++  {"id":"either-elimination","path":"patterns/either_elimination.ass","name":"main","args":[-4],"expected":-4,"inspiration":"kernel-local eliminator choice with unrelated payload shapes","libraries":["../lib/alternatives.ass"]},
++  {"id":"maybe-elimination","path":"patterns/maybe_elimination.ass","name":"main","args":[3,true],"expected":9,"inspiration":"placeholder-free kernel-local Maybe specialization","libraries":["../lib/alternatives.ass"]},
+   {"id":"result-validation","path":"patterns/result_validation.ass","name":"main","args":[5,2],"expected":{"ok":true,"code":0,"value":250},"inspiration":"Rust Result-style explicit error values","libraries":["../lib/patterns.ass"]},
+   {"id":"reader-configuration","path":"patterns/reader_configuration.ass","name":"main","args":[2,3],"expected":49,"inspiration":"Reader-style dependency injection","libraries":["../lib/patterns.ass"]},
+   {"id":"strategy-dictionary","path":"patterns/strategy_dictionary.ass","name":"main","args":[[2,3,4]],"expected":{"total":9,"product":24},"inspiration":"typeclass/trait dictionary passing; statically staged"},
+diff --git a/package.json b/package.json
+index 4aee880..449f407 100644
+--- a/package.json
++++ b/package.json
+@@ -105,6 +105,8 @@
+     "example:all-operators": "node examples/interop/all-source-operators.mjs",
+     "test:type-programming": "node --test test/type-programming.test.mjs",
+     "example:type-programming": "node examples/interop/type-programming.mjs",
++    "test:alternatives": "node --test test/alternatives.test.mjs",
++    "example:alternatives": "node examples/interop/alternatives.mjs",
+     "test:record-updates": "node --test test/record-updates.test.mjs",
+     "example:record-updates": "node examples/interop/record-updates.mjs"
+   }
